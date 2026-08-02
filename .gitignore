@@ -1,7 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# dependencies (root & frontend subfolder)
 /node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -13,12 +14,16 @@
 # testing
 /coverage
 
-# next.js
+# next.js (root & frontend subfolder)
 /.next/
+.next/
 /out/
 
 # production
 /build
+
+# temp/scratch files
+scratch_move.js
 
 # misc
 .DS_Store
