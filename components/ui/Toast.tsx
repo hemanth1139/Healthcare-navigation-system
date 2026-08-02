@@ -31,19 +31,19 @@ export const Toast: React.FC<ToastProps> = ({
 
   const styles = {
     success: {
-      bg: "bg-[#E6F4F3] border-[#0F6E7A]/30 text-[#0F6E7A]",
-      icon: <CheckCircle2 className="w-5 h-5 text-[#0F6E7A] shrink-0 mt-0.5" />,
-      titleColor: "text-[#0F6E7A]",
+      bg: "bg-green-50 border-green-200 text-green-700",
+      icon: <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />,
+      titleColor: "text-green-700",
     },
     error: {
-      bg: "bg-[#FDF0EE] border-[#E5573F]/40 text-[#1E2A2E]",
-      icon: <AlertTriangle className="w-5 h-5 text-[#E5573F] shrink-0 mt-0.5" />,
-      titleColor: "text-[#E5573F]",
+      bg: "bg-red-50 border-red-200 text-red-700",
+      icon: <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />,
+      titleColor: "text-red-700",
     },
     info: {
-      bg: "bg-[#F7FAFA] border-[#0F6E7A]/20 text-[#1E2A2E]",
-      icon: <CheckCircle2 className="w-5 h-5 text-[#0F6E7A] shrink-0 mt-0.5" />,
-      titleColor: "text-[#0F6E7A]",
+      bg: "bg-blue-50 border-blue-200 text-blue-700",
+      icon: <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />,
+      titleColor: "text-blue-700",
     },
   };
 

@@ -10,10 +10,6 @@ const delay = (ms: number = 600) => new Promise((resolve) => setTimeout(resolve,
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: "en", name: "English", nativeName: "English" },
   { code: "ta", name: "Tamil", nativeName: "தமிழ்" },
-  { code: "hi", name: "Hindi", nativeName: "हिंदी" },
-  { code: "bn", name: "Bengali", nativeName: "বাংলা" },
-  { code: "te", name: "Telugu", nativeName: "తెలుగు" },
-  { code: "mr", name: "Marathi", nativeName: "मराठी" },
 ];
 
 const EMERGENCY_KEYWORDS = [

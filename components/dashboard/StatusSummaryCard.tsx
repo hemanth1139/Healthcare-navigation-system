@@ -11,16 +11,16 @@ export const StatusSummaryCard: React.FC<{ status: HealthStatusSummary }> = ({ s
 
   if (status.hasActiveConcern && (isUrgent || isModerate)) {
     return (
-      <Card className={`border-2 ${isUrgent ? "border-[#E5573F] bg-[#FDF0EE]" : "border-[#0F6E7A]/40 bg-[#E6F4F3]/50"}`}>
+      <Card className={`border-2 ${isUrgent ? "border-red-500 bg-red-50" : "border-blue-600/40 bg-blue-50/50"}`}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isUrgent ? "bg-[#E5573F] text-white" : "bg-[#0F6E7A] text-white"}`}>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isUrgent ? "bg-red-500 text-white" : "bg-blue-600 text-white"}`}>
               <AlertTriangle className="w-6 h-6" />
             </div>
 
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${isUrgent ? "bg-[#E5573F] text-white" : "bg-[#0F6E7A] text-white"}`}>
+                <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${isUrgent ? "bg-red-500 text-white" : "bg-blue-600 text-white"}`}>
                   {isUrgent ? "Emergency Alert" : "Active Concern"}
                 </span>
                 <span className="text-xs text-[#5C6B6E] font-mono">{status.lastChecked}</span>
@@ -52,13 +52,13 @@ export const StatusSummaryCard: React.FC<{ status: HealthStatusSummary }> = ({ s
     <Card className="border border-[#E6F4F3] bg-white">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center shrink-0 border border-[#0F6E7A]/10">
+          <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100">
             <ShieldCheck className="w-6 h-6" />
           </div>
 
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-semibold text-[#0F6E7A] bg-[#E6F4F3] px-2 py-0.5 rounded-full">
+              <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
                 Status: All Clear
               </span>
               <span className="text-xs text-[#5C6B6E] font-mono">{status.lastChecked}</span>

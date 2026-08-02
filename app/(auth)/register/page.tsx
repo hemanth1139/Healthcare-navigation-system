@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { User, Mail, Phone, Lock, Eye, EyeOff, UserPlus, CheckCircle2 } from "lucide-react";
+import { User as UserIcon, Mail, Phone, Lock, Eye, EyeOff, UserPlus } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/Input";
@@ -87,11 +87,11 @@ export default function RegisterPage() {
   return (
     <div className="flex flex-col gap-6">
       {/* Heading */}
-      <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-bold text-[#1E2A2E]">
+      <div className="flex flex-col gap-1 pt-1">
+        <h1 className="font-heading text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
           Create Your Account
         </h1>
-        <p className="text-sm text-[#5C6B6E]">
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
           Join HealthCare Navigator to manage care plans & navigation
         </p>
       </div>
@@ -124,7 +124,7 @@ export default function RegisterPage() {
           placeholder="Dr. Sarah Jenkins"
           autoComplete="name"
           required
-          leftIcon={<User className="w-4 h-4" />}
+          leftIcon={<UserIcon className="w-4 h-4" />}
           error={errors.fullName?.message}
           {...register("fullName")}
         />
@@ -165,7 +165,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="text-[#5C6B6E] hover:text-[#1E2A2E] p-1 rounded focus-ring"
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg focus-ring"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -187,7 +187,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="text-[#5C6B6E] hover:text-[#1E2A2E] p-1 rounded focus-ring"
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg focus-ring"
               aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
             >
               {showConfirmPassword ? (
@@ -203,22 +203,22 @@ export default function RegisterPage() {
 
         {/* Terms & Conditions Checkbox */}
         <div className="flex flex-col gap-1 mt-1">
-          <label className="flex items-start gap-2.5 cursor-pointer text-sm text-[#1E2A2E]">
+          <label className="flex items-start gap-2.5 cursor-pointer text-sm text-slate-900 dark:text-slate-100">
             <input
               type="checkbox"
               required
-              className="mt-1 w-4 h-4 rounded border-[#E6F4F3] text-[#0F6E7A] focus:ring-[#0F6E7A] cursor-pointer"
+              className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
               {...register("acceptTerms")}
             />
-            <span className="text-xs text-[#5C6B6E] leading-relaxed">
+            <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               I agree to the{" "}
-              <a href="#" className="font-semibold text-[#0F6E7A] hover:underline">
+              <Link href="/privacy" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
                 Terms of Service
-              </a>{" "}
+              </Link>{" "}
               and{" "}
-              <a href="#" className="font-semibold text-[#0F6E7A] hover:underline">
+              <Link href="/privacy" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
                 HIPAA Privacy Policy
-              </a>
+              </Link>
               .
             </span>
           </label>
@@ -243,11 +243,11 @@ export default function RegisterPage() {
       </form>
 
       {/* Footer link to Login */}
-      <div className="pt-2 border-t border-[#E6F4F3] text-center text-sm text-[#5C6B6E]">
+      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center text-xs sm:text-sm text-slate-600 dark:text-slate-400">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-bold text-[#0F6E7A] hover:underline focus-ring rounded-sm px-1 py-0.5"
+          className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline focus-ring rounded-sm px-1 py-0.5"
         >
           Sign In
         </Link>

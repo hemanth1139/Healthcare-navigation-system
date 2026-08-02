@@ -54,11 +54,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
             {/* Drawer Header */}
             <div className="h-16 px-4 flex items-center justify-between border-b border-[#E6F4F3]">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#0F6E7A] text-white flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center">
                   <HeartPulse className="w-5 h-5" />
                 </div>
-                <span className="font-heading font-bold text-base text-[#1E2A2E]">
-                  HealthCare<span className="text-[#0F6E7A]">Nav</span>
+                <span className="font-heading font-bold text-base text-slate-900">
+                  HealthCare<span className="text-blue-600">Nav</span>
                 </span>
               </div>
 
@@ -66,7 +66,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
                 onClick={onClose}
                 type="button"
                 aria-label="Close navigation drawer"
-                className="p-2 rounded-xl text-[#5C6B6E] hover:bg-[#E6F4F3] hover:text-[#1E2A2E] focus-ring"
+                className="p-2 rounded-xl text-slate-500 hover:bg-blue-50 hover:text-slate-900 focus-ring"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -74,7 +74,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
 
             {/* Complete Module Links List */}
             <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-              <span className="px-3 text-[10px] font-semibold text-[#5C6B6E] uppercase tracking-wider">
+              <span className="px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                 Clinical Modules
               </span>
               {NAV_ITEMS.map((item) => {
@@ -89,18 +89,18 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
                     href={item.href}
                     className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all ${
                       isActive
-                        ? "bg-[#E6F4F3] text-[#0F6E7A] font-bold border-l-4 border-[#0F6E7A]"
-                        : "text-[#1E2A2E] hover:bg-[#F7FAFA]"
+                        ? "bg-blue-50 text-blue-600 font-bold border-l-4 border-blue-600"
+                        : "text-slate-800 hover:bg-slate-50"
                     }`}
                   >
                     <Icon
                       className={`w-5 h-5 ${
-                        isActive ? "text-[#0F6E7A]" : "text-[#5C6B6E]"
+                        isActive ? "text-blue-600" : "text-slate-400"
                       }`}
                     />
                     <span className="flex-1">{item.label}</span>
                     {item.badge && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-[#0F6E7A] text-white">
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-blue-600 text-white">
                         {item.badge}
                       </span>
                     )}
@@ -109,7 +109,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
               })}
             </nav>
 
-            <div className="p-4 border-t border-[#E6F4F3] bg-[#F7FAFA] text-xs text-[#5C6B6E] text-center">
+            <div className="p-4 border-t border-slate-200 bg-slate-50 text-xs text-slate-400 text-center">
               HealthCare Navigator &copy; {new Date().getFullYear()}
             </div>
           </div>
@@ -119,7 +119,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
       {/* 2. Fixed Mobile Bottom Tab Bar (sm and below) */}
       <nav
         aria-label="Mobile Bottom Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E6F4F3] shadow-[0_-2px_10px_rgba(15,110,122,0.06)] px-2 py-1.5 flex items-center justify-around"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-card px-2 py-1.5 flex items-center justify-around"
       >
         {primaryTabs.map((tab) => {
           const Icon = tab.icon;
@@ -132,12 +132,12 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
               key={tab.href}
               href={tab.href}
               className={`flex flex-col items-center justify-center gap-1 min-w-[60px] py-1 px-2 rounded-xl transition-all ${
-                isActive ? "text-[#0F6E7A] font-semibold" : "text-[#5C6B6E]"
+                isActive ? "text-blue-600 font-semibold" : "text-slate-500"
               }`}
             >
               <div
                 className={`p-1 rounded-lg transition-colors ${
-                  isActive ? "bg-[#E6F4F3]" : "bg-transparent"
+                  isActive ? "bg-blue-50" : "bg-transparent"
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -156,7 +156,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
               // Trigger parent toggle
             }
           }}
-          className="flex flex-col items-center justify-center gap-1 min-w-[60px] py-1 px-2 text-[#5C6B6E]"
+          className="flex flex-col items-center justify-center gap-1 min-w-[60px] py-1 px-2 text-slate-500"
         >
           <div className="p-1 rounded-lg">
             <MoreHorizontal className="w-5 h-5" />

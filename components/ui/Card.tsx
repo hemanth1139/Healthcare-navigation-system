@@ -12,10 +12,10 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div
-      className={`bg-white rounded-2xl p-6 md:p-8 shadow-[0_2px_12px_rgba(15,110,122,0.08)] ${
+      className={`bg-white dark:bg-slate-900 rounded-2xl p-6 md:p-8 shadow-card ${
         interactive
-          ? "border-2 border-[#E6F4F3] hover:border-[#0F6E7A] transition-all duration-200"
-          : "border border-[#E6F4F3]"
+          ? "border-2 border-slate-200 dark:border-slate-800 hover:border-blue-600 dark:hover:border-blue-500 hover:shadow-hover hover:-translate-y-1 transition-all duration-200"
+          : "border border-slate-200 dark:border-slate-800"
       } ${className}`}
       {...props}
     >

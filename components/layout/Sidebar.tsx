@@ -46,26 +46,26 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className={`hidden md:flex flex-col h-screen sticky top-0 bg-white border-r border-[#E6F4F3] transition-all duration-300 z-30 ${
+      className={`hidden md:flex flex-col h-screen sticky top-0 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-all duration-300 z-30 ${
         isCollapsed ? "w-20" : "w-64"
       }`}
     >
       {/* Sidebar Header & Brand Logo */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-[#E6F4F3]">
+      <div className="h-16 px-4 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800">
         <Link
           href="/dashboard"
           className="flex items-center gap-3 overflow-hidden focus-ring rounded-xl p-1"
         >
-          <div className="w-10 h-10 rounded-xl bg-[#0F6E7A] text-white flex items-center justify-center shrink-0 shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-800 text-white flex items-center justify-center shrink-0 shadow-md">
             <HeartPulse className="w-5 h-5 stroke-[2.5]" />
           </div>
 
           {!isCollapsed && (
             <div className="flex flex-col truncate">
-              <span className="font-heading font-bold text-base text-[#1E2A2E] leading-tight tracking-tight">
-                HealthCare<span className="text-[#0F6E7A]">Nav</span>
+              <span className="font-heading font-bold text-base text-slate-900 dark:text-white leading-tight tracking-tight">
+                HealthCare<span className="text-blue-600 dark:text-blue-400">Nav</span>
               </span>
-              <span className="text-[10px] font-semibold text-[#5C6B6E] tracking-wider uppercase">
+              <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 tracking-wider uppercase">
                 Clinical Portal
               </span>
             </div>
@@ -77,7 +77,7 @@ export const Sidebar: React.FC = () => {
           onClick={() => setIsCollapsed(!isCollapsed)}
           type="button"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="w-7 h-7 rounded-lg bg-[#E6F4F3] hover:bg-[#D4ECE9] text-[#0F6E7A] flex items-center justify-center transition-colors focus-ring"
+          className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors focus-ring"
         >
           {isCollapsed ? (
             <ChevronRight className="w-4 h-4" />
@@ -101,13 +101,13 @@ export const Sidebar: React.FC = () => {
               title={isCollapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 relative ${
                 isActive
-                  ? "bg-[#E6F4F3] text-[#0F6E7A] font-semibold border-l-4 border-[#0F6E7A] shadow-sm"
-                  : "text-[#5C6B6E] hover:bg-[#E6F4F3]/50 hover:text-[#1E2A2E]"
+                  ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold border-l-4 border-blue-600 shadow-2xs"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200"
               } ${isCollapsed ? "justify-center" : ""}`}
             >
               <Icon
                 className={`w-5 h-5 shrink-0 ${
-                  isActive ? "text-[#0F6E7A]" : "text-[#5C6B6E]"
+                  isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
                 }`}
               />
 
@@ -116,7 +116,7 @@ export const Sidebar: React.FC = () => {
               )}
 
               {!isCollapsed && item.badge && (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded-md bg-[#0F6E7A] text-white">
+                <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded-md bg-gradient-to-r from-blue-600 to-blue-800 text-white">
                   {item.badge}
                 </span>
               )}
@@ -126,7 +126,7 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* Bottom User Profile Section */}
-      <div className="p-3 border-t border-[#E6F4F3] bg-[#F7FAFA]/60">
+      <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60">
         <UserMenu compact={isCollapsed} />
       </div>
     </aside>

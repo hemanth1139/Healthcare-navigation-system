@@ -24,7 +24,7 @@ export default function DashboardHomePage() {
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       {/* a. Welcome Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E6F4F3] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
         <div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#1E2A2E] tracking-tight">
             Welcome back, {user?.fullName || "Patient"}
@@ -34,7 +34,7 @@ export default function DashboardHomePage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-mono font-medium text-[#0F6E7A] bg-[#E6F4F3] px-3 py-1.5 rounded-xl border border-[#0F6E7A]/15 self-start sm:self-auto">
+        <div className="flex items-center gap-2 text-xs font-mono font-medium text-blue-700 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200 self-start sm:self-auto">
           <Calendar className="w-4 h-4" />
           <span>{todayDate}</span>
         </div>
@@ -64,28 +64,28 @@ export default function DashboardHomePage() {
 
         {/* Health Tip of the Day (1 Column on lg) */}
         <div className="lg:col-span-1">
-          <Card className="bg-gradient-to-br from-[#E6F4F3]/70 to-[#F7FAFA] border-2 border-[#0F6E7A]/20 p-5 flex flex-col gap-3">
+          <Card className="bg-gradient-to-br from-blue-50/70 to-slate-50 border-2 border-blue-200 p-5 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#0F6E7A] bg-white px-2.5 py-1 rounded-full border border-[#0F6E7A]/20">
-                <Sparkles className="w-3.5 h-3.5 text-[#0F6E7A]" /> Tip of the Day
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-600 bg-white px-2.5 py-1 rounded-full border border-blue-200">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" /> Tip of the Day
               </span>
               <span className="text-[11px] font-mono text-[#5C6B6E]">
                 {MOCK_DASHBOARD_DATA.healthTip.readTime}
               </span>
             </div>
 
-            <h3 className="font-heading font-bold text-base text-[#1E2A2E]">
+            <h2 className="font-heading font-bold text-base text-slate-900">
               {MOCK_DASHBOARD_DATA.healthTip.title}
-            </h3>
+            </h2>
 
             <p className="text-xs text-[#5C6B6E] leading-relaxed">
               {MOCK_DASHBOARD_DATA.healthTip.summary}
             </p>
 
-            <div className="pt-2 border-t border-[#0F6E7A]/10 mt-1">
+            <div className="pt-2 border-t border-blue-100 mt-1">
               <Link
                 href="/tips"
-                className="inline-flex items-center text-xs font-semibold text-[#0F6E7A] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
+                className="inline-flex items-center text-xs font-semibold text-blue-600 hover:underline focus-ring rounded p-1 -ml-1 gap-1"
               >
                 <span>Read health articles</span>
                 <ArrowRight className="w-3.5 h-3.5" />

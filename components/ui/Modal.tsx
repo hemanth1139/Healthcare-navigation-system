@@ -67,22 +67,22 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`relative w-full ${maxWidthStyles[maxWidth]} bg-white rounded-2xl shadow-clinical-lg border-2 border-[#E6F4F3] p-6 z-10 animate-in zoom-in-95 duration-150 focus:outline-none`}
+        className={`relative w-full ${maxWidthStyles[maxWidth]} bg-white dark:bg-slate-900 rounded-2xl shadow-clinical-lg border border-slate-200 dark:border-slate-700 p-6 z-10 animate-modalIn focus:outline-none`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-[#E6F4F3] pb-4 mb-4">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-700 pb-4 mb-4">
           <div className="flex flex-col gap-0.5">
-            <h2 id="modal-title" className="font-heading font-bold text-lg text-[#1E2A2E]">
+            <h2 id="modal-title" className="font-heading font-bold text-lg text-slate-900 dark:text-white">
               {title}
             </h2>
-            {subtitle && <p className="text-xs text-[#5C6B6E]">{subtitle}</p>}
+            {subtitle && <p className="text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>}
           </div>
 
           <button
             onClick={onClose}
             type="button"
             aria-label="Close modal dialog"
-            className="text-[#5C6B6E] hover:text-[#1E2A2E] p-1 rounded-xl hover:bg-[#E6F4F3] transition-colors focus-ring"
+            className="text-slate-400 hover:text-blue-600 p-1 rounded-xl hover:bg-blue-50 transition-colors focus-ring"
           >
             <X className="w-5 h-5" />
           </button>

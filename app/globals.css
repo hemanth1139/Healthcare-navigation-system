@@ -1,21 +1,20 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.ts";
 
 :root {
-  --color-primary: #0F6E7A;
-  --color-primary-light: #E6F4F3;
-  --color-urgent: #E5573F;
-  --color-neutral-dark: #1E2A2E;
-  --color-neutral-mid: #5C6B6E;
-  --color-bg-soft: #F7FAFA;
+  --color-primary: #2563eb;
+  --color-primary-light: #eff6ff;
+  --color-urgent: #EF4444;
+  --color-neutral-dark: #0F172A;
+  --color-neutral-mid: #475569;
+  --color-bg-soft: #F8FAFC;
 }
 
 .dark {
-  --color-bg-soft: #121C1F;
-  --color-neutral-dark: #F7FAFA;
-  --color-neutral-mid: #A3B2B5;
-  --color-primary-light: #1A2E33;
+  --color-bg-soft: #0B0F19;
+  --color-neutral-dark: #F8FAFC;
+  --color-neutral-mid: #94A3B8;
+  --color-primary-light: #1e3a8a;
 }
 
 body {
@@ -36,49 +35,66 @@ h1, h2, h3, h4, h5, h6 {
 }
 .focus-ring:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(15, 110, 122, 0.35), 0 0 0 1px #0F6E7A;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35), 0 0 0 1px #2563eb;
 }
 
 .focus-ring-urgent:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(229, 87, 63, 0.35), 0 0 0 1px #E5573F;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.35), 0 0 0 1px #EF4444;
 }
 
 /* Custom Card styling helper */
 .card-clinical {
   background-color: #FFFFFF;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(15, 110, 122, 0.08);
-  border: 1px solid #E6F4F3;
+  box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  border: 1px solid #dbeafe;
 }
 
 .dark .card-clinical {
-  background-color: #1A262A;
-  border-color: #25363B;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  background-color: #151D2A;
+  border-color: #1e3a8a;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
 }
 
 .card-clinical-interactive {
   background-color: #FFFFFF;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(15, 110, 122, 0.08);
-  border: 2px solid #E6F4F3;
+  box-shadow: 0 4px 20px -2px rgba(37, 99, 235, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  border: 2px solid #dbeafe;
   transition: all 0.2s ease-in-out;
 }
 
 .dark .card-clinical-interactive {
-  background-color: #1A262A;
-  border-color: #25363B;
+  background-color: #151D2A;
+  border-color: #1e3a8a;
 }
 
 .card-clinical-interactive:hover {
-  border-color: #0F6E7A;
-  box-shadow: 0 6px 18px rgba(15, 110, 122, 0.12);
+  border-color: #2563eb;
+  box-shadow: 0 8px 24px -4px rgba(37, 99, 235, 0.16);
+  transform: translateY(-2px);
 }
 
 .dark .card-clinical-interactive:hover {
-  border-color: #25A0B0;
-  box-shadow: 0 6px 18px rgba(37, 160, 176, 0.2);
+  border-color: #3b82f6;
+  box-shadow: 0 8px 24px -4px rgba(59, 130, 246, 0.25);
+}
+
+/* Custom Subtle Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
 }
 
 /* Respect prefers-reduced-motion across all keyframe animations */

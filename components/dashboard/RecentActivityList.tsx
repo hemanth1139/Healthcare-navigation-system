@@ -14,7 +14,7 @@ const categoryIconMap = {
 export const RecentActivityList: React.FC<{ activities: ActivityItem[] }> = ({ activities }) => {
   return (
     <Card className="flex flex-col gap-4 p-5 sm:p-6">
-      <div className="flex items-center justify-between border-b border-[#E6F4F3] pb-3">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div>
           <h2 className="font-heading font-bold text-base text-[#1E2A2E]">
             Recent Activity & Triage Logs
@@ -26,23 +26,23 @@ export const RecentActivityList: React.FC<{ activities: ActivityItem[] }> = ({ a
 
         <Link
           href="/predictions"
-          className="text-xs font-semibold text-[#0F6E7A] hover:underline focus-ring rounded px-1 py-0.5"
+          className="text-xs font-semibold text-blue-700 hover:underline focus-ring rounded px-1 py-0.5"
         >
           View All Logs
         </Link>
       </div>
 
-      <div className="divide-y divide-[#E6F4F3]">
+      <div className="divide-y divide-slate-200">
         {activities.map((item) => {
           const CategoryIcon = categoryIconMap[item.category] || Activity;
 
           return (
             <div
               key={item.id}
-              className="py-3.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 group hover:bg-[#F7FAFA] p-2 rounded-xl transition-colors"
+              className="py-3.5 first:pt-0 last:pb-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 group hover:bg-slate-50 p-2 rounded-xl transition-colors"
             >
               <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
                   <CategoryIcon className="w-4 h-4" />
                 </div>
 
@@ -63,7 +63,7 @@ export const RecentActivityList: React.FC<{ activities: ActivityItem[] }> = ({ a
                 <span className="text-xs font-mono text-[#5C6B6E]">{item.timestamp}</span>
                 <Link
                   href={item.linkUrl}
-                  className="p-1.5 rounded-lg text-[#0F6E7A] hover:bg-[#E6F4F3] transition-colors focus-ring"
+                  className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors focus-ring"
                   title="View details"
                 >
                   <ArrowUpRight className="w-4 h-4" />

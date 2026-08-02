@@ -43,18 +43,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-sm font-medium text-[#1E2A2E] flex items-center justify-between"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-between"
           >
             <span>
               {label}
-              {required && <span className="text-[#E5573F] ml-1">*</span>}
+              {required && <span className="text-rose-500 ml-1">*</span>}
             </span>
           </label>
         )}
 
         <div className="relative flex items-center w-full">
           {leftIcon && (
-            <div className="absolute left-3.5 text-[#5C6B6E] pointer-events-none flex items-center justify-center">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none flex items-center justify-center w-4 h-4 z-10">
               {leftIcon}
             </div>
           )}
@@ -65,25 +65,25 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             disabled={disabled}
             aria-invalid={!!error}
             aria-describedby={describedBy || undefined}
-            className={`w-full font-body text-sm text-[#1E2A2E] bg-white placeholder-[#5C6B6E]/60 border rounded-xl transition-all duration-200 focus-ring py-2.5 ${
+            className={`w-full font-body text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-[#1E293B] placeholder:text-slate-400 border rounded-xl transition-all duration-200 py-3 ${
               leftIcon ? "pl-10" : "pl-3.5"
             } ${rightIcon ? "pr-10" : "pr-3.5"} ${
               error
-                ? "border-[#E5573F] focus-ring-urgent"
-                : "border-[#E6F4F3] hover:border-[#0F6E7A]/40 focus:border-[#0F6E7A]"
-            } ${disabled ? "bg-gray-100 opacity-70 cursor-not-allowed" : ""} ${className}`}
+                ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/15"
+                : "border-slate-200 dark:border-slate-700 hover:border-blue-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+            } ${disabled ? "bg-slate-100 dark:bg-slate-800 opacity-70 cursor-not-allowed" : ""} ${className}`}
             {...props}
           />
 
           {rightIcon && (
-            <div className="absolute right-3 flex items-center justify-center">
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center z-10">
               {rightIcon}
             </div>
           )}
         </div>
 
         {helperText && !error && (
-          <p id={helperId} className="text-xs text-[#5C6B6E] mt-0.5">
+          <p id={helperId} className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             {helperText}
           </p>
         )}
