@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Sora, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -23,9 +24,9 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HealthCare Navigator | Secure Healthcare Portal",
+  title: "HealthCare Navigator | AI Triage & Healthcare Portal",
   description:
-    "Empowering patients and caregivers with seamless healthcare navigation, intelligent care plans, and secure portal access.",
+    "Empowering patients with AI symptom triage, diagnostic prediction insights, hospital finder, government schemes, and secure medical record storage.",
 };
 
 export default function RootLayout({
@@ -35,8 +36,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sora.variable} ${inter.variable} ${ibmPlexMono.variable}`}>
-      <body className="bg-[#F7FAFA] text-[#1E2A2E] antialiased font-body min-h-screen">
-        <AuthProvider>{children}</AuthProvider>
+      <body className="bg-[#F7FAFA] dark:bg-[#121C1F] text-[#1E2A2E] dark:text-[#F7FAFA] antialiased font-body min-h-screen transition-colors duration-200">
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
