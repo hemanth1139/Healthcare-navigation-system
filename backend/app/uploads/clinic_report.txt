@@ -1,0 +1,6 @@
+CLINICAL HEALTH VISIT NOTE:
+Patient Name: Record Verification User
+Email Reference: records@example.com
+Patient Phone contact: +15555556666
+Aadhaar: 5555 6666 7777
+Patient presented with chest tightness and severe coughing.

@@ -1,0 +1,74 @@
+# ─── Core Framework ───────────────────────────────────────────────────────────
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+pydantic[email]==2.7.0
+pydantic-settings==2.2.1
+python-multipart==0.0.9
+
+# ─── Database ─────────────────────────────────────────────────────────────────
+sqlalchemy[asyncio]==2.0.30
+asyncpg==0.29.0
+alembic==1.13.1
+
+# ─── Authentication & Security ────────────────────────────────────────────────
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# ─── HTTP Client ──────────────────────────────────────────────────────────────
+httpx==0.27.0
+
+# ─── AI / LLM ─────────────────────────────────────────────────────────────────
+langchain==0.2.1
+langchain-google-genai==1.0.5
+langchain-groq==0.1.4
+langchain-community==0.2.1
+langgraph==0.1.14
+google-generativeai==0.7.2
+groq==0.9.0
+
+# ─── Machine Learning ─────────────────────────────────────────────────────────
+xgboost==2.0.3
+shap==0.45.1
+scikit-learn==1.4.2
+numpy==1.26.4
+pandas==2.2.2
+joblib==1.4.2
+
+# ─── RAG Pipeline ─────────────────────────────────────────────────────────────
+chromadb==0.5.0
+sentence-transformers==2.7.0
+
+# ─── Speech / Translation ─────────────────────────────────────────────────────
+openai-whisper==20231117
+transformers==4.40.0
+torch==2.3.0
+torchaudio==2.3.0
+
+# ─── Privacy & FHIR ───────────────────────────────────────────────────────────
+presidio-analyzer==2.2.354
+presidio-anonymizer==2.2.354
+fhir.resources==7.1.0
+
+# ─── File Storage ─────────────────────────────────────────────────────────────
+cloudinary==1.39.1
+
+# ─── External APIs ────────────────────────────────────────────────────────────
+googlemaps==4.10.0
+
+# ─── AI Safety ────────────────────────────────────────────────────────────────
+guardrails-ai==0.4.5
+
+# ─── Document Parsing (RAG ingestion) ─────────────────────────────────────────
+PyMuPDF==1.24.3
+pypdf==4.2.0
+
+# ─── Email ────────────────────────────────────────────────────────────────────
+aiosmtplib==3.0.1
+email-validator==2.1.1
+
+# ─── Dev / Testing ────────────────────────────────────────────────────────────
+pytest==8.2.0
+pytest-asyncio==0.23.6
+httpx==0.27.0
+python-dotenv==1.0.1
+Pillow==10.3.0

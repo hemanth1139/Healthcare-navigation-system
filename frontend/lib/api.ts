@@ -7,9 +7,9 @@ import { AuthResponse, User } from "@/types/auth";
  * Set USE_MOCK_API to true to simulate backend responses without a running backend server.
  * Set to false when connecting to a real API at process.env.NEXT_PUBLIC_API_URL or '/api/v1'.
  */
-export const USE_MOCK_API = true;
+export const USE_MOCK_API = false;
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.healthcarenavigator.internal/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

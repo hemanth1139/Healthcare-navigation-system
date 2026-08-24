@@ -37,6 +37,34 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# ─── Python / Backend ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Alembic generated (keep versions tracked)
+# alembic/versions/
+
+# ChromaDB vector store (large, regenerable)
+backend/app/rag/chroma_store/
+
+# ML model artifacts (large binaries)
+backend/app/ml/artifacts/*.pkl
+backend/app/ml/artifacts/*.json
+backend/app/ml/artifacts/*.ubj
 
 # vercel
 .vercel
