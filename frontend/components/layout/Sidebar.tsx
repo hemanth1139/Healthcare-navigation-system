@@ -7,18 +7,20 @@ import {
   LayoutDashboard,
   User,
   Stethoscope,
-  Activity,
+  AlertTriangle,
   UserCheck,
   Building2,
   ShieldAlert,
-  FileText,
+  FolderUp,
   Sparkles,
   Settings,
   ChevronLeft,
   ChevronRight,
   HeartPulse,
+  ClipboardList,
 } from "lucide-react";
 import { UserMenu } from "./UserMenu";
+import { useLanguage } from "@/context/LanguageContext";
 
 export interface NavItem {
   label: string;
@@ -31,18 +33,37 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Patient Profile", href: "/profile", icon: User },
   { label: "Symptom Chat", href: "/symptom-chat", icon: Stethoscope, badge: "AI" },
-  { label: "Predictions & History", href: "/predictions", icon: Activity },
   { label: "Specialists", href: "/specialists", icon: UserCheck },
   { label: "Hospitals", href: "/hospitals", icon: Building2 },
   { label: "Government Schemes", href: "/schemes", icon: ShieldAlert },
-  { label: "Medical Records", href: "/records", icon: FileText },
+  { label: "Consultation History", href: "/history", icon: ClipboardList },
+  { label: "Scheme Documents", href: "/documents", icon: FolderUp },
   { label: "Health Tips", href: "/tips", icon: Sparkles },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
+export const SIDEBAR_NAV_ITEMS: NavItem[] = NAV_ITEMS;
+
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { t } = useLanguage();
+
+  const getTranslatedLabel = (href: string, defaultLabel: string) => {
+    switch (href) {
+      case "/dashboard": return t.dashboard;
+      case "/profile": return t.patientProfile;
+      case "/symptom-chat": return t.symptomChat;
+      case "/history": return t.history;
+      case "/schemes": return t.schemes;
+      case "/documents": return t.documents;
+      case "/hospitals": return t.hospitals;
+      case "/specialists": return t.specialists;
+      case "/tips": return t.tips;
+      case "/settings": return t.settings;
+      default: return defaultLabel;
+    }
+  };
 
   return (
     <aside
@@ -89,16 +110,17 @@ export const Sidebar: React.FC = () => {
 
       {/* Navigation Items List */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto custom-scrollbar">
-        {NAV_ITEMS.map((item) => {
+        {SIDEBAR_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive =
             pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const translatedLabel = getTranslatedLabel(item.href, item.label);
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              title={isCollapsed ? item.label : undefined}
+              title={isCollapsed ? translatedLabel : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 relative ${
                 isActive
                   ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold border-l-4 border-blue-600 shadow-2xs"
@@ -112,7 +134,7 @@ export const Sidebar: React.FC = () => {
               />
 
               {!isCollapsed && (
-                <span className="truncate flex-1">{item.label}</span>
+                <span className="truncate flex-1">{translatedLabel}</span>
               )}
 
               {!isCollapsed && item.badge && (

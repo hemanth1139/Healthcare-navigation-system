@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Phone, ShieldAlert, Edit, Plus } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface EmergencyContactCardProps {
   name?: string;
@@ -11,6 +12,7 @@ interface EmergencyContactCardProps {
 
 export const EmergencyContactCard: React.FC<EmergencyContactCardProps> = ({ name, phone }) => {
   const hasContact = name && phone;
+  const { t, language } = useLanguage();
 
   return (
     <Card className="border-2 border-[#0F6E7A]/25 bg-gradient-to-r from-[#E6F4F3]/90 via-[#F7FAFA] to-white shadow-sm p-4 sm:p-5">
@@ -23,7 +25,7 @@ export const EmergencyContactCard: React.FC<EmergencyContactCardProps> = ({ name
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F6E7A] bg-white px-2.5 py-0.5 rounded-full border border-[#0F6E7A]/20">
-                Primary Emergency Contact
+                {t.emergencyContactTitle}
               </span>
             </div>
 
@@ -43,10 +45,12 @@ export const EmergencyContactCard: React.FC<EmergencyContactCardProps> = ({ name
             ) : (
               <>
                 <h3 className="font-heading font-semibold text-sm text-[#E5573F] mt-0.5">
-                  No Emergency Contact Configured
+                  {language === "ta" ? "அவசர கால தொடர்பு அமைக்கப்படவில்லை" : "No Emergency Contact Configured"}
                 </h3>
                 <p className="text-xs text-[#5C6B6E]">
-                  Please specify an emergency contact so care navigators can reach your family in a crisis.
+                  {language === "ta"
+                    ? "அவசர நிலையில் தொடர்புகொள்ள ஒருவரைச் சேர்க்கவும்."
+                    : "Please specify an emergency contact so care navigators can reach your family in a crisis."}
                 </p>
               </>
             )}
@@ -57,14 +61,14 @@ export const EmergencyContactCard: React.FC<EmergencyContactCardProps> = ({ name
           <Link href="/profile/edit#emergency-contact" className="w-full sm:w-auto shrink-0">
             <Button variant="secondary" size="sm" fullWidth>
               <Edit className="w-3.5 h-3.5 mr-1.5" />
-              <span>Edit Contact</span>
+              <span>{language === "ta" ? "தொடர்பைத் திருத்து" : "Edit Contact"}</span>
             </Button>
           </Link>
         ) : (
           <Link href="/profile/edit#emergency-contact" className="w-full sm:w-auto shrink-0">
             <Button variant="urgent" size="sm" fullWidth>
               <Plus className="w-3.5 h-3.5 mr-1.5" />
-              <span>Add Emergency Contact</span>
+              <span>{language === "ta" ? "தொடர்பைச் சேர்" : "Add Emergency Contact"}</span>
             </Button>
           </Link>
         )}

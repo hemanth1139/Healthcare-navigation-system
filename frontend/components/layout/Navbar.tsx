@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Bell, Menu, Globe, HeartPulse } from "lucide-react";
 import { UserMenu } from "./UserMenu";
 import { NAV_ITEMS } from "./Sidebar";
+import { useLanguage, Language } from "@/context/LanguageContext";
 
 export interface NavbarProps {
   onOpenMobileNav?: () => void;
@@ -12,7 +13,7 @@ export interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileNav }) => {
   const pathname = usePathname();
-  const [language, setLanguage] = useState("English");
+  const { language, setLanguage, t } = useLanguage();
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(3);
 
@@ -21,10 +22,27 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileNav }) => {
     const matched = NAV_ITEMS.find(
       (item) => item.href === pathname || (item.href !== "/dashboard" && pathname.startsWith(item.href))
     );
-    return matched ? matched.label : "Healthcare Portal";
+    if (!matched) return t.portalTitle;
+
+    switch (matched.href) {
+      case "/dashboard": return t.dashboard;
+      case "/profile": return t.patientProfile;
+      case "/symptom-chat": return t.symptomChat;
+      case "/history": return t.history;
+      case "/schemes": return t.schemes;
+      case "/documents": return t.documents;
+      case "/hospitals": return t.hospitals;
+      case "/specialists": return t.specialists;
+      case "/tips": return t.tips;
+      case "/settings": return t.settings;
+      default: return matched.label;
+    }
   };
 
-  const languages = ["English", "Tamil (தமிழ்)"];
+  const languages: { id: Language; label: string; flag: string }[] = [
+    { id: "en", label: "English", flag: "🇬🇧" },
+    { id: "ta", label: "தமிழ் (Tamil)", flag: "🇮🇳" },
+  ];
 
   return (
     <header className="sticky top-0 z-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 h-16 px-4 sm:px-6 flex items-center justify-between shadow-xs">
@@ -60,26 +78,27 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileNav }) => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors focus-ring"
           >
             <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span className="hidden sm:inline">{language.split(" ")[0]}</span>
+            <span className="font-semibold">{language === "ta" ? "தமிழ்" : "English"}</span>
           </button>
 
           {isLangOpen && (
             <div className="absolute right-0 mt-2 w-44 rounded-2xl bg-white dark:bg-slate-800 shadow-2xl border border-slate-200 dark:border-slate-700 py-1.5 z-50 animate-in fade-in">
               {languages.map((lang) => (
                 <button
-                  key={lang}
+                  key={lang.id}
                   onClick={() => {
-                    setLanguage(lang);
+                    setLanguage(lang.id);
                     setIsLangOpen(false);
                   }}
                   type="button"
-                  className={`w-full text-left px-3.5 py-2 text-xs transition-colors ${
-                    language === lang
+                  className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between transition-colors ${
+                    language === lang.id
                       ? "bg-blue-50 dark:bg-blue-950/60 font-bold text-blue-600 dark:text-blue-400"
                       : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50"
                   }`}
                 >
-                  {lang}
+                  <span>{lang.label}</span>
+                  <span className="text-sm">{lang.flag}</span>
                 </button>
               ))}
             </div>

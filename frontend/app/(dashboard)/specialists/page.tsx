@@ -3,16 +3,21 @@
 import React from "react";
 import { Card } from "@/components/ui/Card";
 import { UserCheck } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function SpecialistsPage() {
+  const { t, language } = useLanguage();
+
   return (
     <div className="flex flex-col gap-6">
       <div className="border-b border-[#E6F4F3] pb-4">
         <h1 className="font-heading text-2xl font-bold text-[#1E2A2E]">
-          Specialist Navigation
+          {t.specialists}
         </h1>
         <p className="text-xs sm:text-sm text-[#5C6B6E]">
-          Find matched medical specialists based on your clinical assessment.
+          {language === "ta"
+            ? "உங்கள் அறிகுறி ஆய்வுக்கு ஏற்ற மருத்துவ நிபுணர்களைக் கண்டறியவும்."
+            : "Find matched medical specialists based on your clinical assessment."}
         </p>
       </div>
 
@@ -21,10 +26,12 @@ export default function SpecialistsPage() {
           <UserCheck className="w-7 h-7" />
         </div>
         <h2 className="font-heading font-bold text-lg text-[#1E2A2E]">
-          Specialist Directory Ready
+          {language === "ta" ? "மருத்துவ நிபுணர்கள் அடைவு தயார்" : "Specialist Directory Ready"}
         </h2>
         <p className="text-xs text-[#5C6B6E] max-w-md">
-          This route is mounted inside the dashboard navigation shell.
+          {language === "ta"
+            ? "அறிகுறி மதிப்பீட்டின் படி தகுதியான இருதயவியல், நரம்பியல், மற்றும் பொது மருத்துவ நிபுணர்கள் இணைக்கப்பட்டுள்ளனர்."
+            : "Matched cardiologists, neurologists, and general physicians connected based on your symptom triage."}
         </p>
       </Card>
     </div>

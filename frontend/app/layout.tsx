@@ -3,6 +3,7 @@ import { Sora, Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 const sora = Sora({
   subsets: ["latin"],
@@ -38,7 +39,9 @@ export default function RootLayout({
     <html lang="en" className={`${sora.variable} ${inter.variable} ${ibmPlexMono.variable}`}>
       <body className="bg-[#F7FAFA] dark:bg-[#121C1F] text-[#1E2A2E] dark:text-[#F7FAFA] antialiased font-body min-h-screen transition-colors duration-200">
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <LanguageProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

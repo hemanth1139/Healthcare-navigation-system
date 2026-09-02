@@ -32,8 +32,8 @@ export const SchemeQueryPanel: React.FC<SchemeQueryPanelProps> = ({
 
     setIsQuerying(true);
     try {
-      const res = await schemeApi.querySchemeEligibility(q, scopedSchemeId);
-      onQueryResult(res);
+      const { query } = await schemeApi.querySchemeEligibility(q, scopedSchemeId);
+      onQueryResult(query);
     } catch (err) {
       alert("Failed to query scheme eligibility. Please try again.");
     } finally {

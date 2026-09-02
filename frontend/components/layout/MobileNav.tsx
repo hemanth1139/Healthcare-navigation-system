@@ -6,14 +6,14 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Stethoscope,
-  Activity,
+  ClipboardList,
   Building2,
   User,
   MoreHorizontal,
   X,
   HeartPulse,
 } from "lucide-react";
-import { NAV_ITEMS } from "./Sidebar";
+import { SIDEBAR_NAV_ITEMS } from "./Sidebar";
 
 export interface MobileNavProps {
   isOpen: boolean;
@@ -28,11 +28,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
     onClose();
   }, [pathname, onClose]);
 
-  // Primary 5 bottom tab bar items
+  // Primary 5 bottom tab bar items — Phase 1: History replaces Predictions
   const primaryTabs = [
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Symptom Chat", href: "/symptom-chat", icon: Stethoscope },
-    { label: "Predictions", href: "/predictions", icon: Activity },
+    { label: "History", href: "/history", icon: ClipboardList },
     { label: "Hospitals", href: "/hospitals", icon: Building2 },
     { label: "Profile", href: "/profile", icon: User },
   ];
@@ -77,7 +77,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
               <span className="px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                 Clinical Modules
               </span>
-              {NAV_ITEMS.map((item) => {
+              {SIDEBAR_NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const isActive =
                   pathname === item.href ||
@@ -149,13 +149,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
 
         {/* More Button */}
         <button
-          onClick={() => (isOpen ? onClose() : onClose())}
+          onClick={onClose}
           type="button"
-          onClickCapture={() => {
-            if (!isOpen) {
-              // Trigger parent toggle
-            }
-          }}
           className="flex flex-col items-center justify-center gap-1 min-w-[60px] py-1 px-2 text-slate-500"
         >
           <div className="p-1 rounded-lg">

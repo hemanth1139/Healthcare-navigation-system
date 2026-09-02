@@ -6,9 +6,11 @@ import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Droplet, Apple, Sun, Activity, ShieldCheck, Heart, Clock, Sparkles } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const HealthTipCard: React.FC<{ tip: HealthTip }> = ({ tip }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { language } = useLanguage();
 
   const getIcon = () => {
     switch (tip.icon_type) {
@@ -27,6 +29,16 @@ export const HealthTipCard: React.FC<{ tip: HealthTip }> = ({ tip }) => {
     }
   };
 
+  const getTranslatedCategory = (cat: string) => {
+    if (language !== "ta") return cat;
+    switch (cat.toLowerCase()) {
+      case "seasonal": return "பருவகால ஆரோக்கியம்";
+      case "chronic condition": return "நாள்பட்ட நோய் பராமரிப்பு";
+      case "general wellness": return "பொது நல்வாழ்வு";
+      default: return cat;
+    }
+  };
+
   return (
     <>
       <Card
@@ -42,7 +54,7 @@ export const HealthTipCard: React.FC<{ tip: HealthTip }> = ({ tip }) => {
             </div>
 
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#0F6E7A] bg-[#E6F4F3] px-2.5 py-0.5 rounded-full line-clamp-1">
-              {tip.category}
+              {getTranslatedCategory(tip.category)}
             </span>
           </div>
 
@@ -54,7 +66,7 @@ export const HealthTipCard: React.FC<{ tip: HealthTip }> = ({ tip }) => {
           {/* Target Condition Badge if any */}
           {tip.target_condition && (
             <span className="text-[11px] font-semibold text-[#0F6E7A] bg-[#E6F4F3]/70 px-2 py-0.5 rounded-md w-fit">
-              Personalized for {tip.target_condition}
+              {language === "ta" ? `${tip.target_condition} க்கான பிரத்யேக பரிந்துரை` : `Personalized for ${tip.target_condition}`}
             </span>
           )}
 
@@ -67,9 +79,12 @@ export const HealthTipCard: React.FC<{ tip: HealthTip }> = ({ tip }) => {
         {/* Card Footer: Read Time */}
         <div className="flex items-center justify-between pt-3 border-t border-[#E6F4F3] text-xs text-[#5C6B6E]">
           <span className="font-mono flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-[#0F6E7A]" /> {tip.read_time}
+            <Clock className="w-3.5 h-3.5 text-[#0F6E7A]" />{" "}
+            {language === "ta" ? tip.read_time.replace("min read", "நிமிட வாசிப்பு") : tip.read_time}
           </span>
-          <span className="font-semibold text-[#0F6E7A]">Read Tip →</span>
+          <span className="font-semibold text-[#0F6E7A]">
+            {language === "ta" ? "குறிப்பைப் படிக்க →" : "Read Tip →"}
+          </span>
         </div>
       </Card>
 
@@ -78,7 +93,9 @@ export const HealthTipCard: React.FC<{ tip: HealthTip }> = ({ tip }) => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         title={tip.title}
-        subtitle={`${tip.category} • ${tip.read_time}`}
+        subtitle={`${getTranslatedCategory(tip.category)} • ${
+          language === "ta" ? tip.read_time.replace("min read", "நிமிட வாசிப்பு") : tip.read_time
+        }`}
       >
         <div className="flex flex-col gap-4 pt-1">
           <div className="bg-[#E6F4F3]/60 border border-[#0F6E7A]/20 rounded-2xl p-4 flex items-start gap-3">
@@ -87,10 +104,12 @@ export const HealthTipCard: React.FC<{ tip: HealthTip }> = ({ tip }) => {
             </div>
             <div>
               <span className="text-xs font-bold text-[#0F6E7A] uppercase">
-                Clinical Health Guidance
+                {language === "ta" ? "மருத்துவ சுகாதார வழிகாட்டுதல்" : "Clinical Health Guidance"}
               </span>
               <p className="text-xs text-[#1E2A2E] font-medium mt-0.5">
-                Evidence-based prevention advice tailored to your profile & region.
+                {language === "ta"
+                  ? "உங்கள் சுயவிவரம் மற்றும் பகுதிக்கு ஏற்ப ஆதாரப்பூர்வமான தடுப்பு ஆலோசனைகள்."
+                  : "Evidence-based prevention advice tailored to your profile & region."}
               </p>
             </div>
           </div>
@@ -101,7 +120,7 @@ export const HealthTipCard: React.FC<{ tip: HealthTip }> = ({ tip }) => {
 
           <div className="pt-3 border-t border-[#E6F4F3] flex justify-end">
             <Button variant="primary" size="md" onClick={() => setIsOpen(false)}>
-              Close Tip
+              {language === "ta" ? "மூடுக" : "Close Tip"}
             </Button>
           </div>
         </div>

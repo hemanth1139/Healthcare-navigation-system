@@ -2,6 +2,7 @@
 
 import React from "react";
 import { HealthTipCategory } from "@/types/healthTip";
+import { useLanguage } from "@/context/LanguageContext";
 
 export interface HealthTipFilterChipsProps {
   selectedCategory: HealthTipCategory | "All";
@@ -14,6 +15,8 @@ export const HealthTipFilterChips: React.FC<HealthTipFilterChipsProps> = ({
   onSelectCategory,
   showChronicCategory = true,
 }) => {
+  const { language } = useLanguage();
+
   const categories: (HealthTipCategory | "All")[] = [
     "All",
     "General Wellness",
@@ -24,6 +27,18 @@ export const HealthTipFilterChips: React.FC<HealthTipFilterChipsProps> = ({
   if (showChronicCategory) {
     categories.push("Chronic Condition Management");
   }
+
+  const getLabel = (cat: HealthTipCategory | "All") => {
+    if (language !== "ta") return cat;
+    switch (cat) {
+      case "All": return "அனைத்தும்";
+      case "General Wellness": return "பொது நல்வாழ்வு";
+      case "Nutrition": return "ஊட்டச்சத்து";
+      case "Seasonal": return "பருவகால ஆரோக்கியம்";
+      case "Chronic Condition Management": return "நாள்பட்ட நோய் பராமரிப்பு";
+      default: return cat;
+    }
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-2 my-2">
@@ -40,7 +55,7 @@ export const HealthTipFilterChips: React.FC<HealthTipFilterChipsProps> = ({
                 : "bg-white text-[#5C6B6E] hover:text-[#1E2A2E] border border-[#E6F4F3] hover:bg-[#E6F4F3]/50"
             }`}
           >
-            {cat}
+            {getLabel(cat)}
           </button>
         );
       })}

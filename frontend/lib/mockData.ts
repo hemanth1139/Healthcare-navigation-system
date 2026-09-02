@@ -13,7 +13,7 @@ export interface QuickActionItem {
   id: string;
   title: string;
   description: string;
-  iconName: "Stethoscope" | "FileUp" | "Building2" | "ShieldAlert" | "User" | "Sparkles";
+  iconName: "Stethoscope" | "FileUp" | "Building2" | "ShieldAlert" | "User" | "Sparkles" | "FolderUp";
   linkUrl: string;
   badgeText?: string;
   isPrimary?: boolean;
@@ -22,7 +22,7 @@ export interface QuickActionItem {
 export interface ActivityItem {
   id: string;
   title: string;
-  category: "prediction" | "record" | "consultation" | "scheme";
+  category: "symptom_consultation" | "document_upload" | "consultation" | "scheme_query";
   timestamp: string;
   status: "Completed" | "Pending" | "Reviewed";
   details: string;
@@ -60,30 +60,30 @@ export const MOCK_DASHBOARD_DATA: DashboardData = {
     {
       id: "act_1",
       title: "Start Symptom Check",
-      description: "AI-assisted clinical triage and navigation guidance.",
+      description: "Gemini 2.5 Flash multi-turn conversational intake.",
       iconName: "Stethoscope",
       linkUrl: "/symptom-chat",
-      badgeText: "AI Recommended",
+      badgeText: "AI",
       isPrimary: true,
     },
     {
       id: "act_2",
-      title: "Upload Medical Record",
-      description: "Securely upload lab reports, prescriptions, or imaging.",
+      title: "Upload Scheme Documents",
+      description: "Upload Income Certificate, Aadhaar, Ration Card for eligibility.",
       iconName: "FileUp",
-      linkUrl: "/records",
+      linkUrl: "/documents",
     },
     {
       id: "act_3",
-      title: "Find a Hospital",
-      description: "Locate nearby emergency centers & specialist clinics.",
+      title: "Find Nearby Hospital",
+      description: "Google Maps-powered nearby hospital finder.",
       iconName: "Building2",
       linkUrl: "/hospitals",
     },
     {
       id: "act_4",
       title: "Check Scheme Eligibility",
-      description: "Explore government health insurance & subsidies.",
+      description: "RAG-powered PM-JAY & state scheme eligibility assistant.",
       iconName: "ShieldAlert",
       linkUrl: "/schemes",
     },
@@ -91,39 +91,39 @@ export const MOCK_DASHBOARD_DATA: DashboardData = {
   recentActivities: [
     {
       id: "rec_001",
-      title: "Symptom Assessment - Mild Migraine",
-      category: "prediction",
+      title: "Symptom Assessment — Tension Headache",
+      category: "symptom_consultation",
       timestamp: "2 hours ago",
       status: "Completed",
-      details: "Triage recommendation: Hydration & rest. Follow up if persistent.",
-      linkUrl: "/predictions",
+      details: "Urgency: NON-URGENT • Specialist: General Physician • 3 conversation turns",
+      linkUrl: "/history",
     },
     {
       id: "rec_002",
-      title: "Blood Panel Report Uploaded",
-      category: "record",
+      title: "Income Certificate Uploaded",
+      category: "document_upload",
       timestamp: "Yesterday, 4:15 PM",
       status: "Reviewed",
-      details: "CBC & Lipid Panel added to personal health repository.",
-      linkUrl: "/records",
+      details: "Status: Verified • Linked to PM-JAY eligibility assessment.",
+      linkUrl: "/documents",
     },
     {
       id: "rec_003",
-      title: "Government Subsidy Verification",
-      category: "scheme",
+      title: "Ayushman Vaya Vandana Eligibility Check",
+      category: "scheme_query",
       timestamp: "3 days ago",
       status: "Completed",
-      details: "Eligible for Ayushman Bharat PM-JAY Tier 1 coverage.",
+      details: "Overall Status: ELIGIBLE • 3 criteria assessed • Evidence from 2 documents.",
       linkUrl: "/schemes",
     },
     {
       id: "rec_004",
-      title: "Virtual Specialist Consultation",
+      title: "Symptom Assessment — Seasonal Allergy",
       category: "consultation",
       timestamp: "1 week ago",
       status: "Completed",
-      details: "Dr. Aris Thorne (Cardiology) - Routine checkup notes added.",
-      linkUrl: "/specialists",
+      details: "Urgency: ROUTINE • Specialist: Allergist / Immunologist recommended.",
+      linkUrl: "/history",
     },
   ],
   healthTip: {

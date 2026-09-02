@@ -11,10 +11,12 @@ import { HospitalDetailModal } from "@/components/hospitals/HospitalDetailModal"
 import { Spinner } from "@/components/ui/Spinner";
 import { Map, List, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function HospitalsPage() {
   const searchParams = useSearchParams();
   const initialSpecialist = searchParams?.get("specialist") || "";
+  const { t, language } = useLanguage();
 
   const [hospitals, setHospitals] = useState<HospitalWithDistance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +76,7 @@ export default function HospitalsPage() {
       <div className="flex flex-col items-center justify-center p-12 min-h-[400px]">
         <Spinner size="lg" color="primary" />
         <span className="text-xs text-[#5C6B6E] mt-2">
-          Searching nearby medical facilities & ER trauma centers...
+          {language === "ta" ? "அருகிலுள்ள மருத்துவமனைகள் தேடப்படுகின்றன..." : "Searching nearby medical facilities & ER trauma centers..."}
         </span>
       </div>
     );
@@ -86,10 +88,12 @@ export default function HospitalsPage() {
       <div className="border-b border-[#E6F4F3] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#1E2A2E] tracking-tight">
-            Nearby Hospitals & Medical Centers
+            {t.hospitals}
           </h1>
           <p className="text-xs sm:text-sm text-[#5C6B6E]">
-            Locate 24/7 emergency rooms and specialized care facilities near your position
+            {language === "ta"
+              ? "24/7 அவசர சிகிச்சை மற்றும் சிறப்பு மருத்துவமனைகளைக் கண்டறியவும்"
+              : "Locate 24/7 emergency rooms and specialized care facilities near your position"}
           </p>
         </div>
       </div>

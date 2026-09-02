@@ -7,6 +7,7 @@ import {
   ShieldAlert,
   User,
   Sparkles,
+  FolderUp,
   ArrowRight,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
@@ -19,6 +20,7 @@ const iconMap = {
   ShieldAlert,
   User,
   Sparkles,
+  FolderUp,
 };
 
 export const QuickActionCard: React.FC<{ action: QuickActionItem }> = ({ action }) => {

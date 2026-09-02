@@ -28,10 +28,12 @@ import {
   Ruler,
   Weight,
 } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function ProfilePage() {
   const searchParams = useSearchParams();
   const toastParam = searchParams.get("toast");
+  const { t, language } = useLanguage();
 
   const [record, setRecord] = useState<FullPatientRecord | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -76,7 +78,9 @@ export default function ProfilePage() {
     return (
       <div className="flex flex-col items-center justify-center p-12 gap-3 min-h-[400px]">
         <Spinner size="lg" color="primary" />
-        <span className="text-xs text-[#5C6B6E]">Loading patient clinical profile...</span>
+        <span className="text-xs text-[#5C6B6E]">
+          {language === "ta" ? "நோயாளி சுயவிவர விவரங்கள் ஏற்றப்படுகின்றன..." : "Loading patient clinical profile..."}
+        </span>
       </div>
     );
   }
@@ -89,8 +93,8 @@ export default function ProfilePage() {
       {showToast && (
         <Toast
           type="success"
-          title="Profile Saved"
-          message="Your personal health details have been updated."
+          title={language === "ta" ? "சுயவிவரம் சேமிக்கப்பட்டது" : "Profile Saved"}
+          message={language === "ta" ? "உங்கள் தனிப்பட்ட உடல்நல விவரங்கள் புதுப்பிக்கப்பட்டன." : "Your personal health details have been updated."}
           onClose={() => setShowToast(false)}
         />
       )}
@@ -99,17 +103,17 @@ export default function ProfilePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E6F4F3] pb-4">
         <div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#1E2A2E]">
-            Patient Profile
+            {t.profileTitle}
           </h1>
           <p className="text-xs sm:text-sm text-[#5C6B6E]">
-            Comprehensive health record, allergies, chronic conditions, and emergency contacts
+            {t.profileSubtitle}
           </p>
         </div>
 
         <Link href="/profile/edit">
           <Button variant="primary" size="md">
             <Edit className="w-4 h-4 mr-2" />
-            Edit Personal Details
+            {t.editProfile}
           </Button>
         </Link>
       </div>
@@ -135,7 +139,7 @@ export default function ProfilePage() {
           }`}
         >
           <User className="w-4 h-4" />
-          <span>Personal Details</span>
+          <span>{t.personalInformation}</span>
         </button>
 
         <button
@@ -148,7 +152,7 @@ export default function ProfilePage() {
           }`}
         >
           <AlertTriangle className="w-4 h-4" />
-          <span>Allergies ({allergies.length})</span>
+          <span>{t.knownAllergiesTitle} ({allergies.length})</span>
         </button>
 
         <button
@@ -161,7 +165,7 @@ export default function ProfilePage() {
           }`}
         >
           <Activity className="w-4 h-4" />
-          <span>Chronic Conditions ({chronicConditions.length})</span>
+          <span>{t.chronicConditionsTitle} ({chronicConditions.length})</span>
         </button>
 
         <button
@@ -174,7 +178,7 @@ export default function ProfilePage() {
           }`}
         >
           <Pill className="w-4 h-4" />
-          <span>Medications ({medications.length})</span>
+          <span>{t.currentMedicationsTitle} ({medications.length})</span>
         </button>
       </div>
 
@@ -184,12 +188,12 @@ export default function ProfilePage() {
           <Card className="p-6 flex flex-col gap-6">
             <div className="flex items-center justify-between border-b border-[#E6F4F3] pb-4">
               <h3 className="font-heading font-bold text-lg text-[#1E2A2E]">
-                Personal & Physical Parameters
+                {t.personalInformation}
               </h3>
               <Link href="/profile/edit">
                 <Button variant="secondary" size="sm">
                   <Edit className="w-3.5 h-3.5 mr-1" />
-                  Edit Parameters
+                  {t.editProfile}
                 </Button>
               </Link>
             </div>
@@ -197,7 +201,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-4 rounded-xl bg-[#F7FAFA] border border-[#E6F4F3]">
                 <span className="text-xs text-[#5C6B6E] flex items-center gap-1 mb-1">
-                  <Calendar className="w-3.5 h-3.5 text-[#0F6E7A]" /> Date of Birth
+                  <Calendar className="w-3.5 h-3.5 text-[#0F6E7A]" /> {language === "ta" ? "பிறந்த தேதி" : "Date of Birth"}
                 </span>
                 <span className="text-sm font-semibold text-[#1E2A2E]">
                   {profile.date_of_birth || "Not specified"}
@@ -206,7 +210,7 @@ export default function ProfilePage() {
 
               <div className="p-4 rounded-xl bg-[#F7FAFA] border border-[#E6F4F3]">
                 <span className="text-xs text-[#5C6B6E] flex items-center gap-1 mb-1">
-                  <User className="w-3.5 h-3.5 text-[#0F6E7A]" /> Gender
+                  <User className="w-3.5 h-3.5 text-[#0F6E7A]" /> {t.gender}
                 </span>
                 <span className="text-sm font-semibold text-[#1E2A2E]">
                   {profile.gender || "Not specified"}
@@ -215,7 +219,7 @@ export default function ProfilePage() {
 
               <div className="p-4 rounded-xl bg-[#F7FAFA] border border-[#E6F4F3]">
                 <span className="text-xs text-[#5C6B6E] flex items-center gap-1 mb-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#0F6E7A]" /> Blood Group
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#0F6E7A]" /> {t.bloodGroup}
                 </span>
                 <span className="text-sm font-mono font-bold text-[#0F6E7A] bg-[#E6F4F3] px-2 py-0.5 rounded-md inline-block">
                   {profile.blood_group || "Unknown"}
@@ -224,7 +228,7 @@ export default function ProfilePage() {
 
               <div className="p-4 rounded-xl bg-[#F7FAFA] border border-[#E6F4F3]">
                 <span className="text-xs text-[#5C6B6E] flex items-center gap-1 mb-1">
-                  <Ruler className="w-3.5 h-3.5 text-[#0F6E7A]" /> Height & Weight
+                  <Ruler className="w-3.5 h-3.5 text-[#0F6E7A]" /> {language === "ta" ? "உயரம் & எடைக" : "Height & Weight"}
                 </span>
                 <span className="text-sm font-semibold text-[#1E2A2E]">
                   {profile.height_cm ? `${profile.height_cm} cm` : "--"} /{" "}
@@ -236,7 +240,7 @@ export default function ProfilePage() {
             <div className="p-4 rounded-xl bg-[#F7FAFA] border border-[#E6F4F3] flex items-start gap-3">
               <MapPin className="w-5 h-5 text-[#0F6E7A] shrink-0 mt-0.5" />
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs text-[#5C6B6E]">Residential Address</span>
+                <span className="text-xs text-[#5C6B6E]">{t.address}</span>
                 <span className="text-sm font-medium text-[#1E2A2E]">
                   {profile.address
                     ? `${profile.address}, ${profile.city}, ${profile.state} - ${profile.pincode}`

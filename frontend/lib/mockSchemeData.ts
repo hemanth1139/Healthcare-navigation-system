@@ -1,4 +1,13 @@
-import { GovernmentScheme, SchemeQuery } from "@/types/scheme";
+// Phase 1: Updated scheme mock data with multi-document RAG eligibility reasoning,
+// criterion-level PASS/FAIL/UNKNOWN results and evidence sources with page numbers
+
+import {
+  GovernmentScheme,
+  SchemeQuery,
+  MultiDocEligibilityResult,
+  EligibilityCriterion,
+  EvidenceSource,
+} from "@/types/scheme";
 
 const delay = (ms: number = 300) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -109,6 +118,179 @@ export const MOCK_SCHEMES: GovernmentScheme[] = [
   },
 ];
 
+// Build multi-doc eligibility result for senior citizen example
+const SENIOR_EVIDENCE_SOURCES: EvidenceSource[] = [
+  {
+    chunk_id: "chk_vaya_1",
+    document_title: "Ayushman Vaya Vandana Scheme Guidelines 2024",
+    page_number: 4,
+    excerpt:
+      "Clause 2.1 Universal Coverage for Seniors: Every individual citizen who has attained 70 years of age shall be eligible for distinct health cover up to ₹5,00,000 per annum across empanelled hospitals.",
+    official_url: "https://pmjay.gov.in/vaya-vandana",
+    relevance_score: 0.97,
+  },
+  {
+    chunk_id: "chk_vaya_2",
+    document_title: "NHA Circular NHA/PMJAY/SENIOR/2024",
+    page_number: 2,
+    excerpt:
+      "Income Exemption: Senior citizens 70+ from non-BPL families will receive a dedicated Ayushman Card upon e-KYC verification using Aadhaar. No income threshold applies.",
+    official_url: "https://pmjay.gov.in",
+    relevance_score: 0.94,
+  },
+];
+
+const SENIOR_CRITERIA: EligibilityCriterion[] = [
+  {
+    criterion_id: "cr_age",
+    criterion_name: "Age Requirement",
+    criterion_result: "PASS",
+    patient_value: "72 years old",
+    required_value: "70 years and above",
+    explanation: "Patient is 72 years old, which meets the minimum age requirement of 70 years.",
+    supporting_evidence: [SENIOR_EVIDENCE_SOURCES[0]],
+  },
+  {
+    criterion_id: "cr_nationality",
+    criterion_name: "Indian Citizenship",
+    criterion_result: "PASS",
+    patient_value: "Indian citizen",
+    required_value: "Indian citizen",
+    explanation: "Patient is confirmed as an Indian citizen.",
+    supporting_evidence: [SENIOR_EVIDENCE_SOURCES[0]],
+  },
+  {
+    criterion_id: "cr_income",
+    criterion_name: "Income Limit",
+    criterion_result: "PASS",
+    patient_value: "Any income",
+    required_value: "No income limit applies for 70+",
+    explanation:
+      "The Ayushman Vaya Vandana Scheme has no income eligibility restriction for citizens aged 70 and above.",
+    supporting_evidence: [SENIOR_EVIDENCE_SOURCES[1]],
+  },
+];
+
+const PMJAY_EVIDENCE_SOURCES: EvidenceSource[] = [
+  {
+    chunk_id: "chk_pmjay_1",
+    document_title: "Ayushman Bharat PM-JAY Master Operational Guidelines",
+    page_number: 12,
+    excerpt:
+      "Chapter 3: Beneficiary Identification: Households identified through SECC 2011 data or active state health cards are automatically eligible for secondary and tertiary care hospitalization up to ₹5,00,000.",
+    official_url: "https://pmjay.gov.in",
+    relevance_score: 0.91,
+  },
+  {
+    chunk_id: "chk_pmjay_2",
+    document_title: "PM-JAY Scheme Beneficiary Categories – Revised 2025",
+    page_number: 7,
+    excerpt:
+      "Urban Occupational Categories (Appendix B): Street vendors/hawkers, domestic workers, rag pickers, construction workers, and transport workers are categorized as PM-JAY eligible beneficiaries.",
+    official_url: "https://pmjay.gov.in",
+    relevance_score: 0.84,
+  },
+  {
+    chunk_id: "chk_secc",
+    document_title: "SECC 2011 Data — Eligibility Mapping (NHA Reference)",
+    page_number: 3,
+    excerpt:
+      "Families not covered under SECC 2011 may apply via state-specific portals for manual verification. Additional categories may be included under state-level PM-JAY extensions.",
+    official_url: "https://pmjay.gov.in",
+    relevance_score: 0.78,
+  },
+];
+
+const PMJAY_CRITERIA: EligibilityCriterion[] = [
+  {
+    criterion_id: "cr_bpl",
+    criterion_name: "BPL / SECC 2011 Coverage",
+    criterion_result: "UNKNOWN",
+    patient_value: "Not confirmed in profile",
+    required_value: "Must be in SECC 2011 BPL database",
+    explanation:
+      "Patient has not provided SECC 2011 beneficiary ID or BPL certificate. Eligibility under this criterion cannot be confirmed without this information.",
+    supporting_evidence: [PMJAY_EVIDENCE_SOURCES[0], PMJAY_EVIDENCE_SOURCES[2]],
+    is_missing_info: true,
+  },
+  {
+    criterion_id: "cr_income_pmjay",
+    criterion_name: "Family Income",
+    criterion_result: "UNKNOWN",
+    patient_value: "Not provided",
+    required_value: "Below poverty line or SECC 2011 defined threshold",
+    explanation:
+      "Annual family income has not been provided in the patient profile. Income verification is needed via income certificate.",
+    supporting_evidence: [PMJAY_EVIDENCE_SOURCES[1]],
+    is_missing_info: true,
+  },
+];
+
+// Build multi-doc eligibility results
+const MOCK_ELIGIBILITY_RESULTS: Record<string, MultiDocEligibilityResult> = {
+  senior: {
+    query_id: "q_high_001",
+    scheme_id: "sch_03",
+    user_question: "Am I eligible for Ayushman Vaya Vandana if I am 72 years old?",
+    overall_status: "ELIGIBLE",
+    overall_explanation:
+      "Based on official government documents, you are fully eligible for the Ayushman Vaya Vandana Scheme. All Indian citizens aged 70 years and above qualify automatically, regardless of income or BPL status. Your age of 72 years satisfies the primary eligibility criterion.",
+    criteria_breakdown: SENIOR_CRITERIA,
+    missing_information: [],
+    all_evidence_sources: SENIOR_EVIDENCE_SOURCES,
+    queried_at: new Date().toISOString(),
+  },
+  pmjay_general: {
+    query_id: "q_gen_001",
+    scheme_id: "sch_01",
+    user_question: "Am I eligible for Ayushman Bharat PM-JAY?",
+    overall_status: "INSUFFICIENT_INFORMATION",
+    overall_explanation:
+      "Based on the available patient information, your PM-JAY eligibility could not be fully determined. The key missing information is your SECC 2011 beneficiary status and annual family income. Please provide your BPL certificate or SECC 2011 ID to complete the assessment.",
+    criteria_breakdown: PMJAY_CRITERIA,
+    missing_information: [
+      "SECC 2011 Beneficiary ID or BPL card number",
+      "Annual family income (Income Certificate)",
+      "State of residence (for state-specific PM-JAY extension eligibility)",
+    ],
+    all_evidence_sources: PMJAY_EVIDENCE_SOURCES,
+    queried_at: new Date().toISOString(),
+  },
+  exclusion: {
+    query_id: "q_low_001",
+    scheme_id: undefined,
+    user_question: "Is cosmetic surgery covered under PM-JAY?",
+    overall_status: "NOT_ELIGIBLE",
+    overall_explanation:
+      "Cosmetic and aesthetic procedures are explicitly excluded from all major government healthcare schemes including PM-JAY, CGHS, and state health insurance schemes. Only medically necessary procedures are covered.",
+    criteria_breakdown: [
+      {
+        criterion_id: "cr_medical_necessity",
+        criterion_name: "Medical Necessity",
+        criterion_result: "FAIL",
+        patient_value: "Cosmetic procedure (elective aesthetic)",
+        required_value: "Medically necessary procedure",
+        explanation:
+          "Section 4.2 of PM-JAY Operational Guidelines explicitly excludes cosmetic, aesthetic, and elective non-medical procedures from scheme coverage.",
+        supporting_evidence: [
+          {
+            chunk_id: "chk_ex_1",
+            document_title: "Ayushman Bharat PM-JAY Exclusion List",
+            page_number: 18,
+            excerpt:
+              "Section 4.2 Exclusions: OPD care, cosmetic surgeries, organ transplant procedures not approved by Medical Board, and elective aesthetic treatments are excluded from PM-JAY coverage.",
+            official_url: "https://pmjay.gov.in",
+            relevance_score: 0.98,
+          },
+        ],
+      },
+    ],
+    missing_information: [],
+    all_evidence_sources: [],
+    queried_at: new Date().toISOString(),
+  },
+};
+
 export const schemeApi = {
   getSchemes: async (
     categoryFilter?: string,
@@ -140,89 +322,71 @@ export const schemeApi = {
     return MOCK_SCHEMES.find((s) => s.scheme_id === schemeId) || null;
   },
 
-  // RAG Query Handler Simulation
+  // Phase 1: RAG + Multi-document eligibility query handler
   querySchemeEligibility: async (
     userQuestion: string,
     schemeId?: string
-  ): Promise<SchemeQuery> => {
-    await delay(700);
+  ): Promise<{ query: SchemeQuery; eligibilityResult: MultiDocEligibilityResult }> => {
+    await delay(900); // Simulate RAG pipeline time
 
     const qLower = userQuestion.toLowerCase();
 
-    // Check for Low Confidence trigger
+    let eligibilityResult: MultiDocEligibilityResult;
+    let aiResponse: string;
+
     if (
       qLower.includes("cosmetic") ||
       qLower.includes("tattoo") ||
       qLower.includes("car insurance") ||
       qLower.includes("private gym")
     ) {
-      return {
-        query_id: `q_low_${Date.now()}`,
-        scheme_id: schemeId,
-        user_question: userQuestion,
-        confidence_score: 0.42,
-        is_low_confidence: true,
-        ai_response:
-          "We couldn't find a strong match for this specific query in official government scheme documentation. Most government healthcare schemes (such as Ayushman Bharat PM-JAY and CGHS) strictly exclude cosmetic procedures, aesthetic treatments, and non-medical wellness facilities.",
-        retrieved_chunks: [
-          {
-            chunk_id: "chk_ex_1",
-            scheme_name: "Ayushman Bharat PM-JAY Exclusion List",
-            excerpt:
-              "Section 4.2 Exclusions: OPD care, cosmetic surgeries, organ transplant procedures not approved by Medical Board, and elective aesthetic treatments are excluded from PM-JAY coverage.",
-            official_url: "https://pmjay.gov.in",
-          },
-        ],
-      };
-    }
-
-    // High Confidence Match for Senior Care / Ayushman / Maternal
-    if (qLower.includes("70") || qLower.includes("senior") || qLower.includes("elderly")) {
-      return {
+      eligibilityResult = MOCK_ELIGIBILITY_RESULTS.exclusion;
+      aiResponse = eligibilityResult.overall_explanation;
+    } else if (
+      qLower.includes("70") ||
+      qLower.includes("72") ||
+      qLower.includes("senior") ||
+      qLower.includes("elderly") ||
+      qLower.includes("vaya vandana")
+    ) {
+      eligibilityResult = {
+        ...MOCK_ELIGIBILITY_RESULTS.senior,
         query_id: `q_high_${Date.now()}`,
-        scheme_id: schemeId || "sch_03",
         user_question: userQuestion,
-        confidence_score: 0.92,
-        is_low_confidence: false,
-        ai_response:
-          "Yes! Under the newly expanded Ayushman Vaya Vandana Scheme (October 2024 onwards), all Indian citizens aged 70 years and above are eligible for free health cover up to ₹5 Lakhs per year, regardless of family income status. You do not need to fall below the poverty line (BPL).",
-        retrieved_chunks: [
-          {
-            chunk_id: "chk_vaya_1",
-            scheme_name: "Ayushman Vaya Vandana Scheme Guidelines 2024",
-            excerpt:
-              "Clause 2.1 Universal Coverage for Seniors: Every individual citizen who has attained 70 years of age shall be eligible for distinct health cover up to ₹5,00,000 per annum across empanelled hospitals.",
-            official_url: "https://pmjay.gov.in/vaya-vandana",
-          },
-          {
-            chunk_id: "chk_vaya_2",
-            scheme_name: "NHA Circular NHA/PMJAY/SENIOR/2024",
-            excerpt:
-              "Income Exemption: Senior citizens 70+ from non-BPL families will receive a dedicated Ayushman Card upon e-KYC verification using Aadhaar.",
-            official_url: "https://pmjay.gov.in",
-          },
-        ],
+        queried_at: new Date().toISOString(),
       };
+      aiResponse = eligibilityResult.overall_explanation;
+    } else {
+      eligibilityResult = {
+        ...MOCK_ELIGIBILITY_RESULTS.pmjay_general,
+        query_id: `q_gen_${Date.now()}`,
+        user_question: userQuestion,
+        queried_at: new Date().toISOString(),
+      };
+      aiResponse = eligibilityResult.overall_explanation;
     }
 
-    // Default High Confidence Ayushman/General Match
-    return {
-      query_id: `q_gen_${Date.now()}`,
-      scheme_id: schemeId || "sch_01",
+    const query: SchemeQuery = {
+      query_id: eligibilityResult.query_id,
+      scheme_id: schemeId || eligibilityResult.scheme_id,
       user_question: userQuestion,
-      confidence_score: 0.84,
-      is_low_confidence: false,
-      ai_response:
-        "Based on official government guidelines for Ayushman Bharat PM-JAY, BPL families and low-income households (income under ₹1.2L–₹2L per annum depending on state norms or SECC 2011 criteria) qualify for ₹5 Lakhs annual cashless hospitalization cover. Surgeries, ICU care, and diagnostics are fully covered.",
-      retrieved_chunks: [
-        {
-          chunk_id: "chk_pmjay_1",
-          scheme_name: "Ayushman Bharat PM-JAY Master Operational Guidelines",
-          excerpt:
-            "Chapter 3: Beneficiary Identification: Households identified through SECC 2011 data or active state health cards are automatically eligible for secondary and tertiary care hospitalization up to ₹5,00,000.",
-          official_url: "https://pmjay.gov.in",
-        },
-      ],
+      ai_response: aiResponse,
+      retrieved_chunks: eligibilityResult.all_evidence_sources.map((e) => ({
+        chunk_id: e.chunk_id,
+        scheme_name: e.document_title,
+        excerpt: e.excerpt,
+        official_url: e.official_url,
+      })),
+      confidence_score:
+        eligibilityResult.overall_status === "ELIGIBLE"
+          ? 0.95
+          : eligibilityResult.overall_status === "NOT_ELIGIBLE"
+          ? 0.98
+          : 0.72,
+      is_low_confidence: eligibilityResult.overall_status === "INSUFFICIENT_INFORMATION",
+      eligibility_result: eligibilityResult,
     };
+
+    return { query, eligibilityResult };
   },
 };

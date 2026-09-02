@@ -13,9 +13,8 @@ export interface HistoryFilterBarProps {
 
 const TYPE_OPTIONS: { id: HistoryTypeFilter; label: string; icon: React.ReactNode }[] = [
   { id: "All", label: "All Activity", icon: <Filter className="w-3.5 h-3.5" /> },
-  { id: "conversation", label: "Symptom Checks", icon: <MessageSquare className="w-3.5 h-3.5" /> },
-  { id: "prediction", label: "Predictions", icon: <Activity className="w-3.5 h-3.5" /> },
-  { id: "record", label: "Records", icon: <FileText className="w-3.5 h-3.5" /> },
+  { id: "symptom_consultation", label: "Consultations", icon: <MessageSquare className="w-3.5 h-3.5" /> },
+  { id: "document_upload", label: "Documents", icon: <FileText className="w-3.5 h-3.5" /> },
   { id: "scheme_query", label: "Scheme Queries", icon: <Landmark className="w-3.5 h-3.5" /> },
 ];
 

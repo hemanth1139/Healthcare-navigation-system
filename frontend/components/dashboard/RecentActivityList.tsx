@@ -1,13 +1,17 @@
 import React from "react";
 import Link from "next/link";
-import { Activity, FileText, UserCheck, ShieldAlert, ArrowUpRight } from "lucide-react";
+import { Activity, FileText, UserCheck, ShieldAlert, FolderUp, ArrowUpRight } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { ActivityItem } from "@/lib/mockData";
 
-const categoryIconMap = {
+const categoryIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  symptom_consultation: Activity,
+  document_upload: FolderUp,
+  consultation: UserCheck,
+  scheme_query: ShieldAlert,
+  // Legacy fallbacks
   prediction: Activity,
   record: FileText,
-  consultation: UserCheck,
   scheme: ShieldAlert,
 };
 
@@ -25,7 +29,7 @@ export const RecentActivityList: React.FC<{ activities: ActivityItem[] }> = ({ a
         </div>
 
         <Link
-          href="/predictions"
+          href="/history"
           className="text-xs font-semibold text-blue-700 hover:underline focus-ring rounded px-1 py-0.5"
         >
           View All Logs

@@ -9,19 +9,21 @@ import { LanguageSelector } from "./LanguageSelector";
 import { Conversation } from "@/types/chat";
 import { mockChatApi } from "@/lib/mockChatData";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const ConversationStartCard: React.FC<{
   activeConversation?: Conversation | null;
 }> = ({ activeConversation }) => {
   const { user } = useAuth();
   const router = useRouter();
-  const [selectedLanguage, setSelectedLanguage] = useState("en");
+  const { t, language, setLanguage } = useLanguage();
+  const [selectedLanguage, setSelectedLanguage] = useState(language);
   const [isStarting, setIsStarting] = useState(false);
 
   const handleStartNew = async () => {
     setIsStarting(true);
     try {
-      const conv = await mockChatApi.startConversation(user?.id || "usr_demo", selectedLanguage);
+      const conv = await mockChatApi.startConversation(user?.id || "usr_demo", language);
       router.push(`/chat/${conv.conversation_id}`);
     } catch (err) {
       alert("Failed to start conversation. Please try again.");
@@ -75,10 +77,14 @@ export const ConversationStartCard: React.FC<{
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-[#5C6B6E]">Language:</span>
+            <span className="text-xs font-semibold text-[#5C6B6E]">{t.selectLanguage}:</span>
             <LanguageSelector
-              currentLanguage={selectedLanguage}
-              onSelectLanguage={(lang) => setSelectedLanguage(lang)}
+              currentLanguage={language}
+              onSelectLanguage={(lang) => {
+                const newLang = lang as "en" | "ta";
+                setSelectedLanguage(newLang);
+                setLanguage(newLang);
+              }}
             />
           </div>
         </div>
@@ -88,10 +94,10 @@ export const ConversationStartCard: React.FC<{
             <Sparkles className="w-3.5 h-3.5" /> AI Triage Assistant
           </div>
           <h2 className="font-heading font-bold text-2xl sm:text-3xl text-[#1E2A2E] tracking-tight">
-            Tell us what&apos;s bothering you
+            {t.tellUsBothering}
           </h2>
           <p className="text-xs sm:text-sm text-[#5C6B6E] leading-relaxed max-w-lg">
-            Share your symptoms in plain language or voice audio. Our AI Clinical Assistant will guide your triage steps and help locate appropriate care specialists.
+            {t.tellUsBotheringDesc}
           </p>
         </div>
 
@@ -106,7 +112,7 @@ export const ConversationStartCard: React.FC<{
             className="sm:w-auto px-8"
           >
             <Stethoscope className="w-5 h-5 mr-2" />
-            Start Symptom Check
+            {t.startSymptomCheckBtn}
           </Button>
         </div>
 
@@ -114,7 +120,7 @@ export const ConversationStartCard: React.FC<{
         <div className="pt-4 border-t border-[#E6F4F3] flex items-center gap-2 text-xs text-[#5C6B6E]">
           <ShieldCheck className="w-4 h-4 text-[#0F6E7A] shrink-0" />
           <span>
-            <strong>Clinical Note:</strong> This assessment provides triage recommendations and next steps, not a definitive medical diagnosis. For life-threatening emergencies, call 108 immediately.
+            <strong>Clinical Note:</strong> {t.disclaimerNotice}
           </span>
         </div>
       </Card>
