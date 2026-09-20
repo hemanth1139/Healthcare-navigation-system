@@ -5,10 +5,9 @@ import { SettingsSection } from "@/components/settings/SettingsSection";
 import { LanguagePreference } from "@/components/settings/LanguagePreference";
 import { ThemeToggle } from "@/components/settings/ThemeToggle";
 import { AccountSettings } from "@/components/settings/AccountSettings";
-import { NotificationPreferences } from "@/components/settings/NotificationPreferences";
 import { PrivacyDataSection } from "@/components/settings/PrivacyDataSection";
 import { DangerZone } from "@/components/settings/DangerZone";
-import { Globe, Sun, User, Bell, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Globe, Sun, User, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export default function SettingsPage() {
   return (
@@ -19,7 +18,7 @@ export default function SettingsPage() {
           Application Settings & Preferences
         </h1>
         <p className="text-xs sm:text-sm text-[#5C6B6E] dark:text-[#A3B2B5] mt-1">
-          Manage application language, display theme mode, profile account details, notifications, and data privacy
+          Manage application language, display theme mode, profile account details, and data privacy
         </p>
       </div>
 
@@ -51,13 +50,6 @@ export default function SettingsPage() {
             >
               <User className="w-4 h-4 text-[#0F6E7A] dark:text-[#25A0B0]" />
               <span>Account Settings</span>
-            </a>
-            <a
-              href="#notifications"
-              className="p-2.5 rounded-xl text-[#5C6B6E] dark:text-[#A3B2B5] hover:text-[#0F6E7A] dark:hover:text-[#25A0B0] hover:bg-[#E6F4F3]/50 dark:hover:bg-[#0F6E7A]/20 transition-colors flex items-center gap-2"
-            >
-              <Bell className="w-4 h-4 text-[#0F6E7A] dark:text-[#25A0B0]" />
-              <span>Notification Preferences</span>
             </a>
             <a
               href="#privacy"
@@ -103,15 +95,6 @@ export default function SettingsPage() {
             icon={<User className="w-5 h-5" />}
           >
             <AccountSettings />
-          </SettingsSection>
-
-          <SettingsSection
-            id="notifications"
-            title="Notification Preferences"
-            description="Control emergency alerts, health tips, and government scheme updates"
-            icon={<Bell className="w-5 h-5" />}
-          >
-            <NotificationPreferences />
           </SettingsSection>
 
           <SettingsSection

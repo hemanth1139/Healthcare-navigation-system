@@ -11,6 +11,7 @@ const delay = (ms: number = 300) => new Promise((resolve) => setTimeout(resolve,
 let MOCK_PATIENT_RECORD: FullPatientRecord = {
   profile: {
     profile_id: "prf_778129",
+    patient_name: "Dr. Sarah Jenkins",
     date_of_birth: "1988-06-14",
     gender: "Female",
     blood_group: "O+",

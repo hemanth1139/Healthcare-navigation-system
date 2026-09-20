@@ -121,6 +121,38 @@ export default function ProfilePage() {
       {/* Profile Completeness Bar (<100%) */}
       <ProfileCompletenessBar record={record} />
 
+      {/* Patient Identity Header Banner */}
+      <Card className="p-5 bg-gradient-to-r from-[#0F6E7A]/10 via-[#0F6E7A]/5 to-transparent border border-[#0F6E7A]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-[#0F6E7A] text-white flex items-center justify-center font-heading font-bold text-xl shadow-md shrink-0">
+            {profile.patient_name
+              ? profile.patient_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+              : "PT"}
+          </div>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="font-heading text-xl sm:text-2xl font-bold text-[#1E2A2E]">
+                {profile.patient_name || "Dr. Sarah Jenkins"}
+              </h2>
+              <span className="text-[11px] font-semibold text-[#0F6E7A] bg-[#E6F4F3] border border-[#0F6E7A]/20 px-2.5 py-0.5 rounded-full">
+                Primary Patient
+              </span>
+            </div>
+            <p className="text-xs text-[#5C6B6E] flex items-center gap-2 flex-wrap">
+              <span>Patient ID: <strong className="font-mono text-[#1E2A2E]">{profile.profile_id}</strong></span>
+              <span>•</span>
+              <span>{profile.gender || "Female"}</span>
+              {profile.date_of_birth && (
+                <>
+                  <span>•</span>
+                  <span>DOB: {profile.date_of_birth}</span>
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+      </Card>
+
       {/* Emergency Contact Card (Pinned near top) */}
       <EmergencyContactCard
         name={profile.emergency_contact_name}
@@ -198,7 +230,16 @@ export default function ProfilePage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="p-4 rounded-xl bg-[#F7FAFA] border border-[#E6F4F3]">
+                <span className="text-xs text-[#5C6B6E] flex items-center gap-1 mb-1">
+                  <User className="w-3.5 h-3.5 text-[#0F6E7A]" /> Patient Name
+                </span>
+                <span className="text-sm font-bold text-[#1E2A2E]">
+                  {profile.patient_name || "Dr. Sarah Jenkins"}
+                </span>
+              </div>
+
               <div className="p-4 rounded-xl bg-[#F7FAFA] border border-[#E6F4F3]">
                 <span className="text-xs text-[#5C6B6E] flex items-center gap-1 mb-1">
                   <Calendar className="w-3.5 h-3.5 text-[#0F6E7A]" /> {language === "ta" ? "பிறந்த தேதி" : "Date of Birth"}
@@ -289,6 +330,10 @@ export default function ProfilePage() {
           {openAccordions.details && (
             <div className="mt-4 pt-4 border-t border-[#E6F4F3] flex flex-col gap-3">
               <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="col-span-2 pb-1 border-b border-[#E6F4F3]">
+                  <span className="text-[#5C6B6E]">Patient Name:</span>{" "}
+                  <span className="font-bold text-[#1E2A2E]">{profile.patient_name || "Dr. Sarah Jenkins"}</span>
+                </div>
                 <div>
                   <span className="text-[#5C6B6E]">DOB:</span>{" "}
                   <span className="font-semibold">{profile.date_of_birth || "--"}</span>

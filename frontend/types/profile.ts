@@ -15,6 +15,7 @@ export type AllergySeverity = "Mild" | "Moderate" | "Severe";
 
 export interface PatientProfile {
   profile_id: string;
+  patient_name?: string;
   date_of_birth?: string;
   gender?: GenderOption;
   blood_group?: BloodGroupOption;

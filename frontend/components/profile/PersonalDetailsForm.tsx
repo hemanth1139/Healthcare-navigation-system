@@ -17,6 +17,7 @@ const phoneRegex = /^(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/;
 const pincodeRegex = /^\d{6}$/;
 
 const profileSchema = z.object({
+  patient_name: z.string().optional(),
   date_of_birth: z.string().optional(),
   gender: z.enum(["Male", "Female", "Other", "Prefer not to say"] as const).optional(),
   blood_group: z.enum(["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-", "Unknown"] as const).optional(),
@@ -59,6 +60,7 @@ export const PersonalDetailsForm: React.FC<{
   } = useForm<PersonalDetailsFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
+      patient_name: initialData.patient_name || "",
       date_of_birth: initialData.date_of_birth || "",
       gender: initialData.gender || "Male",
       blood_group: initialData.blood_group || "Unknown",
@@ -95,6 +97,15 @@ export const PersonalDetailsForm: React.FC<{
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Patient Full Name"
+            type="text"
+            placeholder="e.g. Dr. Sarah Jenkins"
+            leftIcon={<User className="w-4 h-4" />}
+            error={errors.patient_name?.message}
+            {...register("patient_name")}
+          />
+
           <Input
             label="Date of Birth"
             type="date"
