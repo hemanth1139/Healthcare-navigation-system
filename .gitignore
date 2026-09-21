@@ -77,4 +77,4 @@ next-env.d.ts
 *.db
 *.sqlite3
 backend/app/uploads/*.mp3
-app/
+
