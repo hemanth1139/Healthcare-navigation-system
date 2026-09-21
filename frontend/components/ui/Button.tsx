@@ -24,17 +24,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      "inline-flex items-center justify-center font-heading font-semibold transition-all duration-150 focus-ring disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer select-none rounded-xl active:scale-95";
+      "inline-flex items-center justify-center font-heading font-semibold transition-colors duration-150 focus-ring disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer select-none rounded-lg active:scale-[0.98]";
 
     const variantStyles = {
-      primary:
-        "bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-blue-500/25",
+      primary: "bg-teal-600 hover:bg-teal-700 text-white",
       secondary:
-        "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800",
+        "bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/60 border border-teal-200 dark:border-teal-800",
       ghost:
-        "bg-transparent text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40",
-      urgent:
-        "bg-gradient-to-r from-[#EF4444] to-[#F43F5E] hover:from-[#DC2626] hover:to-[#E11D48] text-white shadow-md hover:shadow-rose-500/25",
+        "bg-transparent text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950/40",
+      urgent: "bg-[#EF4444] hover:bg-[#DC2626] text-white",
     };
 
     const sizeStyles = {

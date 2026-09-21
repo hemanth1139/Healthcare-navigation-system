@@ -11,12 +11,12 @@ export const EligibilityResultCard: React.FC<{ result: SchemeQuery }> = ({ resul
   const isLowConfidence = result.is_low_confidence || confidencePct < 60;
 
   return (
-    <Card className="p-5 sm:p-6 border-2 border-[#0F6E7A]/30 bg-white shadow-clinical-lg flex flex-col gap-4 animate-in fade-in zoom-in-98 duration-200 my-4">
+    <Card className="p-5 sm:p-6 border-2 border-[#0D9488]/30 bg-white shadow-clinical-lg flex flex-col gap-4 animate-in fade-in zoom-in-98 duration-200 my-4">
       {/* Header Info: User Question & Confidence Indicator */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E6F4F3] pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#F0FDFA] pb-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-[#0F6E7A] shrink-0" />
-          <h3 className="font-heading font-bold text-sm text-[#1E2A2E]">
+          <Sparkles className="w-5 h-5 text-[#0D9488] shrink-0" />
+          <h3 className="font-heading font-bold text-sm text-[#0F172A]">
             AI Eligibility Synthesis & Retrieval
           </h3>
         </div>
@@ -26,7 +26,7 @@ export const EligibilityResultCard: React.FC<{ result: SchemeQuery }> = ({ resul
           className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold w-fit ${
             isLowConfidence
               ? "bg-[#FEF3C7] text-[#92400E] border border-[#F59E0B]/30"
-              : "bg-[#E6F4F3] text-[#0F6E7A] border border-[#0F6E7A]/20"
+              : "bg-[#F0FDFA] text-[#0D9488] border border-[#0D9488]/20"
           }`}
           aria-label={`Match confidence: ${confidencePct}%`}
         >
@@ -36,9 +36,9 @@ export const EligibilityResultCard: React.FC<{ result: SchemeQuery }> = ({ resul
       </div>
 
       {/* Quoted Original User Question */}
-      <div className="flex items-start gap-2 text-xs text-[#5C6B6E] bg-[#F7FAFA] p-3 rounded-xl border border-[#E6F4F3]">
-        <Quote className="w-4 h-4 text-[#0F6E7A] shrink-0 rotate-180 mt-0.5" />
-        <p className="italic font-medium text-[#1E2A2E]">&quot;{result.user_question}&quot;</p>
+      <div className="flex items-start gap-2 text-xs text-[#64748B] bg-[#F8FAFC] p-3 rounded-xl border border-[#F0FDFA]">
+        <Quote className="w-4 h-4 text-[#0D9488] shrink-0 rotate-180 mt-0.5" />
+        <p className="italic font-medium text-[#0F172A]">&quot;{result.user_question}&quot;</p>
       </div>
 
       {/* Low Confidence Warning Framing if applicable */}
@@ -50,7 +50,7 @@ export const EligibilityResultCard: React.FC<{ result: SchemeQuery }> = ({ resul
       )}
 
       {/* Main AI Response Text */}
-      <div className="text-xs sm:text-sm text-[#1E2A2E] leading-relaxed font-body font-normal space-y-2">
+      <div className="text-xs sm:text-sm text-[#0F172A] leading-relaxed font-body font-normal space-y-2">
         <p className="whitespace-pre-wrap">{result.ai_response}</p>
       </div>
 
@@ -58,10 +58,10 @@ export const EligibilityResultCard: React.FC<{ result: SchemeQuery }> = ({ resul
       <EvidenceSourceList chunks={result.retrieved_chunks} />
 
       {/* Permanent Medical & Government Disclaimer Strip */}
-      <div className="bg-[#E6F4F3]/60 border border-[#0F6E7A]/20 rounded-xl p-3 flex items-start gap-2 text-xs text-[#5C6B6E]">
-        <ShieldCheck className="w-4 h-4 text-[#0F6E7A] shrink-0 mt-0.5" />
+      <div className="bg-[#F0FDFA]/60 border border-[#0D9488]/20 rounded-xl p-3 flex items-start gap-2 text-xs text-[#64748B]">
+        <ShieldCheck className="w-4 h-4 text-[#0D9488] shrink-0 mt-0.5" />
         <p>
-          <strong className="text-[#1E2A2E] font-semibold">Official Scheme Disclaimer:</strong> This is an AI-generated summary to help you understand your options. Confirm final eligibility guidelines directly with official scheme departments before applying.
+          <strong className="text-[#0F172A] font-semibold">Official Scheme Disclaimer:</strong> This is an AI-generated summary to help you understand your options. Confirm final eligibility guidelines directly with official scheme departments before applying.
         </p>
       </div>
     </Card>

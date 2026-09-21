@@ -69,18 +69,18 @@ export const RecordUploadModal: React.FC<RecordUploadModalProps> = ({
         {!selectedFile ? (
           <RecordUploadZone onFilesSelected={handleFilesSelected} />
         ) : (
-          <div className="flex flex-col gap-4 bg-[#F7FAFA] border border-[#E6F4F3] rounded-2xl p-4 sm:p-5">
+          <div className="flex flex-col gap-4 bg-[#F8FAFC] border border-[#F0FDFA] rounded-2xl p-4 sm:p-5">
             {/* Selected File Header */}
-            <div className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-[#E6F4F3]">
+            <div className="flex items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-[#F0FDFA]">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center shrink-0">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="font-heading font-bold text-xs sm:text-sm text-[#1E2A2E] truncate">
+                  <span className="font-heading font-bold text-xs sm:text-sm text-[#0F172A] truncate">
                     {selectedFile.name}
                   </span>
-                  <span className="font-mono text-[11px] text-[#5C6B6E]">
+                  <span className="font-mono text-[11px] text-[#64748B]">
                     {formatFileSize(selectedFile.size)} • {selectedFile.type || "Document"}
                   </span>
                 </div>
@@ -90,7 +90,7 @@ export const RecordUploadModal: React.FC<RecordUploadModalProps> = ({
                 onClick={() => setSelectedFile(null)}
                 type="button"
                 aria-label="Remove selected file"
-                className="p-1 rounded-lg text-[#5C6B6E] hover:text-[#1E2A2E] focus-ring cursor-pointer"
+                className="p-1 rounded-lg text-[#64748B] hover:text-[#0F172A] focus-ring cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -98,13 +98,13 @@ export const RecordUploadModal: React.FC<RecordUploadModalProps> = ({
 
             {/* Category Select (Required) */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-[#1E2A2E]">
-                Record Category <span className="text-[#E5573F]">*</span>
+              <label className="text-xs font-semibold text-[#0F172A]">
+                Record Category <span className="text-[#EF4444]">*</span>
               </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as RecordCategory)}
-                className="w-full font-body text-xs sm:text-sm text-[#1E2A2E] bg-white border border-[#E6F4F3] rounded-xl px-3.5 py-2.5 focus-ring cursor-pointer"
+                className="w-full font-body text-xs sm:text-sm text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl px-3.5 py-2.5 focus-ring cursor-pointer"
               >
                 <option value="Prescription">Prescription</option>
                 <option value="Lab Report">Lab Report (Blood / Pathology)</option>
@@ -116,7 +116,7 @@ export const RecordUploadModal: React.FC<RecordUploadModalProps> = ({
 
             {/* Optional Notes */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-[#1E2A2E]">
+              <label className="text-xs font-semibold text-[#0F172A]">
                 Clinical Notes / Tags (Optional)
               </label>
               <textarea
@@ -124,14 +124,14 @@ export const RecordUploadModal: React.FC<RecordUploadModalProps> = ({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="e.g. Annual lipid checkup prescribed by Dr. Roy."
-                className="w-full font-body text-xs text-[#1E2A2E] bg-white border border-[#E6F4F3] rounded-xl p-3 focus-ring"
+                className="w-full font-body text-xs text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl p-3 focus-ring"
               />
             </div>
           </div>
         )}
 
         {/* Modal Actions */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6F4F3] mt-2">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0FDFA] mt-2">
           <Button
             variant="ghost"
             size="md"

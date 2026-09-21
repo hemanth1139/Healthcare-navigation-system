@@ -16,14 +16,14 @@ export const SchemeList: React.FC<SchemeListProps> = ({
 }) => {
   if (schemes.length === 0) {
     return (
-      <div className="bg-white border-2 border-dashed border-[#E6F4F3] rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3 my-4">
-        <div className="w-12 h-12 rounded-2xl bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center">
+      <div className="bg-white border-2 border-dashed border-[#F0FDFA] rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3 my-4">
+        <div className="w-12 h-12 rounded-2xl bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center">
           <SearchX className="w-6 h-6" />
         </div>
-        <h3 className="font-heading font-bold text-base text-[#1E2A2E]">
+        <h3 className="font-heading font-bold text-base text-[#0F172A]">
           No schemes match your search criteria
         </h3>
-        <p className="text-xs text-[#5C6B6E] max-w-sm">
+        <p className="text-xs text-[#64748B] max-w-sm">
           Try adjusting your keyword query or switching the department filter chip to explore all available government benefits.
         </p>
 
@@ -31,7 +31,7 @@ export const SchemeList: React.FC<SchemeListProps> = ({
           <button
             onClick={onResetFilters}
             type="button"
-            className="text-xs font-bold text-[#0F6E7A] hover:underline cursor-pointer mt-1"
+            className="text-xs font-bold text-[#0D9488] hover:underline cursor-pointer mt-1"
           >
             Clear Filters & Show All Schemes
           </button>

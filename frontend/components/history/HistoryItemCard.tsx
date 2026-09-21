@@ -42,13 +42,13 @@ export const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
   const getIcon = () => {
     switch (item.type) {
       case "symptom_consultation":
-        return <Activity className="w-5 h-5 text-[#0F6E7A]" />;
+        return <Activity className="w-5 h-5 text-[#0D9488]" />;
       case "scheme_query":
-        return <Landmark className="w-5 h-5 text-[#0F6E7A]" />;
+        return <Landmark className="w-5 h-5 text-[#0D9488]" />;
       case "document_upload":
-        return <FolderUp className="w-5 h-5 text-[#0F6E7A]" />;
+        return <FolderUp className="w-5 h-5 text-[#0D9488]" />;
       default:
-        return <MessageSquare className="w-5 h-5 text-[#0F6E7A]" />;
+        return <MessageSquare className="w-5 h-5 text-[#0D9488]" />;
     }
   };
 
@@ -71,7 +71,7 @@ export const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
         className={`absolute left-0 top-3.5 -translate-x-1/2 w-9 h-9 rounded-full flex items-center justify-center border-2 bg-white shadow-xs z-10 transition-transform group-hover:scale-110 ${
           isEmergency
             ? "border-red-400 bg-red-50 text-red-600"
-            : "border-[#E6F4F3] text-[#0F6E7A]"
+            : "border-[#F0FDFA] text-[#0D9488]"
         }`}
       >
         {getIcon()}
@@ -82,12 +82,12 @@ export const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
         className={`p-4 sm:p-5 border-2 transition-all duration-150 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
           isEmergency
             ? "border-red-200 bg-red-50/30 shadow-xs"
-            : "border-[#E6F4F3] bg-white hover:border-[#0F6E7A]/40 shadow-xs"
+            : "border-[#F0FDFA] bg-white hover:border-[#0D9488]/40 shadow-xs"
         }`}
       >
         <div className="flex flex-col gap-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0F6E7A] bg-[#E6F4F3] px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0D9488] bg-[#F0FDFA] px-2.5 py-0.5 rounded-full">
               {item.type.replace(/_/g, " ")}
             </span>
 
@@ -102,20 +102,20 @@ export const HistoryItemCard: React.FC<HistoryItemCardProps> = ({
             )}
           </div>
 
-          <h3 className="font-heading font-bold text-sm sm:text-base text-[#1E2A2E] group-hover:text-[#0F6E7A] transition-colors leading-snug truncate mt-0.5">
+          <h3 className="font-heading font-bold text-sm sm:text-base text-[#0F172A] group-hover:text-[#0D9488] transition-colors leading-snug truncate mt-0.5">
             {item.title}
           </h3>
 
-          <p className="text-xs text-[#5C6B6E] line-clamp-1">{item.subtitle}</p>
+          <p className="text-xs text-[#64748B] line-clamp-1">{item.subtitle}</p>
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#E6F4F3]">
-          <span className="font-mono text-xs text-[#5C6B6E]" title={fullDate}>
-            <Clock className="w-3.5 h-3.5 inline mr-1 text-[#0F6E7A]" />
+        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#F0FDFA]">
+          <span className="font-mono text-xs text-[#64748B]" title={fullDate}>
+            <Clock className="w-3.5 h-3.5 inline mr-1 text-[#0D9488]" />
             {formattedTime}
           </span>
 
-          <div className="flex items-center text-xs font-semibold text-[#0F6E7A] group-hover:translate-x-1 transition-transform">
+          <div className="flex items-center text-xs font-semibold text-[#0D9488] group-hover:translate-x-1 transition-transform">
             <span>Quick Preview</span>
             <ChevronRight className="w-4 h-4 ml-0.5" />
           </div>

@@ -173,8 +173,8 @@ const CriterionRow: React.FC<{ criterion: EligibilityCriterion }> = ({ criterion
                   >
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="flex items-center gap-1">
-                        <FileText className="w-3 h-3 text-blue-500 shrink-0" />
-                        <span className="text-[10px] font-semibold text-blue-700 line-clamp-1">
+                        <FileText className="w-3 h-3 text-teal-500 shrink-0" />
+                        <span className="text-[10px] font-semibold text-teal-700 line-clamp-1">
                           {docTitle}
                         </span>
                       </div>
@@ -186,7 +186,7 @@ const CriterionRow: React.FC<{ criterion: EligibilityCriterion }> = ({ criterion
                           href={officialUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-500 hover:text-blue-700"
+                          className="text-teal-500 hover:text-teal-700"
                         >
                           <ExternalLink className="w-3 h-3" />
                         </a>
@@ -199,7 +199,7 @@ const CriterionRow: React.FC<{ criterion: EligibilityCriterion }> = ({ criterion
                       <div className="mt-1.5 flex items-center gap-1">
                         <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-blue-400 rounded-full"
+                            className="h-full bg-teal-400 rounded-full"
                             style={{ width: `${Math.round(relScore * 100)}%` }}
                           />
                         </div>

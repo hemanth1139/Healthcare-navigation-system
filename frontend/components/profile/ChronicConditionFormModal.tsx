@@ -99,16 +99,16 @@ export const ChronicConditionFormModal: React.FC<ChronicConditionFormModalProps>
         />
 
         <div className="flex flex-col gap-1.5 w-full">
-          <label className="text-sm font-medium text-[#1E2A2E]">Treatment Notes & Guidance</label>
+          <label className="text-sm font-medium text-[#0F172A]">Treatment Notes & Guidance</label>
           <textarea
             rows={3}
             placeholder="e.g. Managed with diet and daily oral medication."
-            className="w-full font-body text-sm text-[#1E2A2E] bg-white border border-[#E6F4F3] rounded-xl p-3 focus-ring"
+            className="w-full font-body text-sm text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl p-3 focus-ring"
             {...register("notes")}
           />
         </div>
 
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6F4F3] mt-2">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0FDFA] mt-2">
           <Button variant="ghost" size="md" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>

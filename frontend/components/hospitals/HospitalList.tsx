@@ -23,14 +23,14 @@ export const HospitalList: React.FC<HospitalListProps> = ({
 }) => {
   if (hospitals.length === 0) {
     return (
-      <div className="bg-white border-2 border-dashed border-[#E6F4F3] rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center">
+      <div className="bg-white border-2 border-dashed border-[#F0FDFA] rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3">
+        <div className="w-12 h-12 rounded-2xl bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center">
           <MapPinOff className="w-6 h-6" />
         </div>
-        <h3 className="font-heading font-bold text-base text-[#1E2A2E]">
+        <h3 className="font-heading font-bold text-base text-[#0F172A]">
           No hospitals found within this search range
         </h3>
-        <p className="text-xs text-[#5C6B6E] max-w-sm">
+        <p className="text-xs text-[#64748B] max-w-sm">
           Try expanding your distance radius filter or clearing the specialty filter to see nearby medical facilities.
         </p>
 

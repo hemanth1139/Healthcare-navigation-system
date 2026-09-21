@@ -32,18 +32,18 @@ export default function PredictionsHistoryPage() {
     return (
       <div className="flex flex-col items-center justify-center p-12 min-h-[300px]">
         <Spinner size="lg" color="primary" />
-        <span className="text-xs text-[#5C6B6E] mt-2">Loading clinical triage history...</span>
+        <span className="text-xs text-[#64748B] mt-2">Loading clinical triage history...</span>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-6 max-w-5xl mx-auto">
-      <div className="border-b border-[#E6F4F3] pb-4">
-        <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#1E2A2E]">
+      <div className="border-b border-[#F0FDFA] pb-4">
+        <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#0F172A]">
           Predictions & Triage History
         </h1>
-        <p className="text-xs sm:text-sm text-[#5C6B6E]">
+        <p className="text-xs sm:text-sm text-[#64748B]">
           Access historical symptom check assessments, differential diagnosis scores, and SHAP explanations
         </p>
       </div>
@@ -65,15 +65,15 @@ export default function PredictionsHistoryPage() {
               <Card
                 interactive
                 className={`p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
-                  severityAssessment.emergency_flag ? "border-2 border-[#E5573F]/40 bg-[#FDF0EE]/40" : ""
+                  severityAssessment.emergency_flag ? "border-2 border-[#EF4444]/40 bg-[#FEF2F2]/40" : ""
                 }`}
               >
                 <div className="flex items-start gap-4">
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${
                       severityAssessment.emergency_flag
-                        ? "bg-[#E5573F] text-white"
-                        : "bg-[#E6F4F3] text-[#0F6E7A]"
+                        ? "bg-[#EF4444] text-white"
+                        : "bg-[#F0FDFA] text-[#0D9488]"
                     }`}
                   >
                     <Activity className="w-6 h-6" />
@@ -85,18 +85,18 @@ export default function PredictionsHistoryPage() {
                         severity={severityAssessment.severity}
                         urgencyText={severityAssessment.urgency_level}
                       />
-                      <span className="text-xs text-[#5C6B6E] font-mono flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-[#0F6E7A]" /> {formattedDate}
+                      <span className="text-xs text-[#64748B] font-mono flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5 text-[#0D9488]" /> {formattedDate}
                       </span>
                     </div>
 
-                    <h2 className="font-heading font-bold text-base text-[#1E2A2E] group-hover:text-[#0F6E7A] transition-colors mt-0.5">
+                    <h2 className="font-heading font-bold text-base text-[#0F172A] group-hover:text-[#0D9488] transition-colors mt-0.5">
                       {prediction.predicted_disease}
                     </h2>
 
-                    <p className="text-xs text-[#5C6B6E] line-clamp-1">
+                    <p className="text-xs text-[#64748B] line-clamp-1">
                       Top Match Confidence:{" "}
-                      <strong className="text-[#0F6E7A] font-mono">
+                      <strong className="text-[#0D9488] font-mono">
                         {Math.round(prediction.confidence_score * 100)}%
                       </strong>{" "}
                       • Model: {prediction.prediction_model}
@@ -104,7 +104,7 @@ export default function PredictionsHistoryPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#0F6E7A] group-hover:translate-x-1 transition-transform self-end sm:self-center">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#0D9488] group-hover:translate-x-1 transition-transform self-end sm:self-center">
                   <span>View Full Report</span>
                   <ArrowRight className="w-4 h-4" />
                 </div>

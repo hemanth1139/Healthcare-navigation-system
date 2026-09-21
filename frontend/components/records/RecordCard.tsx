@@ -61,11 +61,11 @@ export const RecordCard: React.FC<RecordCardProps> = ({
         <Link href={`/records/${record.record_id}`} className="block group focus-ring rounded-2xl">
           <Card
             interactive
-            className="p-4 border-2 border-[#E6F4F3] hover:border-[#0F6E7A] bg-white transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs"
+            className="p-4 border-2 border-[#F0FDFA] hover:border-[#0D9488] bg-white transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs"
           >
             <div className="flex items-center gap-3.5 min-w-0 flex-1">
               {/* List Thumbnail */}
-              <div className="w-12 h-12 rounded-xl bg-[#E6F4F3] flex items-center justify-center shrink-0 overflow-hidden border border-[#0F6E7A]/20">
+              <div className="w-12 h-12 rounded-xl bg-[#F0FDFA] flex items-center justify-center shrink-0 overflow-hidden border border-[#0D9488]/20">
                 {isImage ? (
                   <img
                     src={record.cloudinary_url}
@@ -73,26 +73,26 @@ export const RecordCard: React.FC<RecordCardProps> = ({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <FileText className="w-6 h-6 text-[#0F6E7A]" />
+                  <FileText className="w-6 h-6 text-[#0D9488]" />
                 )}
               </div>
 
               <div className="flex flex-col min-w-0 gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#0F6E7A] bg-[#E6F4F3] px-2 py-0.5 rounded-full shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#0D9488] bg-[#F0FDFA] px-2 py-0.5 rounded-full shrink-0">
                     {record.category}
                   </span>
                   <PiiRedactionBadge isRedacted={record.is_pii_redacted} />
                 </div>
 
-                <h3 className="font-heading font-bold text-sm text-[#1E2A2E] group-hover:text-[#0F6E7A] transition-colors truncate">
+                <h3 className="font-heading font-bold text-sm text-[#0F172A] group-hover:text-[#0D9488] transition-colors truncate">
                   {record.file_name}
                 </h3>
               </div>
             </div>
 
-            <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-[#E6F4F3]">
-              <span className="font-mono text-xs text-[#5C6B6E]">
+            <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-[#F0FDFA]">
+              <span className="font-mono text-xs text-[#64748B]">
                 {formattedDate}
               </span>
 
@@ -101,7 +101,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
                   onClick={handleDownload}
                   type="button"
                   aria-label={`Download ${record.file_name}`}
-                  className="p-2 rounded-lg text-[#5C6B6E] hover:text-[#0F6E7A] hover:bg-[#E6F4F3] focus-ring transition-colors cursor-pointer"
+                  className="p-2 rounded-lg text-[#64748B] hover:text-[#0D9488] hover:bg-[#F0FDFA] focus-ring transition-colors cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                 </button>
@@ -114,7 +114,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
                   }}
                   type="button"
                   aria-label={`Delete ${record.file_name}`}
-                  className="p-2 rounded-lg text-[#5C6B6E] hover:text-[#E5573F] hover:bg-[#FDF0EE] focus-ring transition-colors cursor-pointer"
+                  className="p-2 rounded-lg text-[#64748B] hover:text-[#EF4444] hover:bg-[#FEF2F2] focus-ring transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -142,10 +142,10 @@ export const RecordCard: React.FC<RecordCardProps> = ({
       <Link href={`/records/${record.record_id}`} className="block group focus-ring rounded-2xl h-full">
         <Card
           interactive
-          className="p-4 border-2 border-[#E6F4F3] hover:border-[#0F6E7A] bg-white transition-all flex flex-col justify-between gap-3.5 h-full shadow-xs"
+          className="p-4 border-2 border-[#F0FDFA] hover:border-[#0D9488] bg-white transition-all flex flex-col justify-between gap-3.5 h-full shadow-xs"
         >
           {/* Thumbnail Box */}
-          <div className="w-full h-36 rounded-xl bg-[#F7FAFA] border border-[#E6F4F3] flex items-center justify-center overflow-hidden relative group/thumb">
+          <div className="w-full h-36 rounded-xl bg-[#F8FAFC] border border-[#F0FDFA] flex items-center justify-center overflow-hidden relative group/thumb">
             {isImage ? (
               <img
                 src={record.cloudinary_url}
@@ -154,18 +154,18 @@ export const RecordCard: React.FC<RecordCardProps> = ({
               />
             ) : (
               <div className="flex flex-col items-center gap-2 p-4 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center shadow-2xs">
+                <div className="w-12 h-12 rounded-2xl bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center shadow-2xs">
                   <FileText className="w-7 h-7" />
                 </div>
-                <span className="font-mono text-[10px] font-bold text-[#0F6E7A] uppercase bg-white px-2.5 py-0.5 rounded-full border border-[#0F6E7A]/20">
+                <span className="font-mono text-[10px] font-bold text-[#0D9488] uppercase bg-white px-2.5 py-0.5 rounded-full border border-[#0D9488]/20">
                   PDF Document
                 </span>
               </div>
             )}
 
             {/* Quick Action Overlay */}
-            <div className="absolute inset-0 bg-[#0F6E7A]/20 backdrop-blur-2xs opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              <span className="bg-white text-[#0F6E7A] text-xs font-bold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1">
+            <div className="absolute inset-0 bg-[#0D9488]/20 backdrop-blur-2xs opacity-0 group-hover/thumb:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <span className="bg-white text-[#0D9488] text-xs font-bold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1">
                 <Eye className="w-3.5 h-3.5" /> Preview
               </span>
             </div>
@@ -174,7 +174,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
           {/* Record Metadata */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#0F6E7A] bg-[#E6F4F3] px-2.5 py-0.5 rounded-full line-clamp-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#0D9488] bg-[#F0FDFA] px-2.5 py-0.5 rounded-full line-clamp-1">
                 {record.category}
               </span>
 
@@ -182,15 +182,15 @@ export const RecordCard: React.FC<RecordCardProps> = ({
             </div>
 
             <h3
-              className="font-heading font-bold text-sm text-[#1E2A2E] group-hover:text-[#0F6E7A] transition-colors leading-snug line-clamp-1"
+              className="font-heading font-bold text-sm text-[#0F172A] group-hover:text-[#0D9488] transition-colors leading-snug line-clamp-1"
               title={record.file_name}
             >
               {record.file_name}
             </h3>
 
-            <div className="flex items-center justify-between text-xs text-[#5C6B6E] font-mono mt-1 pt-2 border-t border-[#E6F4F3]">
+            <div className="flex items-center justify-between text-xs text-[#64748B] font-mono mt-1 pt-2 border-t border-[#F0FDFA]">
               <span className="flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-[#0F6E7A]" />
+                <Calendar className="w-3.5 h-3.5 text-[#0D9488]" />
                 {formattedDate}
               </span>
 
@@ -199,7 +199,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
                   onClick={handleDownload}
                   type="button"
                   aria-label={`Download ${record.file_name}`}
-                  className="p-1.5 rounded-md text-[#5C6B6E] hover:text-[#0F6E7A] hover:bg-[#E6F4F3] focus-ring"
+                  className="p-1.5 rounded-md text-[#64748B] hover:text-[#0D9488] hover:bg-[#F0FDFA] focus-ring"
                 >
                   <Download className="w-4 h-4" />
                 </button>
@@ -212,7 +212,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
                   }}
                   type="button"
                   aria-label={`Delete ${record.file_name}`}
-                  className="p-1.5 rounded-md text-[#5C6B6E] hover:text-[#E5573F] hover:bg-[#FDF0EE] focus-ring"
+                  className="p-1.5 rounded-md text-[#64748B] hover:text-[#EF4444] hover:bg-[#FEF2F2] focus-ring"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

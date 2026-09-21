@@ -34,16 +34,16 @@ export default function EditProfilePage() {
       <div className="flex flex-col gap-2">
         <Link
           href="/profile"
-          className="inline-flex items-center text-xs font-semibold text-[#0F6E7A] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
+          className="inline-flex items-center text-xs font-semibold text-[#0D9488] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to Profile Overview
         </Link>
 
-        <h1 className="font-heading text-2xl font-bold text-[#1E2A2E]">
+        <h1 className="font-heading text-2xl font-bold text-[#0F172A]">
           Edit Personal & Medical Details
         </h1>
-        <p className="text-xs sm:text-sm text-[#5C6B6E]">
+        <p className="text-xs sm:text-sm text-[#64748B]">
           Update physical parameters, residential address, and primary emergency contact.
         </p>
       </div>
@@ -51,7 +51,7 @@ export default function EditProfilePage() {
       {loading || !profile ? (
         <div className="flex flex-col items-center justify-center p-12 gap-3 min-h-[300px]">
           <Spinner size="lg" color="primary" />
-          <span className="text-xs text-[#5C6B6E]">Loading profile editor...</span>
+          <span className="text-xs text-[#64748B]">Loading profile editor...</span>
         </div>
       ) : (
         <Card className="p-6 sm:p-8">

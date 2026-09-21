@@ -51,8 +51,8 @@ export const HealthTipFilterChips: React.FC<HealthTipFilterChipsProps> = ({
             type="button"
             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer focus-ring ${
               isSelected
-                ? "bg-[#0F6E7A] text-white shadow-xs"
-                : "bg-white text-[#5C6B6E] hover:text-[#1E2A2E] border border-[#E6F4F3] hover:bg-[#E6F4F3]/50"
+                ? "bg-[#0D9488] text-white shadow-xs"
+                : "bg-white text-[#64748B] hover:text-[#0F172A] border border-[#F0FDFA] hover:bg-[#F0FDFA]/50"
             }`}
           >
             {getLabel(cat)}

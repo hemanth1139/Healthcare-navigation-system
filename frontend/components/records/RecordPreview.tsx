@@ -73,10 +73,10 @@ export const RecordPreview: React.FC<RecordPreviewProps> = ({
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto">
       {/* Header back navigation */}
-      <div className="flex items-center justify-between border-b border-[#E6F4F3] pb-3">
+      <div className="flex items-center justify-between border-b border-[#F0FDFA] pb-3">
         <Link
           href="/records"
-          className="inline-flex items-center text-xs font-semibold text-[#0F6E7A] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
+          className="inline-flex items-center text-xs font-semibold text-[#0D9488] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Medical Records Gallery
@@ -99,7 +99,7 @@ export const RecordPreview: React.FC<RecordPreviewProps> = ({
             variant="ghost"
             size="sm"
             onClick={() => setShowDeleteConfirm(true)}
-            className="text-[#E5573F] hover:bg-[#FDF0EE]"
+            className="text-[#EF4444] hover:bg-[#FEF2F2]"
           >
             <Trash2 className="w-4 h-4 mr-1.5" />
             Delete
@@ -110,15 +110,15 @@ export const RecordPreview: React.FC<RecordPreviewProps> = ({
       {/* Main Grid: Left Large Preview Viewport (8 cols), Right Metadata Sidebar (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Large Preview Viewport */}
-        <Card className="lg:col-span-8 p-4 sm:p-6 border-2 border-[#E6F4F3] bg-white flex flex-col gap-4 shadow-clinical-lg min-h-[480px]">
-          <div className="flex items-center justify-between border-b border-[#E6F4F3] pb-3">
-            <h2 className="font-heading font-bold text-base text-[#1E2A2E] truncate">
+        <Card className="lg:col-span-8 p-4 sm:p-6 border-2 border-[#F0FDFA] bg-white flex flex-col gap-4 shadow-clinical-lg min-h-[480px]">
+          <div className="flex items-center justify-between border-b border-[#F0FDFA] pb-3">
+            <h2 className="font-heading font-bold text-base text-[#0F172A] truncate">
               {record.file_name}
             </h2>
             <PiiRedactionBadge isRedacted={record.is_pii_redacted} />
           </div>
 
-          <div className="flex-1 bg-[#F7FAFA] border border-[#E6F4F3] rounded-2xl flex items-center justify-center p-4 min-h-[380px] overflow-hidden relative">
+          <div className="flex-1 bg-[#F8FAFC] border border-[#F0FDFA] rounded-2xl flex items-center justify-center p-4 min-h-[380px] overflow-hidden relative">
             {isImage ? (
               <img
                 src={record.cloudinary_url}
@@ -127,15 +127,15 @@ export const RecordPreview: React.FC<RecordPreviewProps> = ({
               />
             ) : (
               <div className="flex flex-col items-center gap-4 text-center max-w-sm">
-                <div className="w-16 h-16 rounded-2xl bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center shadow-xs">
+                <div className="w-16 h-16 rounded-2xl bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center shadow-xs">
                   <FileText className="w-8 h-8" />
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <h3 className="font-heading font-bold text-base text-[#1E2A2E]">
+                  <h3 className="font-heading font-bold text-base text-[#0F172A]">
                     PDF Medical Document Preview
                   </h3>
-                  <p className="text-xs text-[#5C6B6E]">
+                  <p className="text-xs text-[#64748B]">
                     {record.file_name} ({formatFileSize(record.file_size_bytes)})
                   </p>
                 </div>
@@ -158,46 +158,46 @@ export const RecordPreview: React.FC<RecordPreviewProps> = ({
 
         {/* Right Metadata Sidebar */}
         <div className="lg:col-span-4 flex flex-col gap-4">
-          <Card className="p-5 border-2 border-[#E6F4F3] bg-white flex flex-col gap-4 shadow-xs">
-            <h3 className="font-heading font-bold text-base text-[#1E2A2E] border-b border-[#E6F4F3] pb-2">
+          <Card className="p-5 border-2 border-[#F0FDFA] bg-white flex flex-col gap-4 shadow-xs">
+            <h3 className="font-heading font-bold text-base text-[#0F172A] border-b border-[#F0FDFA] pb-2">
               Record Metadata & FHIR Profile
             </h3>
 
             <div className="flex flex-col gap-3 text-xs">
               <div>
-                <span className="text-[#5C6B6E] font-medium">Category:</span>
-                <span className="font-bold text-[#0F6E7A] bg-[#E6F4F3] px-2.5 py-0.5 rounded-full ml-2">
+                <span className="text-[#64748B] font-medium">Category:</span>
+                <span className="font-bold text-[#0D9488] bg-[#F0FDFA] px-2.5 py-0.5 rounded-full ml-2">
                   {record.category}
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5 text-[#1E2A2E]">
-                <Calendar className="w-4 h-4 text-[#0F6E7A]" />
+              <div className="flex items-center gap-1.5 text-[#0F172A]">
+                <Calendar className="w-4 h-4 text-[#0D9488]" />
                 <span>Uploaded: <strong className="font-mono">{formattedDate}</strong></span>
               </div>
 
-              <div className="flex items-center gap-1.5 text-[#1E2A2E]">
-                <HardDrive className="w-4 h-4 text-[#0F6E7A]" />
+              <div className="flex items-center gap-1.5 text-[#0F172A]">
+                <HardDrive className="w-4 h-4 text-[#0D9488]" />
                 <span>File Size: <strong className="font-mono">{formatFileSize(record.file_size_bytes)}</strong></span>
               </div>
 
-              <div className="pt-2 border-t border-[#E6F4F3] flex flex-col gap-1">
-                <span className="text-[#5C6B6E] font-medium flex items-center gap-1">
-                  <Database className="w-3.5 h-3.5 text-[#0F6E7A]" /> HL7 FHIR Standard Profile:
+              <div className="pt-2 border-t border-[#F0FDFA] flex flex-col gap-1">
+                <span className="text-[#64748B] font-medium flex items-center gap-1">
+                  <Database className="w-3.5 h-3.5 text-[#0D9488]" /> HL7 FHIR Standard Profile:
                 </span>
-                <span className="font-mono font-bold text-xs text-[#0F6E7A] bg-[#F7FAFA] p-2 rounded-xl border border-[#E6F4F3]">
+                <span className="font-mono font-bold text-xs text-[#0D9488] bg-[#F8FAFC] p-2 rounded-xl border border-[#F0FDFA]">
                   {record.fhir_resource_type}
                 </span>
-                <span className="text-[11px] text-[#5C6B6E] italic">
+                <span className="text-[11px] text-[#64748B] italic">
                   ({getFhirPlainTranslation(record.fhir_resource_type)})
                 </span>
               </div>
             </div>
 
             {record.notes && (
-              <div className="pt-3 border-t border-[#E6F4F3] flex flex-col gap-1">
-                <span className="text-xs font-semibold text-[#1E2A2E]">Clinical Notes & Tags:</span>
-                <p className="text-xs text-[#5C6B6E] leading-relaxed bg-[#F7FAFA] p-3 rounded-xl border border-[#E6F4F3]">
+              <div className="pt-3 border-t border-[#F0FDFA] flex flex-col gap-1">
+                <span className="text-xs font-semibold text-[#0F172A]">Clinical Notes & Tags:</span>
+                <p className="text-xs text-[#64748B] leading-relaxed bg-[#F8FAFC] p-3 rounded-xl border border-[#F0FDFA]">
                   {record.notes}
                 </p>
               </div>

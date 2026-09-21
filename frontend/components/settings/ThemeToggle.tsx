@@ -16,16 +16,16 @@ export const ThemeToggle: React.FC = () => {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <span className="text-xs font-semibold text-[#1E2A2E] dark:text-[#F7FAFA]">
+        <span className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
           Interface Display Mode
         </span>
-        <p className="text-xs text-[#5C6B6E] dark:text-[#A3B2B5]">
-          Currently active theme: <strong className="text-[#0F6E7A] dark:text-[#25A0B0] capitalize">{resolvedTheme} Mode</strong>
+        <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
+          Currently active theme: <strong className="text-[#0D9488] dark:text-[#14B8A6] capitalize">{resolvedTheme} Mode</strong>
         </p>
       </div>
 
       {/* Segmented Control */}
-      <div className="flex items-center gap-1.5 bg-[#F7FAFA] dark:bg-[#121C1F] p-1.5 rounded-2xl border border-[#E6F4F3] dark:border-[#25363B] w-fit">
+      <div className="flex items-center gap-1.5 bg-[#F8FAFC] dark:bg-[#020617] p-1.5 rounded-2xl border border-[#F0FDFA] dark:border-[#1E293B] w-fit">
         {options.map((opt) => {
           const isSelected = theme === opt.id;
           return (
@@ -35,8 +35,8 @@ export const ThemeToggle: React.FC = () => {
               type="button"
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer focus-ring ${
                 isSelected
-                  ? "bg-white dark:bg-[#1A262A] text-[#0F6E7A] dark:text-[#25A0B0] shadow-xs font-bold"
-                  : "text-[#5C6B6E] dark:text-[#A3B2B5] hover:text-[#1E2A2E] dark:hover:text-[#F7FAFA]"
+                  ? "bg-white dark:bg-[#0F172A] text-[#0D9488] dark:text-[#14B8A6] shadow-xs font-bold"
+                  : "text-[#64748B] dark:text-[#94A3B8] hover:text-[#0F172A] dark:hover:text-[#F8FAFC]"
               }`}
             >
               {opt.icon}

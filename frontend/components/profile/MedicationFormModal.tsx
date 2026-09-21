@@ -116,7 +116,7 @@ export const MedicationFormModal: React.FC<MedicationFormModalProps> = ({
           {...register("prescribed_by")}
         />
 
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6F4F3] mt-2">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0FDFA] mt-2">
           <Button variant="ghost" size="md" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>

@@ -14,10 +14,10 @@ export const UploadProgressToast: React.FC<{ progress: UploadProgressState | nul
       role="region"
       aria-live="polite"
       aria-label="File upload progress status"
-      className="fixed bottom-6 right-6 z-50 bg-white border-2 border-[#0F6E7A]/40 rounded-2xl p-4 shadow-clinical-lg max-w-sm w-full animate-in slide-in-from-bottom-4 duration-200"
+      className="fixed bottom-6 right-6 z-50 bg-white border-2 border-[#0D9488]/40 rounded-2xl p-4 shadow-clinical-lg max-w-sm w-full animate-in slide-in-from-bottom-4 duration-200"
     >
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-[#0F6E7A] text-white flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-[#0D9488] text-white flex items-center justify-center shrink-0">
           {progress.status === "completed" ? (
             <CheckCircle2 className="w-5 h-5" />
           ) : progress.status === "redacting_pii" ? (
@@ -29,23 +29,23 @@ export const UploadProgressToast: React.FC<{ progress: UploadProgressState | nul
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-1 mb-1">
-            <span className="text-xs font-bold text-[#1E2A2E] truncate">
+            <span className="text-xs font-bold text-[#0F172A] truncate">
               {progress.file_name}
             </span>
-            <span className="text-xs font-mono font-bold text-[#0F6E7A]">
+            <span className="text-xs font-mono font-bold text-[#0D9488]">
               {progress.progress_pct}%
             </span>
           </div>
 
           {/* Progress Bar */}
-          <div className="w-full h-2 bg-[#E6F4F3] rounded-full overflow-hidden mb-1">
+          <div className="w-full h-2 bg-[#F0FDFA] rounded-full overflow-hidden mb-1">
             <div
-              className="h-full bg-[#0F6E7A] rounded-full transition-all duration-300"
+              className="h-full bg-[#0D9488] rounded-full transition-all duration-300"
               style={{ width: `${progress.progress_pct}%` }}
             />
           </div>
 
-          <span className="text-[10px] text-[#5C6B6E] font-medium">
+          <span className="text-[10px] text-[#64748B] font-medium">
             {progress.status === "uploading" && "Uploading document to Cloudinary..."}
             {progress.status === "redacting_pii" && "Presidio PII Redaction Pipeline..."}
             {progress.status === "fhir_indexing" && "Indexing HL7 FHIR Diagnostic Resource..."}

@@ -56,15 +56,15 @@ export const StructuredSymptomCard: React.FC<StructuredSymptomCardProps> = ({
   const presentAssociated = symptom.associated_symptoms.filter((s) => s.present);
 
   return (
-    <Card className="border-2 border-blue-100 bg-gradient-to-br from-blue-50/60 to-white p-5 flex flex-col gap-4">
+    <Card className="border-2 border-teal-100 bg-gradient-to-br from-teal-50/60 to-white p-5 flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-4 h-4" />
           </div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-blue-600">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-teal-600">
               Symptom Intake Complete
             </p>
             <h3 className="font-heading font-bold text-sm text-slate-900 mt-0.5">
@@ -118,12 +118,12 @@ export const StructuredSymptomCard: React.FC<StructuredSymptomCardProps> = ({
             {presentAssociated.map((s) => (
               <span
                 key={s.name}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 border border-blue-200 text-[11px] font-medium text-blue-700"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-teal-50 border border-teal-200 text-[11px] font-medium text-teal-700"
               >
                 <AlertCircle className="w-3 h-3" />
                 {s.name}
                 {s.duration && (
-                  <span className="text-blue-400 font-normal">• {s.duration}</span>
+                  <span className="text-teal-400 font-normal">• {s.duration}</span>
                 )}
               </span>
             ))}
@@ -182,7 +182,7 @@ export const StructuredSymptomCard: React.FC<StructuredSymptomCardProps> = ({
       {onViewAssessment && (
         <button
           onClick={onViewAssessment}
-          className="mt-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="mt-1 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400"
         >
           <ThumbsUp className="w-4 h-4" />
           View Severity & Urgency Assessment

@@ -20,17 +20,17 @@ export const DiseaseConfidenceList: React.FC<DiseaseConfidenceListProps> = ({
 
   return (
     <Card className="p-5 sm:p-6 flex flex-col gap-5">
-      <div className="flex items-center justify-between border-b border-[#E6F4F3] pb-3">
+      <div className="flex items-center justify-between border-b border-[#F0FDFA] pb-3">
         <div>
-          <h2 className="font-heading font-bold text-base text-[#1E2A2E]">
+          <h2 className="font-heading font-bold text-base text-[#0F172A]">
             Differential Diagnosis & Confidence
           </h2>
-          <p className="text-xs text-[#5C6B6E]">
+          <p className="text-xs text-[#64748B]">
             Ranked list of potential matching conditions based on clinical triage inputs
           </p>
         </div>
 
-        <span className="text-xs font-mono font-semibold text-[#0F6E7A] bg-[#E6F4F3] px-2.5 py-1 rounded-full hidden sm:inline">
+        <span className="text-xs font-mono font-semibold text-[#0D9488] bg-[#F0FDFA] px-2.5 py-1 rounded-full hidden sm:inline">
           Ranked Differential
         </span>
       </div>
@@ -45,26 +45,26 @@ export const DiseaseConfidenceList: React.FC<DiseaseConfidenceListProps> = ({
               key={item.disease_name}
               className={`p-4 rounded-xl border transition-all duration-200 ${
                 isTop
-                  ? "bg-[#E6F4F3]/60 border-2 border-[#0F6E7A]/40 shadow-xs"
-                  : "bg-white border-[#E6F4F3] hover:border-[#0F6E7A]/20"
+                  ? "bg-[#F0FDFA]/60 border-2 border-[#0D9488]/40 shadow-xs"
+                  : "bg-white border-[#F0FDFA] hover:border-[#0D9488]/20"
               }`}
             >
               {/* Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                 <div className="flex items-center gap-2">
                   {isTop && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white bg-[#0F6E7A] px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white bg-[#0D9488] px-2 py-0.5 rounded-full">
                       <Sparkles className="w-3 h-3" /> Most Likely Match
                     </span>
                   )}
-                  <h3 className="font-heading font-bold text-base text-[#1E2A2E]">
+                  <h3 className="font-heading font-bold text-base text-[#0F172A]">
                     {item.disease_name}
                   </h3>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#5C6B6E]">Confidence:</span>
-                  <span className="font-mono font-bold text-base text-[#0F6E7A]">
+                  <span className="text-xs text-[#64748B]">Confidence:</span>
+                  <span className="font-mono font-bold text-base text-[#0D9488]">
                     {percentage}%
                   </span>
                 </div>
@@ -72,7 +72,7 @@ export const DiseaseConfidenceList: React.FC<DiseaseConfidenceListProps> = ({
 
               {/* Description */}
               {item.description && (
-                <p className="text-xs text-[#5C6B6E] mb-3 leading-relaxed">
+                <p className="text-xs text-[#64748B] mb-3 leading-relaxed">
                   {item.description}
                 </p>
               )}
@@ -85,8 +85,8 @@ export const DiseaseConfidenceList: React.FC<DiseaseConfidenceListProps> = ({
                 <div
                   className={`h-full rounded-full transition-all duration-700 ease-out ${
                     isTop
-                      ? "bg-gradient-to-r from-[#0F6E7A] to-[#25A0B0]"
-                      : "bg-[#0F6E7A]/60"
+                      ? "bg-gradient-to-r from-[#0D9488] to-[#14B8A6]"
+                      : "bg-[#0D9488]/60"
                   }`}
                   style={{ width: mounted ? `${percentage}%` : "0%" }}
                 />

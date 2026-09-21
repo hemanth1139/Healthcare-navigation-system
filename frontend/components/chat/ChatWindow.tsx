@@ -109,33 +109,33 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
   if (!conversation) {
     return (
       <div className="flex flex-col items-center justify-center p-12 min-h-[400px]">
-        <span className="text-xs text-[#5C6B6E]">Loading conversation session...</span>
+        <span className="text-xs text-[#64748B]">Loading conversation session...</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5rem)] max-w-4xl mx-auto bg-white rounded-2xl border-2 border-[#E6F4F3] shadow-clinical-lg overflow-hidden relative">
+    <div className="flex flex-col h-[calc(100vh-5rem)] max-w-4xl mx-auto bg-white rounded-2xl border-2 border-[#F0FDFA] shadow-clinical-lg overflow-hidden relative">
       {/* 1. Sub-Header within Chat Viewport */}
-      <div className="bg-[#F7FAFA] border-b border-[#E6F4F3] px-4 py-3 flex items-center justify-between z-10">
+      <div className="bg-[#F8FAFC] border-b border-[#F0FDFA] px-4 py-3 flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <Link
             href="/symptom-chat"
-            className="p-1.5 rounded-lg text-[#5C6B6E] hover:bg-[#E6F4F3] hover:text-[#0F6E7A] focus-ring transition-colors"
+            className="p-1.5 rounded-lg text-[#64748B] hover:bg-[#F0FDFA] hover:text-[#0D9488] focus-ring transition-colors"
             title="Back to Symptom Check landing"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
 
-          <div className="w-8 h-8 rounded-xl bg-[#0F6E7A] text-white flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-[#0D9488] text-white flex items-center justify-center">
             <HeartPulse className="w-4 h-4" />
           </div>
 
           <div className="flex flex-col">
-            <span className="font-heading font-bold text-sm text-[#1E2A2E]">
+            <span className="font-heading font-bold text-sm text-[#0F172A]">
               AI Triage Assistant
             </span>
-            <span className="text-[10px] text-[#5C6B6E] font-mono">
+            <span className="text-[10px] text-[#64748B] font-mono">
               Session #{conversationId.slice(-6)}
             </span>
           </div>
@@ -163,7 +163,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
             variant="ghost"
             size="sm"
             onClick={() => setShowEndConfirm(true)}
-            className="text-[#E5573F] hover:bg-[#FDF0EE]"
+            className="text-[#EF4444] hover:bg-[#FEF2F2]"
           >
             <XCircle className="w-3.5 h-3.5 mr-1" />
             <span className="hidden sm:inline">End</span>
@@ -173,7 +173,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
 
       {/* 2. Scrollable Messages Area */}
       <div
-        className="flex-1 p-4 sm:p-6 overflow-y-auto bg-gradient-to-b from-[#F7FAFA]/50 to-white"
+        className="flex-1 p-4 sm:p-6 overflow-y-auto bg-gradient-to-b from-[#F8FAFC]/50 to-white"
         aria-live="polite"
       >
         {/* High-Priority Emergency Escalation Banner if flagged */}

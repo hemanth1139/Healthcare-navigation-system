@@ -90,7 +90,7 @@ export default function LoginPage() {
             className={`w-full text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-[#1E293B] placeholder:text-slate-400 border rounded-xl px-4 py-3 transition-all duration-200 focus:outline-none ${
               errors.email
                 ? "border-rose-500 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
-                : "border-slate-200 dark:border-slate-700 hover:border-slate-300 focus:border-[#2563EB] focus:ring-4 focus:ring-blue-500/10"
+                : "border-slate-200 dark:border-slate-700 hover:border-slate-300 focus:border-[#0D9488] focus:ring-4 focus:ring-teal-500/10"
             }`}
             {...register("email")}
           />
@@ -110,7 +110,7 @@ export default function LoginPage() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-xs font-semibold text-[#2563EB] hover:underline"
+              className="text-xs font-semibold text-[#0D9488] hover:underline"
             >
               Forgot password?
             </Link>
@@ -125,7 +125,7 @@ export default function LoginPage() {
               className={`w-full text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-[#1E293B] placeholder:text-slate-400 border rounded-xl pl-4 pr-11 py-3 transition-all duration-200 focus:outline-none ${
                 errors.password
                   ? "border-rose-500 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
-                  : "border-slate-200 dark:border-slate-700 hover:border-slate-300 focus:border-[#2563EB] focus:ring-4 focus:ring-blue-500/10"
+                  : "border-slate-200 dark:border-slate-700 hover:border-slate-300 focus:border-[#0D9488] focus:ring-4 focus:ring-teal-500/10"
               }`}
               {...register("password")}
             />
@@ -147,7 +147,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="mt-2 w-full bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white font-semibold py-3.5 rounded-xl shadow-md shadow-blue-500/20 transition-all duration-150 text-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+          className="mt-2 w-full bg-[#0D9488] hover:bg-[#0F766E] active:bg-[#115E59] text-white font-semibold py-3.5 rounded-xl shadow-md shadow-teal-500/20 transition-all duration-150 text-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isSubmitting ? "Signing in..." : "Sign In"}
         </button>
@@ -164,7 +164,7 @@ export default function LoginPage() {
         Don&apos;t have an account?{" "}
         <Link
           href="/register"
-          className="font-semibold text-[#2563EB] hover:underline ml-1"
+          className="font-semibold text-[#0D9488] hover:underline ml-1"
         >
           Register now
         </Link>

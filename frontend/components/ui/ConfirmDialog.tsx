@@ -33,14 +33,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-3">
           {isDestructive && (
-            <div className="w-10 h-10 rounded-xl bg-[#FDF0EE] text-[#E5573F] flex items-center justify-center shrink-0 border border-[#E5573F]/20">
+            <div className="w-10 h-10 rounded-xl bg-[#FEF2F2] text-[#EF4444] flex items-center justify-center shrink-0 border border-[#EF4444]/20">
               <AlertTriangle className="w-5 h-5" />
             </div>
           )}
-          <p className="text-sm text-[#5C6B6E] leading-relaxed mt-1">{message}</p>
+          <p className="text-sm text-[#64748B] leading-relaxed mt-1">{message}</p>
         </div>
 
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#E6F4F3]">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#F0FDFA]">
           <Button variant="ghost" size="md" onClick={onClose} disabled={isLoading}>
             {cancelLabel}
           </Button>

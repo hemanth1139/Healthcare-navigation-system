@@ -77,16 +77,16 @@ export const Sidebar: React.FC = () => {
           href="/dashboard"
           className="flex items-center gap-3 overflow-hidden focus-ring rounded-xl p-1"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-800 text-white flex items-center justify-center shrink-0 shadow-md">
-            <HeartPulse className="w-5 h-5 stroke-[2.5]" />
+          <div className="w-9 h-9 rounded-lg bg-teal-600 text-white flex items-center justify-center shrink-0">
+            <HeartPulse className="w-4.5 h-4.5 stroke-[2.5]" />
           </div>
 
           {!isCollapsed && (
             <div className="flex flex-col truncate">
               <span className="font-heading font-bold text-base text-slate-900 dark:text-white leading-tight tracking-tight">
-                HealthCare<span className="text-blue-600 dark:text-blue-400">Nav</span>
+                HealthCare<span className="text-teal-600 dark:text-teal-400">Nav</span>
               </span>
-              <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 tracking-wider uppercase">
+              <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 tracking-wider uppercase">
                 Clinical Portal
               </span>
             </div>
@@ -98,7 +98,7 @@ export const Sidebar: React.FC = () => {
           onClick={() => setIsCollapsed(!isCollapsed)}
           type="button"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors focus-ring"
+          className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors focus-ring"
         >
           {isCollapsed ? (
             <ChevronRight className="w-4 h-4" />
@@ -121,15 +121,15 @@ export const Sidebar: React.FC = () => {
               key={item.href}
               href={item.href}
               title={isCollapsed ? translatedLabel : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 relative ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors duration-150 relative ${
                 isActive
-                  ? "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold border-l-4 border-blue-600 shadow-2xs"
+                  ? "bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-400 font-semibold"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-200"
               } ${isCollapsed ? "justify-center" : ""}`}
             >
               <Icon
                 className={`w-5 h-5 shrink-0 ${
-                  isActive ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
+                  isActive ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"
                 }`}
               />
 
@@ -138,7 +138,7 @@ export const Sidebar: React.FC = () => {
               )}
 
               {!isCollapsed && item.badge && (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded-md bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+                <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded-md bg-teal-600 text-white">
                   {item.badge}
                 </span>
               )}

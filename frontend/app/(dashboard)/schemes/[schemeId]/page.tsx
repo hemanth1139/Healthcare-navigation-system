@@ -46,7 +46,7 @@ export default function SchemeDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center p-12 min-h-[350px]">
         <Spinner size="lg" color="primary" />
-        <span className="text-xs text-[#5C6B6E] mt-2">Loading official scheme details...</span>
+        <span className="text-xs text-[#64748B] mt-2">Loading official scheme details...</span>
       </div>
     );
   }
@@ -54,10 +54,10 @@ export default function SchemeDetailPage() {
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto py-2">
       {/* Header back link */}
-      <div className="flex items-center gap-2 border-b border-[#E6F4F3] pb-3">
+      <div className="flex items-center gap-2 border-b border-[#F0FDFA] pb-3">
         <Link
           href="/schemes"
-          className="inline-flex items-center text-xs font-semibold text-[#0F6E7A] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
+          className="inline-flex items-center text-xs font-semibold text-[#0D9488] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Government Schemes Directory
@@ -65,25 +65,25 @@ export default function SchemeDetailPage() {
       </div>
 
       {/* Scheme Title Header Card */}
-      <Card className="p-6 sm:p-8 border-2 border-[#E6F4F3] shadow-clinical-lg flex flex-col gap-4">
+      <Card className="p-6 sm:p-8 border-2 border-[#F0FDFA] shadow-clinical-lg flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0F6E7A] bg-[#E6F4F3] px-3 py-1 rounded-full w-fit">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0D9488] bg-[#F0FDFA] px-3 py-1 rounded-full w-fit">
               {scheme.category || "Government Healthcare Scheme"}
             </span>
 
-            <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#1E2A2E] leading-tight">
+            <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F172A] leading-tight">
               {scheme.scheme_name}
             </h1>
 
-            <p className="text-xs sm:text-sm text-[#5C6B6E] font-medium">
+            <p className="text-xs sm:text-sm text-[#64748B] font-medium">
               {scheme.department}
             </p>
           </div>
 
           <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
-            <span className="text-xs font-mono text-[#5C6B6E] flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-[#0F6E7A]" /> Updated {scheme.last_updated}
+            <span className="text-xs font-mono text-[#64748B] flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-[#0D9488]" /> Updated {scheme.last_updated}
             </span>
 
             <a
@@ -91,7 +91,7 @@ export default function SchemeDetailPage() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`Visit official government website for ${scheme.scheme_name}`}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0F6E7A] bg-[#E6F4F3] hover:bg-[#E6F4F3]/80 px-3.5 py-1.5 rounded-xl border border-[#0F6E7A]/20 transition-colors focus-ring"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0D9488] bg-[#F0FDFA] hover:bg-[#F0FDFA]/80 px-3.5 py-1.5 rounded-xl border border-[#0D9488]/20 transition-colors focus-ring"
             >
               <span>Official Government Portal</span>
               <ExternalLink className="w-3.5 h-3.5" />
@@ -100,7 +100,7 @@ export default function SchemeDetailPage() {
         </div>
 
         {scheme.coverage_amount && (
-          <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#0F6E7A] bg-[#E6F4F3]/80 px-3 py-1.5 rounded-xl border border-[#0F6E7A]/20 w-fit mt-1">
+          <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#0D9488] bg-[#F0FDFA]/80 px-3 py-1.5 rounded-xl border border-[#0D9488]/20 w-fit mt-1">
             <ShieldCheck className="w-4 h-4" />
             <span>Coverage Cap: {scheme.coverage_amount}</span>
           </div>
@@ -110,33 +110,33 @@ export default function SchemeDetailPage() {
       {/* Two Main Content Sections: Eligibility & Benefits (Readable ~65ch line length) */}
       <div className="grid grid-cols-1 gap-6 max-w-prose mx-auto w-full">
         {/* Section 1: Eligibility Guidelines */}
-        <Card className="p-6 border-2 border-[#E6F4F3] flex flex-col gap-3">
-          <h2 className="font-heading font-bold text-lg text-[#1E2A2E] flex items-center gap-2 border-b border-[#E6F4F3] pb-2">
-            <CheckCircle2 className="w-5 h-5 text-[#0F6E7A]" />
+        <Card className="p-6 border-2 border-[#F0FDFA] flex flex-col gap-3">
+          <h2 className="font-heading font-bold text-lg text-[#0F172A] flex items-center gap-2 border-b border-[#F0FDFA] pb-2">
+            <CheckCircle2 className="w-5 h-5 text-[#0D9488]" />
             Official Eligibility Criteria
           </h2>
 
-          <p className="text-xs sm:text-sm text-[#1E2A2E] leading-relaxed whitespace-pre-wrap font-body">
+          <p className="text-xs sm:text-sm text-[#0F172A] leading-relaxed whitespace-pre-wrap font-body">
             {scheme.eligibility}
           </p>
         </Card>
 
         {/* Section 2: Scheme Benefits */}
-        <Card className="p-6 border-2 border-[#E6F4F3] flex flex-col gap-3">
-          <h2 className="font-heading font-bold text-lg text-[#1E2A2E] flex items-center gap-2 border-b border-[#E6F4F3] pb-2">
-            <Gift className="w-5 h-5 text-[#0F6E7A]" />
+        <Card className="p-6 border-2 border-[#F0FDFA] flex flex-col gap-3">
+          <h2 className="font-heading font-bold text-lg text-[#0F172A] flex items-center gap-2 border-b border-[#F0FDFA] pb-2">
+            <Gift className="w-5 h-5 text-[#0D9488]" />
             Coverage & Hospital Benefits
           </h2>
 
-          <p className="text-xs sm:text-sm text-[#1E2A2E] leading-relaxed whitespace-pre-wrap font-body">
+          <p className="text-xs sm:text-sm text-[#0F172A] leading-relaxed whitespace-pre-wrap font-body">
             {scheme.benefits}
           </p>
         </Card>
       </div>
 
       {/* Bottom Action: Scoped Query Panel for this specific scheme */}
-      <div className="flex flex-col gap-4 pt-4 border-t border-[#E6F4F3]">
-        <h2 className="font-heading font-bold text-lg text-[#1E2A2E]">
+      <div className="flex flex-col gap-4 pt-4 border-t border-[#F0FDFA]">
+        <h2 className="font-heading font-bold text-lg text-[#0F172A]">
           Ask About Your Eligibility For This Scheme
         </h2>
 

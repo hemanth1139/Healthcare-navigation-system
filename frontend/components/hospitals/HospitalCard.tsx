@@ -36,26 +36,26 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
       }}
       className={`p-4 sm:p-5 border-2 transition-all duration-150 cursor-pointer flex flex-col gap-3.5 ${
         isSelected
-          ? "border-[#0F6E7A] bg-[#E6F4F3]/40 shadow-clinical"
-          : "border-[#E6F4F3] bg-white hover:border-[#0F6E7A]/40 shadow-xs"
+          ? "border-[#0D9488] bg-[#F0FDFA]/40 shadow-clinical"
+          : "border-[#F0FDFA] bg-white hover:border-[#0D9488]/40 shadow-xs"
       }`}
     >
       {/* Header Info */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <h3 className="font-heading font-bold text-base text-[#1E2A2E] leading-snug">
+            <h3 className="font-heading font-bold text-base text-[#0F172A] leading-snug">
               {hospital.hospital_name}
             </h3>
             {hospital.has_emergency_room && (
-              <span className="text-[10px] font-bold uppercase text-white bg-[#E5573F] px-2 py-0.5 rounded-full shrink-0">
+              <span className="text-[10px] font-bold uppercase text-white bg-[#EF4444] px-2 py-0.5 rounded-full shrink-0">
                 24/7 ER
               </span>
             )}
           </div>
 
-          <p className="text-xs text-[#5C6B6E] line-clamp-1" title={hospital.address}>
-            <MapPin className="w-3.5 h-3.5 inline mr-1 text-[#0F6E7A]" />
+          <p className="text-xs text-[#64748B] line-clamp-1" title={hospital.address}>
+            <MapPin className="w-3.5 h-3.5 inline mr-1 text-[#0D9488]" />
             {hospital.address}, {hospital.city}
           </p>
         </div>
@@ -69,14 +69,14 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
       </div>
 
       {/* Prominent Decision Metrics (Distance & Drive Time in IBM Plex Mono) */}
-      <div className="flex items-center gap-4 bg-[#F7FAFA] p-3 rounded-xl border border-[#E6F4F3] text-xs font-mono">
-        <div className="flex items-center gap-1.5 font-bold text-[#0F6E7A]">
+      <div className="flex items-center gap-4 bg-[#F8FAFC] p-3 rounded-xl border border-[#F0FDFA] text-xs font-mono">
+        <div className="flex items-center gap-1.5 font-bold text-[#0D9488]">
           <Navigation className="w-4 h-4" />
           <span>{hospital.distance_km} km</span>
         </div>
 
-        <div className="flex items-center gap-1.5 font-semibold text-[#1E2A2E]">
-          <Clock className="w-4 h-4 text-[#5C6B6E]" />
+        <div className="flex items-center gap-1.5 font-semibold text-[#0F172A]">
+          <Clock className="w-4 h-4 text-[#64748B]" />
           <span>{hospital.estimated_time}</span>
         </div>
       </div>
@@ -86,25 +86,25 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
         {hospital.specialties.slice(0, 3).map((spec) => (
           <span
             key={spec}
-            className="text-[11px] font-medium text-[#0F6E7A] bg-[#E6F4F3] px-2.5 py-0.5 rounded-full border border-[#0F6E7A]/15"
+            className="text-[11px] font-medium text-[#0D9488] bg-[#F0FDFA] px-2.5 py-0.5 rounded-full border border-[#0D9488]/15"
           >
             {spec}
           </span>
         ))}
         {hospital.specialties.length > 3 && (
-          <span className="text-[11px] text-[#5C6B6E] px-1 py-0.5">
+          <span className="text-[11px] text-[#64748B] px-1 py-0.5">
             +{hospital.specialties.length - 3} more
           </span>
         )}
       </div>
 
       {/* Direct Action Buttons */}
-      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#E6F4F3] mt-1">
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#F0FDFA] mt-1">
         <a
           href={`tel:${hospital.phone.replace(/\s+/g, "")}`}
           onClick={(e) => e.stopPropagation()}
           aria-label={`Call ${hospital.hospital_name}`}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0F6E7A] hover:underline focus-ring rounded p-1"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0D9488] hover:underline focus-ring rounded p-1"
         >
           <Phone className="w-3.5 h-3.5" />
           <span>{hospital.phone}</span>
@@ -117,7 +117,7 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
               onOpenDetail(hospital);
             }}
             type="button"
-            className="text-xs font-semibold text-[#5C6B6E] hover:text-[#0F6E7A] px-2 py-1 focus-ring rounded cursor-pointer"
+            className="text-xs font-semibold text-[#64748B] hover:text-[#0D9488] px-2 py-1 focus-ring rounded cursor-pointer"
           >
             Details
           </button>

@@ -40,18 +40,18 @@ export const HospitalDetailModal: React.FC<HospitalDetailModalProps> = ({
       <div className="flex flex-col gap-5 pt-1">
         {/* ER Availability Banner if present */}
         {hospital.has_emergency_room && (
-          <div className="bg-[#FDF0EE] border border-[#E5573F]/30 rounded-xl p-3 flex items-center gap-2.5 text-xs text-[#E5573F] font-bold">
+          <div className="bg-[#FEF2F2] border border-[#EF4444]/30 rounded-xl p-3 flex items-center gap-2.5 text-xs text-[#EF4444] font-bold">
             <ShieldAlert className="w-4 h-4 shrink-0" />
             <span>24/7 Emergency Trauma Department Available</span>
           </div>
         )}
 
         {/* Address */}
-        <div className="flex items-start gap-2.5 text-xs sm:text-sm text-[#1E2A2E]">
-          <MapPin className="w-4 h-4 text-[#0F6E7A] shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 text-xs sm:text-sm text-[#0F172A]">
+          <MapPin className="w-4 h-4 text-[#0D9488] shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold">{hospital.address}</p>
-            <p className="text-[#5C6B6E]">
+            <p className="text-[#64748B]">
               {hospital.city}, {hospital.state}
             </p>
           </div>
@@ -62,7 +62,7 @@ export const HospitalDetailModal: React.FC<HospitalDetailModalProps> = ({
           <a
             href={`tel:${hospital.phone.replace(/\s+/g, "")}`}
             aria-label={`Call ${hospital.hospital_name}`}
-            className="flex items-center gap-2 bg-[#F7FAFA] p-3 rounded-xl border border-[#E6F4F3] font-bold text-[#0F6E7A] hover:bg-[#E6F4F3] transition-colors"
+            className="flex items-center gap-2 bg-[#F8FAFC] p-3 rounded-xl border border-[#F0FDFA] font-bold text-[#0D9488] hover:bg-[#F0FDFA] transition-colors"
           >
             <Phone className="w-4 h-4" />
             <span>{hospital.phone}</span>
@@ -73,13 +73,13 @@ export const HospitalDetailModal: React.FC<HospitalDetailModalProps> = ({
               href={hospital.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 bg-[#F7FAFA] p-3 rounded-xl border border-[#E6F4F3] font-semibold text-[#0F6E7A] hover:bg-[#E6F4F3] transition-colors truncate"
+              className="flex items-center gap-2 bg-[#F8FAFC] p-3 rounded-xl border border-[#F0FDFA] font-semibold text-[#0D9488] hover:bg-[#F0FDFA] transition-colors truncate"
             >
               <Globe className="w-4 h-4 shrink-0" />
               <span className="truncate">Visit Hospital Website</span>
             </a>
           ) : (
-            <div className="flex items-center gap-2 bg-[#F7FAFA] p-3 rounded-xl border border-[#E6F4F3] text-[#5C6B6E]">
+            <div className="flex items-center gap-2 bg-[#F8FAFC] p-3 rounded-xl border border-[#F0FDFA] text-[#64748B]">
               <Building2 className="w-4 h-4" />
               <span>Multispeciality Medical Facility</span>
             </div>
@@ -87,13 +87,13 @@ export const HospitalDetailModal: React.FC<HospitalDetailModalProps> = ({
         </div>
 
         {/* Available Specialties */}
-        <div className="flex flex-col gap-2 pt-2 border-t border-[#E6F4F3]">
-          <span className="text-xs font-semibold text-[#5C6B6E]">Clinical Specialties Offered:</span>
+        <div className="flex flex-col gap-2 pt-2 border-t border-[#F0FDFA]">
+          <span className="text-xs font-semibold text-[#64748B]">Clinical Specialties Offered:</span>
           <div className="flex flex-wrap gap-1.5">
             {hospital.specialties.map((spec) => (
               <span
                 key={spec}
-                className="text-xs font-semibold text-[#0F6E7A] bg-[#E6F4F3] px-3 py-1 rounded-full border border-[#0F6E7A]/20"
+                className="text-xs font-semibold text-[#0D9488] bg-[#F0FDFA] px-3 py-1 rounded-full border border-[#0D9488]/20"
               >
                 {spec}
               </span>
@@ -102,13 +102,13 @@ export const HospitalDetailModal: React.FC<HospitalDetailModalProps> = ({
         </div>
 
         {/* Side-by-Side Equally Weighted Primary Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-[#E6F4F3]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-[#F0FDFA]">
           <a
             href={`tel:${hospital.phone.replace(/\s+/g, "")}`}
             aria-label={`Call ${hospital.hospital_name}`}
             className="w-full"
           >
-            <Button variant="secondary" size="md" fullWidth className="border-[#0F6E7A]/30 text-[#0F6E7A]">
+            <Button variant="secondary" size="md" fullWidth className="border-[#0D9488]/30 text-[#0D9488]">
               <Phone className="w-4 h-4 mr-2" />
               <span>Call Hospital</span>
             </Button>

@@ -76,16 +76,16 @@ export default function SchemesLandingPage() {
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto py-2">
       {/* Page Header */}
-      <div className="border-b border-[#E6F4F3] pb-4">
+      <div className="border-b border-[#F0FDFA] pb-4">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center">
             <ShieldAlert className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#1E2A2E] tracking-tight">
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#0F172A] tracking-tight">
               {t.schemeTitle}
             </h1>
-            <p className="text-xs sm:text-sm text-[#5C6B6E] mt-1">
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1">
               {t.schemeSubtitle}
             </p>
           </div>
@@ -178,7 +178,7 @@ export default function SchemesLandingPage() {
             <div className="flex items-center gap-2">
               <Link
                 href="/documents"
-                className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+                className="flex items-center gap-1 text-xs font-semibold text-teal-600 hover:underline"
               >
                 <FileText className="w-3.5 h-3.5" />
                 {t.uploadDocuments}
@@ -191,13 +191,13 @@ export default function SchemesLandingPage() {
       )}
 
       {/* Browse Schemes Directory */}
-      <div className="flex flex-col gap-4 pt-4 border-t border-[#E6F4F3]">
+      <div className="flex flex-col gap-4 pt-4 border-t border-[#F0FDFA]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="font-heading font-bold text-lg text-[#1E2A2E]">
+            <h2 className="font-heading font-bold text-lg text-[#0F172A]">
               {language === "ta" ? "அனைத்து அரசு சுகாதார திட்டங்களும்" : "Browse All Government Schemes"}
             </h2>
-            <p className="text-xs text-[#5C6B6E]">
+            <p className="text-xs text-[#64748B]">
               {language === "ta" ? "பிரிவுகளின் படி வடிகட்டவும் அல்லது தேடவும்" : "Filter by category or search by health benefits and eligibility criteria"}
             </p>
           </div>
@@ -215,7 +215,7 @@ export default function SchemesLandingPage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center p-12">
             <Spinner size="lg" color="primary" />
-            <span className="text-xs text-[#5C6B6E] mt-2">Loading scheme directory...</span>
+            <span className="text-xs text-[#64748B] mt-2">Loading scheme directory...</span>
           </div>
         ) : (
           <SchemeList

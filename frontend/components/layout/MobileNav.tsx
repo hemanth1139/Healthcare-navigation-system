@@ -45,20 +45,20 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
           {/* Backdrop Overlay */}
           <div
             onClick={onClose}
-            className="fixed inset-0 bg-[#1E2A2E]/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+            className="fixed inset-0 bg-[#0F172A]/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
             aria-hidden="true"
           />
 
           {/* Drawer Panel */}
           <div className="relative w-4/5 max-w-xs bg-white h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-250">
             {/* Drawer Header */}
-            <div className="h-16 px-4 flex items-center justify-between border-b border-[#E6F4F3]">
+            <div className="h-16 px-4 flex items-center justify-between border-b border-[#F0FDFA]">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center">
+                <div className="w-9 h-9 rounded-lg bg-teal-600 text-white flex items-center justify-center">
                   <HeartPulse className="w-5 h-5" />
                 </div>
                 <span className="font-heading font-bold text-base text-slate-900">
-                  HealthCare<span className="text-blue-600">Nav</span>
+                  HealthCare<span className="text-teal-600">Nav</span>
                 </span>
               </div>
 
@@ -66,7 +66,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
                 onClick={onClose}
                 type="button"
                 aria-label="Close navigation drawer"
-                className="p-2 rounded-xl text-slate-500 hover:bg-blue-50 hover:text-slate-900 focus-ring"
+                className="p-2 rounded-xl text-slate-500 hover:bg-teal-50 hover:text-slate-900 focus-ring"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -89,18 +89,18 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
                     href={item.href}
                     className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all ${
                       isActive
-                        ? "bg-blue-50 text-blue-600 font-bold border-l-4 border-blue-600"
+                        ? "bg-teal-50 text-teal-600 font-bold border-l-4 border-teal-600"
                         : "text-slate-800 hover:bg-slate-50"
                     }`}
                   >
                     <Icon
                       className={`w-5 h-5 ${
-                        isActive ? "text-blue-600" : "text-slate-400"
+                        isActive ? "text-teal-600" : "text-slate-400"
                       }`}
                     />
                     <span className="flex-1">{item.label}</span>
                     {item.badge && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-blue-600 text-white">
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-teal-600 text-white">
                         {item.badge}
                       </span>
                     )}
@@ -132,12 +132,12 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
               key={tab.href}
               href={tab.href}
               className={`flex flex-col items-center justify-center gap-1 min-w-[60px] py-1 px-2 rounded-xl transition-all ${
-                isActive ? "text-blue-600 font-semibold" : "text-slate-500"
+                isActive ? "text-teal-600 font-semibold" : "text-slate-500"
               }`}
             >
               <div
                 className={`p-1 rounded-lg transition-colors ${
-                  isActive ? "bg-blue-50" : "bg-transparent"
+                  isActive ? "bg-teal-50" : "bg-transparent"
                 }`}
               >
                 <Icon className="w-5 h-5" />

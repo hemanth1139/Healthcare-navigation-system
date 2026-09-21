@@ -52,11 +52,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label="User account menu"
-        className={`flex items-center gap-2.5 p-1.5 rounded-xl transition-colors focus-ring cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/40 ${
-          isOpen ? "bg-blue-50 dark:bg-blue-950/60" : ""
+        className={`flex items-center gap-2.5 p-1.5 rounded-xl transition-colors focus-ring cursor-pointer hover:bg-teal-50 dark:hover:bg-teal-950/40 ${
+          isOpen ? "bg-teal-50 dark:bg-teal-950/60" : ""
         }`}
       >
-        <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-heading font-semibold text-xs shadow-sm border border-white/20">
+        <div className="w-9 h-9 rounded-lg bg-teal-600 text-white flex items-center justify-center font-heading font-semibold text-xs">
           {userInitials}
         </div>
 
@@ -79,7 +79,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
         <div
           role="menu"
           aria-orientation="vertical"
-          className="absolute right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mb-0 sm:mt-2 w-64 rounded-2xl bg-white dark:bg-slate-800 shadow-clinical-lg border border-slate-200 dark:border-slate-700 py-2 z-50 animate-fadeIn"
+          className="absolute right-0 bottom-full sm:bottom-auto sm:top-full mb-2 sm:mb-0 sm:mt-2 w-64 rounded-xl bg-white dark:bg-slate-800 shadow-clinical-lg border border-slate-200 dark:border-slate-700 py-2 z-50 animate-fadeIn"
         >
           {/* Header section in dropdown */}
           <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex flex-col gap-1">
@@ -87,7 +87,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
               <span className="font-heading font-bold text-sm text-slate-900 dark:text-white">
                 {user?.fullName || "Patient Account"}
               </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full">
                 <ShieldCheck className="w-3 h-3" /> Verified
               </span>
             </div>
@@ -102,9 +102,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
               href="/profile"
               onClick={() => setIsOpen(false)}
               role="menuitem"
-              className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+              className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-teal-950/40 transition-colors"
             >
-              <UserIcon className="w-4 h-4 text-blue-600" />
+              <UserIcon className="w-4 h-4 text-teal-600" />
               <span>Patient Profile</span>
             </Link>
 
@@ -112,9 +112,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
               href="/settings"
               onClick={() => setIsOpen(false)}
               role="menuitem"
-              className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors"
+              className="flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-teal-950/40 transition-colors"
             >
-              <Settings className="w-4 h-4 text-blue-600" />
+              <Settings className="w-4 h-4 text-teal-600" />
               <span>Account Settings</span>
             </Link>
 
@@ -125,9 +125,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
               }}
               role="menuitem"
               type="button"
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-teal-950/40 transition-colors text-left"
             >
-              <HelpCircle className="w-4 h-4 text-blue-600" />
+              <HelpCircle className="w-4 h-4 text-teal-600" />
               <span>Help & Support</span>
             </button>
           </div>
@@ -141,9 +141,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
               }}
               role="menuitem"
               type="button"
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-[#E5573F] hover:bg-[#FDF0EE] transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold text-[#EF4444] hover:bg-[#FEF2F2] transition-colors text-left"
             >
-              <LogOut className="w-4 h-4 text-[#E5573F]" />
+              <LogOut className="w-4 h-4 text-[#EF4444]" />
               <span>Sign Out</span>
             </button>
           </div>

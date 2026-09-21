@@ -41,9 +41,9 @@ export const Toast: React.FC<ToastProps> = ({
       titleColor: "text-red-700",
     },
     info: {
-      bg: "bg-blue-50 border-blue-200 text-blue-700",
-      icon: <CheckCircle2 className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />,
-      titleColor: "text-blue-700",
+      bg: "bg-teal-50 border-teal-200 text-teal-700",
+      icon: <CheckCircle2 className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" />,
+      titleColor: "text-teal-700",
     },
   };
 
@@ -59,7 +59,7 @@ export const Toast: React.FC<ToastProps> = ({
         {current.icon}
         <div className="flex flex-col gap-0.5">
           {title && <h4 className={`text-sm font-semibold ${current.titleColor}`}>{title}</h4>}
-          <p className="text-sm text-[#1E2A2E] leading-relaxed">{message}</p>
+          <p className="text-sm text-[#0F172A] leading-relaxed">{message}</p>
         </div>
       </div>
 
@@ -68,7 +68,7 @@ export const Toast: React.FC<ToastProps> = ({
           onClick={onClose}
           type="button"
           aria-label="Close notification"
-          className="text-[#5C6B6E] hover:text-[#1E2A2E] p-1 rounded-md transition-colors focus-ring"
+          className="text-[#64748B] hover:text-[#0F172A] p-1 rounded-md transition-colors focus-ring"
         >
           <X className="w-4 h-4" />
         </button>

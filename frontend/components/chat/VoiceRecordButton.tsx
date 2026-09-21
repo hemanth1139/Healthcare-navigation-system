@@ -56,22 +56,22 @@ export const VoiceRecordButton: React.FC<VoiceRecordButtonProps> = ({
         role="region"
         aria-live="polite"
         aria-label="Voice recording active"
-        className="flex items-center gap-2 bg-[#FDF0EE] border-2 border-[#E5573F]/40 px-3 py-1.5 rounded-xl animate-pulse"
+        className="flex items-center gap-2 bg-[#FEF2F2] border-2 border-[#EF4444]/40 px-3 py-1.5 rounded-xl animate-pulse"
       >
         <button
           onClick={stopRecording}
           type="button"
           aria-label="Stop recording and transcribe"
-          className="w-7 h-7 rounded-lg bg-[#E5573F] text-white flex items-center justify-center focus-ring cursor-pointer"
+          className="w-7 h-7 rounded-lg bg-[#EF4444] text-white flex items-center justify-center focus-ring cursor-pointer"
         >
           <Square className="w-3.5 h-3.5 fill-white" />
         </button>
 
-        <span className="text-xs font-mono font-bold text-[#E5573F] min-w-[36px]">
+        <span className="text-xs font-mono font-bold text-[#EF4444] min-w-[36px]">
           0:0{seconds}
         </span>
 
-        <span className="text-[11px] font-semibold text-[#1E2A2E] hidden sm:inline">
+        <span className="text-[11px] font-semibold text-[#0F172A] hidden sm:inline">
           Recording... (Tap stop when done)
         </span>
 
@@ -79,7 +79,7 @@ export const VoiceRecordButton: React.FC<VoiceRecordButtonProps> = ({
           onClick={cancelRecording}
           type="button"
           aria-label="Cancel voice recording"
-          className="text-[#5C6B6E] hover:text-[#1E2A2E] p-1 rounded-md focus-ring"
+          className="text-[#64748B] hover:text-[#0F172A] p-1 rounded-md focus-ring"
         >
           <X className="w-4 h-4" />
         </button>
@@ -89,9 +89,9 @@ export const VoiceRecordButton: React.FC<VoiceRecordButtonProps> = ({
 
   if (status === "processing") {
     return (
-      <div className="flex items-center gap-2 bg-[#E6F4F3] px-3 py-1.5 rounded-xl border border-[#0F6E7A]/20">
-        <Loader2 className="w-4 h-4 text-[#0F6E7A] animate-spin" />
-        <span className="text-xs font-semibold text-[#0F6E7A]">Transcribing voice...</span>
+      <div className="flex items-center gap-2 bg-[#F0FDFA] px-3 py-1.5 rounded-xl border border-[#0D9488]/20">
+        <Loader2 className="w-4 h-4 text-[#0D9488] animate-spin" />
+        <span className="text-xs font-semibold text-[#0D9488]">Transcribing voice...</span>
       </div>
     );
   }
@@ -103,7 +103,7 @@ export const VoiceRecordButton: React.FC<VoiceRecordButtonProps> = ({
       type="button"
       aria-label="Record voice symptom description"
       title="Record voice message"
-      className="p-2.5 rounded-xl text-[#0F6E7A] bg-[#E6F4F3]/70 hover:bg-[#E6F4F3] border border-[#0F6E7A]/20 focus-ring transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+      className="p-2.5 rounded-xl text-[#0D9488] bg-[#F0FDFA]/70 hover:bg-[#F0FDFA] border border-[#0D9488]/20 focus-ring transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
     >
       <Mic className="w-5 h-5" />
     </button>

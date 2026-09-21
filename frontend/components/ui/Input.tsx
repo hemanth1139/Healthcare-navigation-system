@@ -70,7 +70,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             } ${rightIcon ? "pr-10" : "pr-3.5"} ${
               error
                 ? "border-red-500 focus:border-red-500 focus:ring-4 focus:ring-red-500/15"
-                : "border-slate-200 dark:border-slate-700 hover:border-blue-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+                : "border-slate-200 dark:border-slate-700 hover:border-teal-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/15"
             } ${disabled ? "bg-slate-100 dark:bg-slate-800 opacity-70 cursor-not-allowed" : ""} ${className}`}
             {...props}
           />

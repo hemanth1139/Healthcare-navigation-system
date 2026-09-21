@@ -45,19 +45,19 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
   // If Google Maps API key isn't live or fails to load, render an interactive Soft Clinical Map Mock
   if (loadError || !isLoaded) {
     return (
-      <div className="w-full h-full min-h-[380px] bg-gradient-to-br from-[#E6F4F3]/80 via-[#F7FAFA] to-white border-2 border-[#E6F4F3] rounded-2xl p-4 sm:p-6 flex flex-col justify-between relative overflow-hidden shadow-inner">
+      <div className="w-full h-full min-h-[380px] bg-gradient-to-br from-[#F0FDFA]/80 via-[#F8FAFC] to-white border-2 border-[#F0FDFA] rounded-2xl p-4 sm:p-6 flex flex-col justify-between relative overflow-hidden shadow-inner">
         {/* Mock Map Grid Background Lines */}
-        <div className="absolute inset-0 bg-[radial-gradient(#0F6E7A_1px,transparent_1px)] [background-size:20px_20px] opacity-15 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(#0D9488_1px,transparent_1px)] [background-size:20px_20px] opacity-15 pointer-events-none" />
 
         {/* Top Header info */}
-        <div className="relative z-10 flex items-center justify-between bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-[#0F6E7A]/20 shadow-xs">
+        <div className="relative z-10 flex items-center justify-between bg-white/90 backdrop-blur-md px-3.5 py-2 rounded-xl border border-[#0D9488]/20 shadow-xs">
           <div className="flex items-center gap-2">
-            <Navigation className="w-4 h-4 text-[#0F6E7A] animate-pulse" />
-            <span className="font-heading font-bold text-xs text-[#1E2A2E]">
+            <Navigation className="w-4 h-4 text-[#0D9488] animate-pulse" />
+            <span className="font-heading font-bold text-xs text-[#0F172A]">
               Interactive Hospital Map View
             </span>
           </div>
-          <span className="text-[10px] font-mono text-[#0F6E7A] bg-[#E6F4F3] px-2 py-0.5 rounded-full font-bold">
+          <span className="text-[10px] font-mono text-[#0D9488] bg-[#F0FDFA] px-2 py-0.5 rounded-full font-bold">
             {hospitals.length} Markers Plotted
           </span>
         </div>
@@ -77,14 +77,14 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
                 type="button"
                 className={`p-3 rounded-xl border transition-all text-left cursor-pointer focus-ring ${
                   isSelected
-                    ? "bg-[#0F6E7A] text-white border-[#0F6E7A] shadow-clinical scale-102"
-                    : "bg-white/90 hover:bg-[#E6F4F3] text-[#1E2A2E] border-[#E6F4F3]"
+                    ? "bg-[#0D9488] text-white border-[#0D9488] shadow-clinical scale-102"
+                    : "bg-white/90 hover:bg-[#F0FDFA] text-[#0F172A] border-[#F0FDFA]"
                 }`}
               >
                 <div className="flex items-center gap-1.5 mb-1">
                   <MapPin
                     className={`w-3.5 h-3.5 shrink-0 ${
-                      isSelected ? "text-white" : "text-[#0F6E7A]"
+                      isSelected ? "text-white" : "text-[#0D9488]"
                     }`}
                   />
                   <span className="font-heading font-bold text-xs truncate">
@@ -102,12 +102,12 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
 
         {/* Selected Hospital Info Footer */}
         {selectedHospital && (
-          <div className="relative z-10 bg-white p-3.5 rounded-xl border border-[#0F6E7A]/30 shadow-clinical-lg flex items-center justify-between gap-3 animate-in fade-in duration-150">
+          <div className="relative z-10 bg-white p-3.5 rounded-xl border border-[#0D9488]/30 shadow-clinical-lg flex items-center justify-between gap-3 animate-in fade-in duration-150">
             <div>
-              <h4 className="font-heading font-bold text-xs text-[#1E2A2E]">
+              <h4 className="font-heading font-bold text-xs text-[#0F172A]">
                 {selectedHospital.hospital_name}
               </h4>
-              <p className="text-[11px] text-[#5C6B6E] font-mono">
+              <p className="text-[11px] text-[#64748B] font-mono">
                 {selectedHospital.distance_km} km away • {selectedHospital.estimated_time}
               </p>
             </div>
@@ -130,7 +130,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
   }
 
   return (
-    <div className="w-full h-full min-h-[380px] rounded-2xl overflow-hidden border-2 border-[#E6F4F3] shadow-clinical">
+    <div className="w-full h-full min-h-[380px] rounded-2xl overflow-hidden border-2 border-[#F0FDFA] shadow-clinical">
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         center={
@@ -167,14 +167,14 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
             onCloseClick={() => setActiveMarkerId(null)}
           >
             <div className="p-1 font-body text-xs flex flex-col gap-1 max-w-xs">
-              <h4 className="font-bold text-[#1E2A2E]">{selectedHospital.hospital_name}</h4>
-              <p className="text-[#5C6B6E] font-mono">
+              <h4 className="font-bold text-[#0F172A]">{selectedHospital.hospital_name}</h4>
+              <p className="text-[#64748B] font-mono">
                 {selectedHospital.distance_km} km • {selectedHospital.estimated_time}
               </p>
               <button
                 onClick={() => onSelectHospital(selectedHospital)}
                 type="button"
-                className="text-left font-semibold text-[#0F6E7A] underline cursor-pointer mt-1"
+                className="text-left font-semibold text-[#0D9488] underline cursor-pointer mt-1"
               >
                 View Hospital Details
               </button>

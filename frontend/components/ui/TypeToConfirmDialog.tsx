@@ -52,16 +52,16 @@ export const TypeToConfirmDialog: React.FC<TypeToConfirmDialogProps> = ({
       title={title}
     >
       <div className="flex flex-col gap-4">
-        <div className="bg-[#FDF0EE] dark:bg-[#2C1A18] border border-[#E5573F]/30 rounded-xl p-3.5 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-[#E5573F] shrink-0 mt-0.5" />
-          <p className="text-xs text-[#1E2A2E] dark:text-[#F7FAFA] leading-relaxed">
+        <div className="bg-[#FEF2F2] dark:bg-[#450A0A] border border-[#EF4444]/30 rounded-xl p-3.5 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-[#EF4444] shrink-0 mt-0.5" />
+          <p className="text-xs text-[#0F172A] dark:text-[#F8FAFC] leading-relaxed">
             {message}
           </p>
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-[#1E2A2E] dark:text-[#F7FAFA]">
-            To confirm, type <strong className="font-mono text-[#E5573F]">&quot;{expectedString}&quot;</strong> in the box below:
+          <label className="text-xs font-semibold text-[#0F172A] dark:text-[#F8FAFC]">
+            To confirm, type <strong className="font-mono text-[#EF4444]">&quot;{expectedString}&quot;</strong> in the box below:
           </label>
 
           <Input
@@ -73,7 +73,7 @@ export const TypeToConfirmDialog: React.FC<TypeToConfirmDialogProps> = ({
           />
         </div>
 
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6F4F3] dark:border-[#25363B] mt-2">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0FDFA] dark:border-[#1E293B] mt-2">
           <Button
             variant="ghost"
             size="md"

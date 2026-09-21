@@ -15,8 +15,8 @@ export const SeverityBadge: React.FC<SeverityBadgeProps> = ({
 }) => {
   const configs = {
     low: {
-      bg: "bg-[#E6F4F3] border-[#0F6E7A]/25 text-[#0F6E7A]",
-      icon: <CheckCircle2 className="w-4 h-4 text-[#0F6E7A] shrink-0" />,
+      bg: "bg-[#F0FDFA] border-[#0D9488]/25 text-[#0D9488]",
+      icon: <CheckCircle2 className="w-4 h-4 text-[#0D9488] shrink-0" />,
       defaultText: "Low Urgency",
     },
     moderate: {
@@ -30,8 +30,8 @@ export const SeverityBadge: React.FC<SeverityBadgeProps> = ({
       defaultText: "High Severity",
     },
     emergency: {
-      bg: "bg-[#FDF0EE] border-[#E5573F] text-[#E5573F]",
-      icon: <ShieldAlert className="w-4 h-4 text-[#E5573F] shrink-0" />,
+      bg: "bg-[#FEF2F2] border-[#EF4444] text-[#EF4444]",
+      icon: <ShieldAlert className="w-4 h-4 text-[#EF4444] shrink-0" />,
       defaultText: "Critical Emergency",
     },
   };

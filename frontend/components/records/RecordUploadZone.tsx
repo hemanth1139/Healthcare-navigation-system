@@ -38,23 +38,23 @@ export const RecordUploadZone: React.FC<RecordUploadZoneProps> = ({
       {...getRootProps()}
       className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center transition-all duration-150 cursor-pointer flex flex-col items-center justify-center gap-3 ${
         isDragActive
-          ? "border-[#0F6E7A] bg-[#E6F4F3] scale-101"
-          : "border-[#0F6E7A]/40 hover:border-[#0F6E7A] bg-[#F7FAFA] hover:bg-[#E6F4F3]/30"
+          ? "border-[#0D9488] bg-[#F0FDFA] scale-101"
+          : "border-[#0D9488]/40 hover:border-[#0D9488] bg-[#F8FAFC] hover:bg-[#F0FDFA]/30"
       }`}
     >
       <input {...getInputProps()} aria-label="Upload medical record file" />
 
-      <div className="w-14 h-14 rounded-2xl bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center shadow-xs">
+      <div className="w-14 h-14 rounded-2xl bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center shadow-xs">
         <CloudUpload className={`w-7 h-7 ${isDragActive ? "animate-bounce" : ""}`} />
       </div>
 
       <div className="flex flex-col gap-1 max-w-sm">
-        <h3 className="font-heading font-bold text-sm sm:text-base text-[#1E2A2E]">
+        <h3 className="font-heading font-bold text-sm sm:text-base text-[#0F172A]">
           {isDragActive
             ? "Drop your medical documents here..."
             : "Drag & drop your medical reports here"}
         </h3>
-        <p className="text-xs text-[#5C6B6E]">
+        <p className="text-xs text-[#64748B]">
           Supports prescriptions, blood lab reports, radiology scans, and discharge summaries.
         </p>
       </div>
@@ -74,12 +74,12 @@ export const RecordUploadZone: React.FC<RecordUploadZoneProps> = ({
         </Button>
       </div>
 
-      <div className="flex items-center gap-3 text-[11px] font-mono text-[#5C6B6E] pt-2 border-t border-[#E6F4F3] w-full justify-center">
+      <div className="flex items-center gap-3 text-[11px] font-mono text-[#64748B] pt-2 border-t border-[#F0FDFA] w-full justify-center">
         <span className="flex items-center gap-1">
-          <FileText className="w-3.5 h-3.5 text-[#0F6E7A]" /> PDF
+          <FileText className="w-3.5 h-3.5 text-[#0D9488]" /> PDF
         </span>
         <span className="flex items-center gap-1">
-          <ImageIcon className="w-3.5 h-3.5 text-[#0F6E7A]" /> JPG / PNG
+          <ImageIcon className="w-3.5 h-3.5 text-[#0D9488]" /> JPG / PNG
         </span>
         <span>(Max 20MB per file)</span>
       </div>

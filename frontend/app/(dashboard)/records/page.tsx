@@ -91,12 +91,12 @@ export default function RecordsGalleryPage() {
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto py-2">
       {/* Header with Upload Record Button */}
-      <div className="border-b border-[#E6F4F3] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="border-b border-[#F0FDFA] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#1E2A2E] tracking-tight">
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#0F172A] tracking-tight">
             Medical Records Vault
           </h1>
-          <p className="text-xs sm:text-sm text-[#5C6B6E] mt-1">
+          <p className="text-xs sm:text-sm text-[#64748B] mt-1">
             Store prescriptions, lab reports, and radiology scans with automated Presidio PII privacy protection
           </p>
         </div>
@@ -127,7 +127,7 @@ export default function RecordsGalleryPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center p-12 min-h-[300px]">
           <Spinner size="lg" color="primary" />
-          <span className="text-xs text-[#5C6B6E] mt-2">Loading medical records gallery...</span>
+          <span className="text-xs text-[#64748B] mt-2">Loading medical records gallery...</span>
         </div>
       ) : (
         <RecordGrid

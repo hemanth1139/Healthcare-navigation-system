@@ -87,7 +87,7 @@ export const AccountSettings: React.FC = () => {
 
         <div className="flex items-center gap-3">
           {savedSuccess && (
-            <span className="text-xs font-semibold text-[#0F6E7A] dark:text-[#25A0B0] bg-[#E6F4F3] dark:bg-[#0F6E7A]/20 px-3 py-1 rounded-lg">
+            <span className="text-xs font-semibold text-[#0D9488] dark:text-[#14B8A6] bg-[#F0FDFA] dark:bg-[#0D9488]/20 px-3 py-1 rounded-lg">
               ✓ Account info saved
             </span>
           )}
@@ -132,7 +132,7 @@ export const AccountSettings: React.FC = () => {
             {...register("confirmPassword")}
           />
 
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6F4F3] dark:border-[#25363B] mt-2">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0FDFA] dark:border-[#1E293B] mt-2">
             <Button
               type="button"
               variant="ghost"
