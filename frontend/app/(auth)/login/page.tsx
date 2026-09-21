@@ -153,14 +153,6 @@ export default function LoginPage() {
         </button>
       </form>
 
-      {/* Demo helper info */}
-      <div className="mt-6 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 justify-center">
-        <span className="font-semibold text-slate-700 dark:text-slate-300">Demo access:</span>
-        <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">sarah@example.com</code>
-        <span>/</span>
-        <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">password123</code>
-      </div>
-
       {/* Footer link to Register */}
       <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center text-sm text-slate-500 dark:text-slate-400">
         Don&apos;t have an account?{" "}
