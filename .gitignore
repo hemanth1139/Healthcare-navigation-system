@@ -72,3 +72,9 @@ backend/app/ml/artifacts/*.ubj
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# SQLite & Uploaded Media
+*.db
+*.sqlite3
+backend/app/uploads/*.mp3
+app/

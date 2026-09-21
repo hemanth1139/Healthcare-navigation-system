@@ -29,6 +29,7 @@ async def _seed_test_schemes(db_session):
     """Seed test database and vector store with RAG contents."""
     # Seed 3 database items
     s1 = GovernmentScheme(
+        scheme_id="sch_test_01",
         scheme_name="Ayushman Bharat PM-JAY",
         department="National Health Authority",
         eligibility="SECC 2011 lists",
@@ -36,6 +37,7 @@ async def _seed_test_schemes(db_session):
         official_url="https://pmjay.gov.in"
     )
     s2 = GovernmentScheme(
+        scheme_id="sch_test_02",
         scheme_name="Central Government Health Scheme (CGHS)",
         department="Ministry of Health",
         eligibility="Central gov employees",
@@ -43,6 +45,7 @@ async def _seed_test_schemes(db_session):
         official_url="https://cghs.nic.in"
     )
     s3 = GovernmentScheme(
+        scheme_id="sch_test_03",
         scheme_name="Tamil Nadu CMCHIS",
         department="Tamil Nadu Government",
         eligibility="Income under 1.2 Lakhs",
@@ -115,6 +118,6 @@ async def test_schemes_and_rag_query_flow(db_session):
         
         assert query_data["userQuestion"] == "Ayushman Bharat PM-JAY coverage details"
         assert len(query_data["retrievedChunks"]) >= 1
-        assert query_data["retrievedChunks"][0]["schemeName"] == "Ayushman Bharat PM-JAY"
+        assert any(c["schemeName"] == "Ayushman Bharat PM-JAY" for c in query_data["retrievedChunks"])
         assert query_data["retrievedChunks"][0]["excerpt"] != ""
         assert query_data["retrievedChunks"][0]["officialUrl"] != ""

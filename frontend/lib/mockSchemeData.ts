@@ -8,6 +8,7 @@ import {
   EligibilityCriterion,
   EvidenceSource,
 } from "@/types/scheme";
+import { api, USE_MOCK_API } from "./api";
 
 const delay = (ms: number = 300) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -296,6 +297,18 @@ export const schemeApi = {
     categoryFilter?: string,
     searchQuery?: string
   ): Promise<GovernmentScheme[]> => {
+    if (!USE_MOCK_API) {
+      try {
+        const params: Record<string, string> = {};
+        if (categoryFilter && categoryFilter !== "All") params.category = categoryFilter;
+        if (searchQuery && searchQuery.trim()) params.search = searchQuery;
+        const { data } = await api.get<GovernmentScheme[]>("/schemes", { params });
+        if (data && Array.isArray(data)) return data;
+      } catch (err) {
+        console.warn("[API] Backend /schemes query failed, falling back to mock data:", err);
+      }
+    }
+
     await delay(250);
     let results = [...MOCK_SCHEMES];
 
@@ -318,6 +331,15 @@ export const schemeApi = {
   },
 
   getSchemeById: async (schemeId: string): Promise<GovernmentScheme | null> => {
+    if (!USE_MOCK_API) {
+      try {
+        const { data } = await api.get<GovernmentScheme>(`/schemes/${schemeId}`);
+        if (data) return data;
+      } catch (err) {
+        console.warn(`[API] Backend /schemes/${schemeId} query failed, falling back to mock data:`, err);
+      }
+    }
+
     await delay(200);
     return MOCK_SCHEMES.find((s) => s.scheme_id === schemeId) || null;
   },
@@ -327,6 +349,56 @@ export const schemeApi = {
     userQuestion: string,
     schemeId?: string
   ): Promise<{ query: SchemeQuery; eligibilityResult: MultiDocEligibilityResult }> => {
+    if (!USE_MOCK_API) {
+      try {
+        const { data } = await api.post("/schemes/query", {
+          query_text: userQuestion,
+          scoped_scheme_id: schemeId,
+        });
+
+        if (data) {
+          const rawEligibility = data.eligibility_result || data.eligibilityResult;
+          const query: SchemeQuery = {
+            query_id: data.query_id || data.queryId || `q_${Date.now()}`,
+            conversation_id: data.conversation_id || data.conversationId,
+            scheme_id: data.scheme_id || data.schemeId || schemeId,
+            user_question: data.user_question || data.userQuestion || userQuestion,
+            ai_response: data.ai_response || data.aiResponse || "",
+            retrieved_chunks: (data.retrieved_chunks || data.retrievedChunks || []).map((c: any) => ({
+              chunk_id: c.chunk_id || c.chunkId || "chk_1",
+              scheme_name: c.scheme_name || c.schemeName || "Government Scheme",
+              excerpt: c.excerpt || "",
+              official_url: c.official_url || c.officialUrl || "https://pmjay.gov.in",
+            })),
+            confidence_score: data.confidence_score ?? data.confidenceScore ?? 0.85,
+            is_low_confidence: data.is_low_confidence ?? data.isLowConfidence ?? false,
+            eligibility_result: rawEligibility,
+          };
+
+          const eligibilityResult: MultiDocEligibilityResult = rawEligibility || {
+            query_id: query.query_id,
+            scheme_id: query.scheme_id,
+            user_question: query.user_question,
+            overall_status: "POSSIBLY_ELIGIBLE",
+            overall_explanation: query.ai_response,
+            criteria_breakdown: [],
+            all_evidence_sources: query.retrieved_chunks.map((c, i) => ({
+              chunk_id: c.chunk_id,
+              document_title: c.scheme_name,
+              page_number: i + 1,
+              excerpt: c.excerpt,
+              official_url: c.official_url,
+            })),
+            queried_at: new Date().toISOString(),
+          };
+
+          return { query, eligibilityResult };
+        }
+      } catch (err) {
+        console.warn("[API] Backend RAG /schemes/query failed, falling back to client-side reasoning:", err);
+      }
+    }
+
     await delay(900); // Simulate RAG pipeline time
 
     const qLower = userQuestion.toLowerCase();
@@ -390,3 +462,4 @@ export const schemeApi = {
     return { query, eligibilityResult };
   },
 };
+

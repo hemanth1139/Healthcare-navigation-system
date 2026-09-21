@@ -8,7 +8,7 @@ from uuid import UUID
 
 from app.dependencies import DBSession, CurrentUser
 from app.schemas.auth import (
-    RegisterRequest, LoginRequest, AuthResponse, MessageResponse,
+    RegisterRequest, LoginRequest, AuthResponse, MessageResponse, UserOut,
     ForgotPasswordRequest, ResetPasswordRequest, RefreshTokenRequest, VerifyEmailRequest,
 )
 from app.services.auth_service import AuthService
@@ -77,6 +77,12 @@ async def forgot_password(payload: ForgotPasswordRequest, db: DBSession):
 async def reset_password(payload: ResetPasswordRequest, db: DBSession):
     """Reset password using a valid reset token."""
     return await AuthService.reset_password(db, payload)
+
+
+@router.get("/me", response_model=UserOut)
+async def get_current_user_profile(current_user: CurrentUser):
+    """Retrieve details of the currently authenticated user."""
+    return UserOut.from_orm_user(current_user)
 
 
 @router.post("/verify-email", response_model=MessageResponse)

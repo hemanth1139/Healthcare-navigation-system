@@ -11,6 +11,106 @@ from app.config import settings
 # Base mock hospitals with lat/lng coordinates (centered around general coordinates)
 # Center point default: 22.5726° N, 88.3639° E (Kolkata)
 MOCK_HOSPITAL_DATA = [
+    # --- Chennai Region Hospitals ---
+    {
+        "google_place_id": "ch_apollo_greams_chennai",
+        "hospital_name": "Apollo Hospitals Greams Road",
+        "address": "21 Greams Lane, Thousand Lights, Chennai, Tamil Nadu 600006",
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "latitude": 13.0607,
+        "longitude": 80.2512,
+        "phone": "+91 44 2829 0200",
+        "website": "https://chennai.apollohospitals.com",
+        "rating": 4.8,
+        "specialties": "Cardiology, Neurology, Oncology, Orthopedics, Emergency Care",
+        "has_emergency_room": True
+    },
+    {
+        "google_place_id": "ch_rgggh_chennai",
+        "hospital_name": "Rajiv Gandhi Government General Hospital (RGGGH)",
+        "address": "EVR Periyar Salai, Park Town, Chennai, Tamil Nadu 600003",
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "latitude": 13.0818,
+        "longitude": 80.2778,
+        "phone": "+91 44 2530 5000",
+        "website": "https://www.gghchennai.in",
+        "rating": 4.6,
+        "specialties": "General Medicine, Emergency Medicine, Trauma Care, General Surgery, Cardiology",
+        "has_emergency_room": True
+    },
+    {
+        "google_place_id": "ch_fortis_malar_chennai",
+        "hospital_name": "Fortis Malar Hospital",
+        "address": "52, 1st Main Rd, Gandhi Nagar, Adyar, Chennai, Tamil Nadu 600020",
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "latitude": 13.0067,
+        "longitude": 80.2572,
+        "phone": "+91 44 4289 2222",
+        "website": "https://www.fortishealthcare.com",
+        "rating": 4.5,
+        "specialties": "Cardiology, Nephrology, Neurology, Pediatrics, Emergency Care",
+        "has_emergency_room": True
+    },
+    {
+        "google_place_id": "ch_miot_chennai",
+        "hospital_name": "MIOT International Hospital",
+        "address": "4/112, Mount Poonamallee Rd, Manapakkam, Chennai, Tamil Nadu 600089",
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "latitude": 13.0225,
+        "longitude": 80.1764,
+        "phone": "+91 44 4200 2288",
+        "website": "https://www.miotinternational.com",
+        "rating": 4.7,
+        "specialties": "Orthopedics, Cardiology, Emergency Medicine, Gastroenterology",
+        "has_emergency_room": True
+    },
+    {
+        "google_place_id": "ch_gleneagles_chennai",
+        "hospital_name": "Gleneagles Global Health City",
+        "address": "439, Cheran Nagar, Perumbakkam, Chennai, Tamil Nadu 600100",
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "latitude": 12.9022,
+        "longitude": 80.2036,
+        "phone": "+91 44 4624 2424",
+        "website": "https://gleneaglesglobalhealthcitychennai.com",
+        "rating": 4.6,
+        "specialties": "Hepatology, Multi-Organ Transplant, Cardiology, Neurology",
+        "has_emergency_room": True
+    },
+    {
+        "google_place_id": "ch_sims_chennai",
+        "hospital_name": "SIMS Hospital Vadapalani",
+        "address": "1, Jawaharlal Nehru Salai, Vadapalani, Chennai, Tamil Nadu 600026",
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "latitude": 13.0504,
+        "longitude": 80.2121,
+        "phone": "+91 44 4921 1455",
+        "website": "https://simshospitals.com",
+        "rating": 4.6,
+        "specialties": "Cardiac Sciences, Neurosciences, Oncology, Emergency Medicine",
+        "has_emergency_room": True
+    },
+    {
+        "google_place_id": "ch_vijaya_chennai",
+        "hospital_name": "Vijaya Multispeciality Hospital",
+        "address": "434, NSK Salai, Vadapalani, Chennai, Tamil Nadu 600026",
+        "city": "Chennai",
+        "state": "Tamil Nadu",
+        "latitude": 13.0518,
+        "longitude": 80.2104,
+        "phone": "+91 44 6664 6664",
+        "website": "https://vijayahospital.org",
+        "rating": 4.4,
+        "specialties": "Cardiology, General Medicine, Orthopedics, ENT",
+        "has_emergency_room": True
+    },
+    # --- Other Metro Hospitals ---
     {
         "google_place_id": "ch_apollo_kolkata",
         "hospital_name": "Apollo Gleneagles Hospitals",
@@ -37,34 +137,6 @@ MOCK_HOSPITAL_DATA = [
         "website": "https://www.fortishospitals.in",
         "rating": 4.2,
         "specialties": "Neurology, Cardiology, Orthopedics, Nephrology",
-        "has_emergency_room": True
-    },
-    {
-        "google_place_id": "ch_amri_dhakuria",
-        "hospital_name": "AMRI Hospitals Dhakuria",
-        "address": "P-4, 5, Gariahat Rd, Block A, Dhakuria, Kolkata, West Bengal 700029",
-        "city": "Kolkata",
-        "state": "West Bengal",
-        "latitude": 22.5078,
-        "longitude": 88.3712,
-        "phone": "+91 33 2461 2626",
-        "website": "https://www.amrihospitals.in",
-        "rating": 4.0,
-        "specialties": "Pediatrics, General Medicine, Gastroenterology, Emergency Care",
-        "has_emergency_room": True
-    },
-    {
-        "google_place_id": "ch_rubi_hospital",
-        "hospital_name": "Ruby General Hospital",
-        "address": "Kasba Golpark, E.M. Bypass, Kolkata, West Bengal 700107",
-        "city": "Kolkata",
-        "state": "West Bengal",
-        "latitude": 22.5134,
-        "longitude": 88.4038,
-        "phone": "+91 33 6687 1800",
-        "website": "http://www.rubyhospital.com",
-        "rating": 3.9,
-        "specialties": "General Medicine, Gynecology, Emergency Medicine",
         "has_emergency_room": True
     }
 ]
