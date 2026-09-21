@@ -10,8 +10,16 @@ from app.config import settings
 from app.rag.embeddings import EmbeddingService
 from app.rag.vectorstore import VectorStore
 
-# Initialize VectorStore singleton
-vector_store = VectorStore()
+# ─── Lazy VectorStore singleton ─────────────────────────────────────────────
+# Instantiated on first RAG query — not at import time — saves ~100MB on boot.
+_vector_store: VectorStore | None = None
+
+
+def _get_vector_store() -> VectorStore:
+    global _vector_store
+    if _vector_store is None:
+        _vector_store = VectorStore()
+    return _vector_store
 
 
 class RAGPipeline:
@@ -21,10 +29,11 @@ class RAGPipeline:
         """
         Retrieves context chunks and performs multi-document scheme eligibility reasoning.
         """
-        # 1. Generate query vector
+        # 1. Generate query embedding
         query_emb = await EmbeddingService.get_embedding(query_text)
 
-        # 2. Similarity search in local vector store
+        # 2. Lazy-load vector store and run similarity search
+        vector_store = _get_vector_store()
         results = vector_store.similarity_search(query_emb, k=k)
 
         # Filter by scoped_scheme_id if provided

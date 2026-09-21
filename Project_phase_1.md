@@ -18,7 +18,7 @@ The proposed solution is an AI-Based Healthcare Navigation and Patient Assistanc
 
 The collected symptom information is processed by a Python-based rule engine to perform transparent severity and urgency classification using predefined clinical red-flag criteria grounded in relevant medical literature. Based on the identified symptom cluster and urgency level, the system recommends an appropriate medical specialist. The system then uses the Google Maps API to identify nearby hospitals or healthcare facilities relevant to the recommended specialist and the user's location.
 
-The primary research contribution of the system is a Retrieval-Augmented Generation (RAG) based government healthcare scheme eligibility framework. Official PM-JAY and state government healthcare scheme documents are processed, divided into relevant sections, converted into vector embeddings using Sentence Transformers, and stored in ChromaDB for semantic retrieval. When a user requests scheme assistance, the system decomposes the eligibility requirements into relevant criteria such as age, income, state, beneficiary information, and applicable health or condition-related requirements. Relevant evidence is retrieved from multiple official scheme documents and filtered before being used for eligibility reasoning.
+The primary research contribution of the system is a Retrieval-Augmented Generation (RAG) based government healthcare scheme eligibility framework. Official PM-JAY and state government healthcare scheme documents are processed, divided into relevant sections, converted into vector embeddings using Google Gemini API embeddings, and stored in a lightweight JSON vector store for semantic retrieval. When a user requests scheme assistance, the system decomposes the eligibility requirements into relevant criteria such as age, income, state, beneficiary information, and applicable health or condition-related requirements. Relevant evidence is retrieved from multiple official scheme documents and filtered before being used for eligibility reasoning.
 
 A dedicated eligibility decision module compares the user's available information against the retrieved eligibility criteria. The system can identify whether individual criteria are satisfied, not satisfied, or require additional information. The final result can therefore be classified as Eligible, Not Eligible, Possibly Eligible, or Insufficient Information rather than forcing a binary decision. Each eligibility claim is supported by retrieved evidence, including the relevant scheme document and page or source information, making the response traceable and source-grounded.
 
@@ -88,7 +88,7 @@ When the user requests government healthcare scheme assistance, the system colle
 
 The eligibility query is decomposed into individual criteria, such as age, income, state, beneficiary information, and applicable health or condition-related requirements.
 
-The RAG pipeline retrieves relevant information from official PM-JAY and state government healthcare scheme documents using Sentence Transformers for embeddings and ChromaDB for semantic retrieval.
+The RAG pipeline retrieves relevant information from official PM-JAY and state government healthcare scheme documents using Google Gemini API embeddings for embeddings and a lightweight JSON vector store for semantic retrieval.
 
 Retrieved evidence is filtered and organized according to the individual eligibility criteria. Relevant information from multiple official documents can be combined when eligibility requirements are distributed across different documents.
 
@@ -490,9 +490,9 @@ PDF/document text extraction
 
 Document cleaning and chunking
 
-Sentence Transformer embeddings
+Google Gemini API embeddings
 
-ChromaDB vector storage
+Lightweight JSON vector storage
 
 Semantic retrieval
 
@@ -530,7 +530,7 @@ Generate targeted retrieval queries for each criterion
 
 11. Evidence Filtering & Retrieval
 
-Retrieve relevant document chunks from ChromaDB
+Retrieve relevant document chunks from lightweight vector store
 
 Filter irrelevant retrieved content
 
@@ -1137,8 +1137,8 @@ The intended contribution is therefore not the individual use of an LLM, RAG, or
 | AI/RAG Framework | LangChain | Manages LLM workflows and builds the Retrieval-Augmented Generation pipeline for government healthcare scheme assistance. |
 | Severity & Urgency Logic | Python Rule Engine | Performs transparent, rule-based severity and urgency classification using predefined clinical red-flag criteria grounded in relevant medical literature. |
 | Eligibility Decision Logic | Python Decision Engine | Compares retrieved eligibility criteria with patient information and determines criterion-level eligibility, missing information, and the overall eligibility status. |
-| Embedding Model | Sentence Transformers | Converts official government healthcare scheme documents into vector embeddings for semantic retrieval. |
-| Vector Database | ChromaDB | Stores and retrieves document embeddings and associated metadata for semantic search across government healthcare scheme documents. |
+| Embedding Model | Google Gemini API Embeddings | Converts official government healthcare scheme documents into vector embeddings for semantic retrieval. |
+| Vector Database | Lightweight JSON VectorStore | Stores and retrieves document embeddings and associated metadata for high-performance, low-memory semantic search across government healthcare scheme documents. |
 | Location Services | Google Maps API | Identifies nearby hospitals and healthcare facilities based on the user's location and recommended healthcare specialty or need. |
 | Database | PostgreSQL | Stores user accounts, patient profiles, consultations, conversations, symptoms, assessments, recommendations, scheme queries, eligibility results, and supporting evidence. |
 | ORM | SQLAlchemy | Handles database operations and relationships between the FastAPI backend and PostgreSQL. |

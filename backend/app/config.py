@@ -35,8 +35,7 @@ class Settings(BaseSettings):
 
     # ─── LLM Providers ────────────────────────────────────────────────────────
     GOOGLE_API_KEY: str = ""
-    GROQ_API_KEY: str = ""
-    PRIMARY_LLM_PROVIDER: Literal["gemini", "groq"] = "gemini"
+    PRIMARY_LLM_PROVIDER: str = "gemini"
 
     # ─── Google Maps ──────────────────────────────────────────────────────────
     GOOGLE_MAPS_API_KEY: str = ""
@@ -46,9 +45,8 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str = ""
     CLOUDINARY_API_SECRET: str = ""
 
-    # ─── RAG / ChromaDB ───────────────────────────────────────────────────────
-    CHROMA_PERSIST_DIRECTORY: str = "./app/rag/chroma_store"
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    # ─── RAG Vector Store ────────────────────────────────────────────────────
+    VECTOR_STORE_DIRECTORY: str = "./app/rag/vector_store"
 
     # ─── Email ────────────────────────────────────────────────────────────────
     SMTP_HOST: str = "smtp.gmail.com"

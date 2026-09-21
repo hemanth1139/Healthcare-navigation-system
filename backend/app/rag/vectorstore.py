@@ -1,18 +1,27 @@
 """
 In-Memory JSON Vector Store.
-Stores document chunks and embedding vectors locally.
-Performs Cosine Similarity searching using NumPy.
+Stores document chunks and embedding vectors in a local JSON file.
+Performs cosine similarity search using pure Python math — no numpy, no chromadb.
 """
 
 import os
 import json
-import numpy as np
+import math
 from typing import List, Dict, Any, Tuple
 from app.config import settings
 
-# Path to the persisted json store
-STORE_DIR = os.path.abspath(settings.CHROMA_PERSIST_DIRECTORY)
+STORE_DIR = os.path.abspath(settings.VECTOR_STORE_DIRECTORY)
 STORE_PATH = os.path.join(STORE_DIR, "vector_store.json")
+
+
+def _cosine_similarity(a: List[float], b: List[float]) -> float:
+    """Pure Python cosine similarity between two vectors."""
+    dot = sum(x * y for x, y in zip(a, b))
+    norm_a = math.sqrt(sum(x * x for x in a))
+    norm_b = math.sqrt(sum(x * x for x in b))
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return dot / (norm_a * norm_b)
 
 
 class VectorStore:
@@ -23,68 +32,64 @@ class VectorStore:
 
     def _ensure_store_dir(self):
         if not os.path.exists(STORE_DIR):
-            os.makedirs(STORE_DIR)
+            os.makedirs(STORE_DIR, exist_ok=True)
 
     def load(self):
-        """Loads vector store from JSON file."""
+        """Loads vector store from JSON file on disk."""
         if os.path.exists(STORE_PATH):
             try:
                 with open(STORE_PATH, "r", encoding="utf-8") as f:
                     self.documents = json.load(f)
+                print(f"[INFO] Vector store loaded: {len(self.documents)} chunks.")
             except Exception as e:
-                print(f"[WARN] Error loading vector store: {e}. Starting fresh.")
+                print(f"[WARN] Failed to load vector store: {e}. Starting fresh.")
                 self.documents = []
         else:
             self.documents = []
 
     def save(self):
-        """Saves vector store to JSON file."""
+        """Persists vector store to JSON file on disk."""
         with open(STORE_PATH, "w", encoding="utf-8") as f:
             json.dump(self.documents, f, indent=2, ensure_ascii=False)
 
-    def add_texts(self, texts: List[str], embeddings: List[List[float]], metadatas: List[Dict[str, Any]]):
-        """Adds document chunks and corresponding vectors to the store."""
+    def add_texts(
+        self,
+        texts: List[str],
+        embeddings: List[List[float]],
+        metadatas: List[Dict[str, Any]],
+    ):
+        """Adds document chunks with their embeddings to the store."""
         for text, emb, meta in zip(texts, embeddings, metadatas):
             self.documents.append({
                 "text": text,
                 "embedding": emb,
-                "metadata": meta
+                "metadata": meta,
             })
         self.save()
 
-    def similarity_search(self, query_embedding: List[float], k: int = 3) -> List[Tuple[str, Dict[str, Any], float]]:
+    def similarity_search(
+        self, query_embedding: List[float], k: int = 3
+    ) -> List[Tuple[str, Dict[str, Any], float]]:
         """
-        Performs cosine similarity search.
-        Returns: List of Tuple (chunk_text, metadata, similarity_score)
+        Cosine similarity search — pure Python, no numpy.
+        Returns top-k (chunk_text, metadata, score) tuples.
         """
         if not self.documents:
             return []
 
-        q_vec = np.array(query_embedding)
-        q_norm = np.linalg.norm(q_vec)
-
-        if q_norm == 0:
-            return []
-
-        scores = []
-        for doc in self.documents:
-            doc_vec = np.array(doc["embedding"])
-            doc_norm = np.linalg.norm(doc_vec)
-            
-            if doc_norm == 0:
-                similarity = 0.0
-            else:
-                similarity = float(np.dot(q_vec, doc_vec) / (q_norm * doc_norm))
-                
-            scores.append((doc["text"], doc["metadata"], similarity))
-
-        # Sort by similarity score descending
-        sorted_scores = sorted(scores, key=lambda x: x[2], reverse=True)
-        return sorted_scores[:k]
+        scores = [
+            (doc["text"], doc["metadata"], _cosine_similarity(query_embedding, doc["embedding"]))
+            for doc in self.documents
+        ]
+        scores.sort(key=lambda x: x[2], reverse=True)
+        return scores[:k]
 
     def clear(self):
-        """Clears the vector store."""
+        """Clears the vector store from memory and disk."""
         self.documents = []
         if os.path.exists(STORE_PATH):
             os.remove(STORE_PATH)
         self._ensure_store_dir()
+
+    def __len__(self) -> int:
+        return len(self.documents)
