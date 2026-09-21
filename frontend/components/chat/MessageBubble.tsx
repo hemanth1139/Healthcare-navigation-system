@@ -102,7 +102,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {/* Triage Completed Prediction Link CTA */}
           {message.predictionId && (
             <div className="mt-3 pt-3 border-t border-[#0D9488]/20">
-              <Link href={`/predictions`}>
+              <Link href="/history">
                 <Button variant="primary" size="sm" fullWidth>
                   <span>View Full Clinical Triage Report</span>
                   <ArrowRight className="w-4 h-4 ml-1.5" />
