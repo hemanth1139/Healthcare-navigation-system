@@ -49,11 +49,11 @@ export default function SpecialistRecommendationPage() {
       {/* Header back navigation */}
       <div className="flex items-center gap-2 border-b border-[#F0FDFA] pb-3">
         <Link
-          href={`/predictions/${predictionId}`}
+          href="/symptom-chat"
           className="inline-flex items-center text-xs font-semibold text-[#0D9488] hover:underline focus-ring rounded p-1 gap-1"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Prediction Results
+          Back to Symptom Chat
         </Link>
       </div>
 

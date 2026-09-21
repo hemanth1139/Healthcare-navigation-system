@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SpecialistRecommendation } from "@/types/specialist";
-import { SeverityBadge } from "@/components/predictions/SeverityBadge";
+import { SeverityBadge } from "@/components/ui/SeverityBadge";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { UserCheck, Stethoscope, ArrowRight, ArrowLeft, ShieldAlert } from "lucide-react";
@@ -92,12 +92,12 @@ export const SpecialistRecommendationCard: React.FC<SpecialistRecommendationCard
         </Button>
 
         <Link
-          href={`/predictions/${recommendation.prediction_id}`}
+          href="/symptom-chat"
           className="w-full sm:w-auto"
         >
           <Button variant="ghost" size="lg" fullWidth>
             <ArrowLeft className="w-4 h-4 mr-1.5" />
-            <span>Back to Triage Results</span>
+            <span>Back to Symptom Chat</span>
           </Button>
         </Link>
       </div>
