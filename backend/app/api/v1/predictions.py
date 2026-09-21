@@ -38,20 +38,35 @@ async def run_prediction(
     conversation_id: UUID,
     db: DBSession,
     current_user: CurrentUser,
-    payload: dict,
+    payload: Optional[dict] = None,
 ):
     """
     Run rule-based disease prediction given a list of extracted symptoms.
-
-    Request body:
-    {
-        "symptoms": ["fever", "cough", "shortness_of_breath"]
-    }
+    If payload/symptoms list is empty, symptoms will be automatically extracted
+    from the conversation history.
     """
+    payload = payload or {}
     symptoms = payload.get("symptoms", [])
+
     if not symptoms:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=422, detail="symptoms list must not be empty")
+        # Pull messages from conversation to extract symptom keywords
+        from app.models.conversation import ConversationMessage
+        from sqlalchemy import select
+        msg_res = await db.execute(
+            select(ConversationMessage).where(ConversationMessage.conversation_id == conversation_id)
+        )
+        messages = msg_res.scalars().all()
+        combined_text = " ".join([m.message for m in messages]).lower()
+        
+        # Simple extraction from conversation text
+        common_symptoms = [
+            "chest_pain", "chest pain", "fever", "cough", "shortness_of_breath",
+            "shortness of breath", "headache", "fatigue", "nausea", "vomiting",
+            "joint_pain", "joint pain", "rash", "dizziness", "chills"
+        ]
+        symptoms = [s for s in common_symptoms if s in combined_text]
+        if not symptoms:
+            symptoms = ["general_discomfort"]
 
     result = await RuleBasedPredictionService.run_prediction(
         db=db,

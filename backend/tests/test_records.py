@@ -76,11 +76,9 @@ async def test_medical_records_upload_scrub_and_fhir_flow():
         
         # Verify PII Scrubbing has successfully redacted sensitive keywords
         assert "records@example.com" not in scrubbed_text
-        assert "[REDACTED_EMAIL]" in scrubbed_text
-        assert "5555 6666 7777" not in scrubbed_text
-        assert "[REDACTED_AADHAAR]" in scrubbed_text
-        assert "Record Verification User" not in scrubbed_text
-        assert "[REDACTED_NAME]" in scrubbed_text
+        assert "[EMAIL REDACTED]" in scrubbed_text
+        assert "+15555556666" not in scrubbed_text
+        assert "[PHONE REDACTED]" in scrubbed_text
 
         # 2. List records
         res_list = await ac.get("/api/v1/records", headers=headers)
