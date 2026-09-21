@@ -27,18 +27,18 @@ export const SpecialistRecommendationCard: React.FC<SpecialistRecommendationCard
   };
 
   return (
-    <Card className="p-6 sm:p-8 border-2 border-[#E6F4F3] shadow-clinical-lg flex flex-col gap-6 max-w-2xl mx-auto">
+    <Card className="p-6 sm:p-8 border-2 border-[#F0FDFA] shadow-clinical-lg flex flex-col gap-6 max-w-2xl mx-auto">
       {/* Header Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E6F4F3] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F0FDFA] pb-4">
         <div className="flex items-center gap-2">
-          <div className="w-12 h-12 rounded-2xl bg-[#0F6E7A] text-white flex items-center justify-center shrink-0 shadow-clinical">
+          <div className="w-12 h-12 rounded-2xl bg-[#0D9488] text-white flex items-center justify-center shrink-0 shadow-clinical">
             <Stethoscope className="w-6 h-6 stroke-[2.2]" />
           </div>
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0F6E7A] bg-[#E6F4F3] px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0D9488] bg-[#F0FDFA] px-2.5 py-0.5 rounded-full">
               Recommended Specialty
             </span>
-            <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#1E2A2E] mt-0.5">
+            <h1 className="font-heading font-bold text-2xl sm:text-3xl text-[#0F172A] mt-0.5">
               {recommendation.specialist}
             </h1>
           </div>
@@ -52,11 +52,11 @@ export const SpecialistRecommendationCard: React.FC<SpecialistRecommendationCard
       </div>
 
       {/* Clinical Rationale Reason Box */}
-      <div className="bg-[#F7FAFA] border border-[#E6F4F3] rounded-2xl p-4 sm:p-5 flex flex-col gap-2">
-        <h3 className="font-heading font-semibold text-xs text-[#0F6E7A] uppercase tracking-wider flex items-center gap-1.5">
+      <div className="bg-[#F8FAFC] border border-[#F0FDFA] rounded-2xl p-4 sm:p-5 flex flex-col gap-2">
+        <h3 className="font-heading font-semibold text-xs text-[#0D9488] uppercase tracking-wider flex items-center gap-1.5">
           <UserCheck className="w-4 h-4" /> Clinical Rationale & Triage Match
         </h3>
-        <p className="text-xs sm:text-sm text-[#1E2A2E] leading-relaxed">
+        <p className="text-xs sm:text-sm text-[#0F172A] leading-relaxed">
           {recommendation.reason}
         </p>
       </div>
@@ -64,12 +64,12 @@ export const SpecialistRecommendationCard: React.FC<SpecialistRecommendationCard
       {/* Associated Symptoms Tags */}
       {recommendation.associated_symptoms && recommendation.associated_symptoms.length > 0 && (
         <div className="flex flex-col gap-2">
-          <span className="text-xs font-medium text-[#5C6B6E]">Associated Symptom Triggers:</span>
+          <span className="text-xs font-medium text-[#64748B]">Associated Symptom Triggers:</span>
           <div className="flex flex-wrap gap-2">
             {recommendation.associated_symptoms.map((sym) => (
               <span
                 key={sym}
-                className="text-xs font-semibold text-[#1E2A2E] bg-[#E6F4F3]/70 px-3 py-1 rounded-full border border-[#0F6E7A]/20"
+                className="text-xs font-semibold text-[#0F172A] bg-[#F0FDFA]/70 px-3 py-1 rounded-full border border-[#0D9488]/20"
               >
                 • {sym}
               </span>
@@ -79,7 +79,7 @@ export const SpecialistRecommendationCard: React.FC<SpecialistRecommendationCard
       )}
 
       {/* Primary Actions */}
-      <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-[#E6F4F3]">
+      <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-[#F0FDFA]">
         <Button
           onClick={handleFindHospitals}
           variant="primary"

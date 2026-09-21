@@ -153,8 +153,8 @@ export const SeverityUrgencyCard: React.FC<SeverityUrgencyCardProps> = ({
           </p>
           <div className="flex items-center justify-between gap-3 bg-white/80 rounded-xl p-3 border border-white">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center">
-                <Stethoscope className="w-4 h-4 text-blue-600" />
+              <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center">
+                <Stethoscope className="w-4 h-4 text-teal-600" />
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-900">
@@ -167,7 +167,7 @@ export const SeverityUrgencyCard: React.FC<SeverityUrgencyCardProps> = ({
             </div>
             <Link
               href="/hospitals"
-              className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline shrink-0"
+              className="flex items-center gap-1 text-xs font-semibold text-teal-600 hover:underline shrink-0"
             >
               Find Hospital
               <ArrowRight className="w-3 h-3" />

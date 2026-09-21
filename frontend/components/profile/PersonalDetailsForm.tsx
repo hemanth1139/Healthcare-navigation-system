@@ -91,8 +91,8 @@ export const PersonalDetailsForm: React.FC<{
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-6">
       {/* 1. Basic Health & Physical Parameters */}
-      <div className="flex flex-col gap-4 border-b border-[#E6F4F3] pb-6">
-        <h3 className="font-heading font-bold text-base text-[#1E2A2E]">
+      <div className="flex flex-col gap-4 border-b border-[#F0FDFA] pb-6">
+        <h3 className="font-heading font-bold text-base text-[#0F172A]">
           Basic Personal Parameters
         </h3>
 
@@ -115,9 +115,9 @@ export const PersonalDetailsForm: React.FC<{
           />
 
           <div className="flex flex-col gap-1.5 w-full">
-            <label className="text-sm font-medium text-[#1E2A2E]">Gender</label>
+            <label className="text-sm font-medium text-[#0F172A]">Gender</label>
             <select
-              className="w-full font-body text-sm text-[#1E2A2E] bg-white border border-[#E6F4F3] rounded-xl px-3.5 py-2.5 focus-ring"
+              className="w-full font-body text-sm text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl px-3.5 py-2.5 focus-ring"
               {...register("gender")}
             >
               <option value="Male">Male</option>
@@ -128,9 +128,9 @@ export const PersonalDetailsForm: React.FC<{
           </div>
 
           <div className="flex flex-col gap-1.5 w-full">
-            <label className="text-sm font-medium text-[#1E2A2E]">Blood Group</label>
+            <label className="text-sm font-medium text-[#0F172A]">Blood Group</label>
             <select
-              className="w-full font-body text-sm text-[#1E2A2E] bg-white border border-[#E6F4F3] rounded-xl px-3.5 py-2.5 focus-ring"
+              className="w-full font-body text-sm text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl px-3.5 py-2.5 focus-ring"
               {...register("blood_group")}
             >
               <option value="Unknown">Unknown</option>
@@ -166,8 +166,8 @@ export const PersonalDetailsForm: React.FC<{
       </div>
 
       {/* 2. Address Details */}
-      <div className="flex flex-col gap-4 border-b border-[#E6F4F3] pb-6">
-        <h3 className="font-heading font-bold text-base text-[#1E2A2E]">
+      <div className="flex flex-col gap-4 border-b border-[#F0FDFA] pb-6">
+        <h3 className="font-heading font-bold text-base text-[#0F172A]">
           Residential Address
         </h3>
 
@@ -208,10 +208,10 @@ export const PersonalDetailsForm: React.FC<{
       </div>
 
       {/* 3. Emergency Contact Sub-section */}
-      <div id="emergency-contact" className="flex flex-col gap-4 bg-[#E6F4F3]/40 p-4 sm:p-5 rounded-2xl border border-[#0F6E7A]/20">
+      <div id="emergency-contact" className="flex flex-col gap-4 bg-[#F0FDFA]/40 p-4 sm:p-5 rounded-2xl border border-[#0D9488]/20">
         <div className="flex items-center gap-2">
-          <ShieldAlert className="w-5 h-5 text-[#0F6E7A]" />
-          <h3 className="font-heading font-bold text-base text-[#1E2A2E]">
+          <ShieldAlert className="w-5 h-5 text-[#0D9488]" />
+          <h3 className="font-heading font-bold text-base text-[#0F172A]">
             Emergency Contact Information
           </h3>
         </div>

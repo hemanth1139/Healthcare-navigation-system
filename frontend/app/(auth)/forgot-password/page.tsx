@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
       <div>
         <Link
           href="/login"
-          className="inline-flex items-center text-xs font-semibold text-[#0F6E7A] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
+          className="inline-flex items-center text-xs font-semibold text-[#0D9488] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to Sign In
@@ -90,10 +90,10 @@ export default function ForgotPasswordPage() {
         <>
           {/* Initial Form State */}
           <div className="flex flex-col gap-1">
-            <h1 className="font-heading text-2xl font-bold text-[#1E2A2E]">
+            <h1 className="font-heading text-2xl font-bold text-[#0F172A]">
               Reset Password
             </h1>
-            <p className="text-sm text-[#5C6B6E]">
+            <p className="text-sm text-[#64748B]">
               Enter your registered email address and we&apos;ll send you a link to reset your password.
             </p>
           </div>
@@ -135,18 +135,18 @@ export default function ForgotPasswordPage() {
       ) : (
         /* Confirmation State In-Page */
         <div className="flex flex-col items-center text-center gap-5 py-2">
-          <div className="w-14 h-14 rounded-full bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center border-2 border-[#0F6E7A]/20">
+          <div className="w-14 h-14 rounded-full bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center border-2 border-[#0D9488]/20">
             <CheckCircle2 className="w-8 h-8" />
           </div>
 
           <div className="flex flex-col gap-2">
-            <h2 className="font-heading text-xl font-bold text-[#1E2A2E]">
+            <h2 className="font-heading text-xl font-bold text-[#0F172A]">
               Check Your Email
             </h2>
-            <p className="text-sm text-[#5C6B6E] leading-relaxed">
+            <p className="text-sm text-[#64748B] leading-relaxed">
               We have sent password reset instructions to:
             </p>
-            <p className="font-mono font-medium text-sm text-[#0F6E7A] bg-[#E6F4F3] py-1.5 px-3 rounded-lg border border-[#0F6E7A]/20 inline-block mx-auto break-all">
+            <p className="font-mono font-medium text-sm text-[#0D9488] bg-[#F0FDFA] py-1.5 px-3 rounded-lg border border-[#0D9488]/20 inline-block mx-auto break-all">
               {submittedEmail}
             </p>
           </div>
@@ -167,7 +167,7 @@ export default function ForgotPasswordPage() {
             />
           )}
 
-          <p className="text-xs text-[#5C6B6E]">
+          <p className="text-xs text-[#64748B]">
             Didn&apos;t receive the email? Check your spam folder or click below to resend.
           </p>
 

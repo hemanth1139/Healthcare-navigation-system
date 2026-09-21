@@ -47,7 +47,7 @@ export default function PredictionResultPage() {
     return (
       <div className="flex flex-col items-center justify-center p-12 min-h-[400px]">
         <Spinner size="lg" color="primary" />
-        <span className="text-xs text-[#5C6B6E] mt-2">
+        <span className="text-xs text-[#64748B] mt-2">
           Generating clinical differential report & SHAP attributions...
         </span>
       </div>
@@ -60,30 +60,30 @@ export default function PredictionResultPage() {
   return (
     <div className="flex flex-col gap-6 sm:gap-8 max-w-6xl mx-auto">
       {/* Header Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E6F4F3] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F0FDFA] pb-4">
         <div className="flex flex-col gap-1">
           <Link
             href="/predictions"
-            className="inline-flex items-center text-xs font-semibold text-[#0F6E7A] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
+            className="inline-flex items-center text-xs font-semibold text-[#0D9488] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Triage History
           </Link>
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#1E2A2E] tracking-tight">
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#0F172A] tracking-tight">
             Clinical Triage & Prediction Report
           </h1>
         </div>
 
         {/* Demo State Switcher for Evaluator */}
-        <div className="flex items-center gap-2 bg-[#E6F4F3]/60 p-1.5 rounded-xl border border-[#0F6E7A]/20 self-start sm:self-auto">
-          <span className="text-[11px] font-semibold text-[#0F6E7A] px-2">Demo State:</span>
+        <div className="flex items-center gap-2 bg-[#F0FDFA]/60 p-1.5 rounded-xl border border-[#0D9488]/20 self-start sm:self-auto">
+          <span className="text-[11px] font-semibold text-[#0D9488] px-2">Demo State:</span>
           <button
             onClick={() => setDemoEmergencyMode(false)}
             type="button"
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
               !demoEmergencyMode
-                ? "bg-white text-[#0F6E7A] shadow-2xs font-bold"
-                : "text-[#5C6B6E] hover:text-[#1E2A2E]"
+                ? "bg-white text-[#0D9488] shadow-2xs font-bold"
+                : "text-[#64748B] hover:text-[#0F172A]"
             }`}
           >
             Normal (Moderate)
@@ -93,8 +93,8 @@ export default function PredictionResultPage() {
             type="button"
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
               demoEmergencyMode
-                ? "bg-[#E5573F] text-white shadow-2xs font-bold"
-                : "text-[#5C6B6E] hover:text-[#E5573F]"
+                ? "bg-[#EF4444] text-white shadow-2xs font-bold"
+                : "text-[#64748B] hover:text-[#EF4444]"
             }`}
           >
             Emergency Alert
@@ -107,10 +107,10 @@ export default function PredictionResultPage() {
         <div
           role="alert"
           aria-live="assertive"
-          className="bg-[#FDF0EE] border-2 border-[#E5573F] rounded-2xl p-6 shadow-clinical-lg flex flex-col gap-4 animate-in slide-in-from-top-2 duration-200"
+          className="bg-[#FEF2F2] border-2 border-[#EF4444] rounded-2xl p-6 shadow-clinical-lg flex flex-col gap-4 animate-in slide-in-from-top-2 duration-200"
         >
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#E5573F] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-[#EF4444] text-white flex items-center justify-center shrink-0 shadow-sm">
               <ShieldAlert className="w-7 h-7" />
             </div>
 
@@ -122,17 +122,17 @@ export default function PredictionResultPage() {
                 />
               </div>
 
-              <h2 className="font-heading font-bold text-xl text-[#1E2A2E] mt-1">
+              <h2 className="font-heading font-bold text-xl text-[#0F172A] mt-1">
                 Immediate Hospital Evaluation Recommended
               </h2>
 
-              <p className="text-xs sm:text-sm text-[#1E2A2E] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#0F172A] leading-relaxed">
                 {severityAssessment.explanation}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-[#E5573F]/25">
+          <div className="flex flex-col sm:flex-row items-center gap-3 pt-3 border-t border-[#EF4444]/25">
             <a href="tel:108" className="w-full sm:w-auto">
               <Button variant="urgent" size="lg" fullWidth>
                 <PhoneCall className="w-5 h-5 mr-2 animate-bounce" />
@@ -141,7 +141,7 @@ export default function PredictionResultPage() {
             </a>
 
             <Link href="/hospitals" className="w-full sm:w-auto">
-              <Button variant="secondary" size="lg" fullWidth className="border-[#E5573F]/40 text-[#E5573F]">
+              <Button variant="secondary" size="lg" fullWidth className="border-[#EF4444]/40 text-[#EF4444]">
                 <Building2 className="w-5 h-5 mr-2" />
                 <span>Find Emergency Room Facilities</span>
               </Button>
@@ -149,13 +149,13 @@ export default function PredictionResultPage() {
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-[#E6F4F3] shadow-xs">
+        <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-[#F0FDFA] shadow-xs">
           <div className="flex items-center gap-3">
             <SeverityBadge
               severity={severityAssessment.severity}
               urgencyText={severityAssessment.urgency_level}
             />
-            <p className="text-xs text-[#5C6B6E] hidden sm:inline">
+            <p className="text-xs text-[#64748B] hidden sm:inline">
               {severityAssessment.explanation}
             </p>
           </div>

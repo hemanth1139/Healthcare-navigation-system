@@ -33,7 +33,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   if (message.sender === "system") {
     return (
       <div className="flex justify-center my-2">
-        <span className="text-[11px] font-medium text-[#5C6B6E] bg-[#E6F4F3]/80 px-3 py-1 rounded-full border border-[#0F6E7A]/15 text-center">
+        <span className="text-[11px] font-medium text-[#64748B] bg-[#F0FDFA]/80 px-3 py-1 rounded-full border border-[#0D9488]/15 text-center">
           {message.message}
         </span>
       </div>
@@ -53,7 +53,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     >
       {/* Agent Avatar Icon */}
       {!isUser && (
-        <div className="w-8 h-8 rounded-xl bg-[#0F6E7A] text-white flex items-center justify-center shrink-0 shadow-xs mt-1">
+        <div className="w-8 h-8 rounded-xl bg-[#0D9488] text-white flex items-center justify-center shrink-0 shadow-xs mt-1">
           <HeartPulse className="w-4 h-4 stroke-[2.5]" />
         </div>
       )}
@@ -63,16 +63,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         <div
           className={`p-3.5 sm:p-4 rounded-2xl shadow-xs transition-all duration-150 ${
             isUser
-              ? "bg-[#E6F4F3] text-[#1E2A2E] rounded-tr-xs border border-[#0F6E7A]/20"
+              ? "bg-[#F0FDFA] text-[#0F172A] rounded-tr-xs border border-[#0D9488]/20"
               : message.isEmergencyAlert
-              ? "bg-[#FDF0EE] text-[#1E2A2E] rounded-tl-xs border-2 border-[#E5573F]"
-              : "bg-white text-[#1E2A2E] rounded-tl-xs border border-[#E6F4F3]"
+              ? "bg-[#FEF2F2] text-[#0F172A] rounded-tl-xs border-2 border-[#EF4444]"
+              : "bg-white text-[#0F172A] rounded-tl-xs border border-[#F0FDFA]"
           }`}
         >
           {/* Voice Input Badge */}
           {message.input_type === "voice" && (
-            <div className="inline-flex items-center gap-1 text-[10px] font-bold text-[#0F6E7A] uppercase bg-white/80 px-2 py-0.5 rounded-full mb-1.5 border border-[#0F6E7A]/15">
-              <Mic className="w-3 h-3 text-[#0F6E7A]" /> Voice Transcribed
+            <div className="inline-flex items-center gap-1 text-[10px] font-bold text-[#0D9488] uppercase bg-white/80 px-2 py-0.5 rounded-full mb-1.5 border border-[#0D9488]/15">
+              <Mic className="w-3 h-3 text-[#0D9488]" /> Voice Transcribed
             </div>
           )}
 
@@ -83,8 +83,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
           {/* Secondary Translation Line */}
           {message.translated_message && (
-            <div className="mt-2 pt-2 border-t border-[#0F6E7A]/15 text-xs text-[#5C6B6E] italic">
-              <span className="font-semibold not-italic text-[#0F6E7A]">Translated:</span>{" "}
+            <div className="mt-2 pt-2 border-t border-[#0D9488]/15 text-xs text-[#64748B] italic">
+              <span className="font-semibold not-italic text-[#0D9488]">Translated:</span>{" "}
               {message.translated_message}
             </div>
           )}
@@ -101,7 +101,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
           {/* Triage Completed Prediction Link CTA */}
           {message.predictionId && (
-            <div className="mt-3 pt-3 border-t border-[#0F6E7A]/20">
+            <div className="mt-3 pt-3 border-t border-[#0D9488]/20">
               <Link href={`/predictions`}>
                 <Button variant="primary" size="sm" fullWidth>
                   <span>View Full Clinical Triage Report</span>
@@ -114,12 +114,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
         {/* Timestamp */}
         <div
-          className={`flex items-center gap-1 text-[10px] text-[#5C6B6E] px-1 transition-opacity ${
+          className={`flex items-center gap-1 text-[10px] text-[#64748B] px-1 transition-opacity ${
             showTimestamp ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           } ${isUser ? "justify-end" : "justify-start"}`}
         >
           <span>{formatTime(message.created_at)}</span>
-          {isUser && <CheckCheck className="w-3 h-3 text-[#0F6E7A]" />}
+          {isUser && <CheckCheck className="w-3 h-3 text-[#0D9488]" />}
         </div>
       </div>
     </div>

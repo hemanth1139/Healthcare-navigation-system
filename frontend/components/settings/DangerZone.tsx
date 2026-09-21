@@ -22,10 +22,10 @@ export const DangerZone: React.FC = () => {
     <div className="flex flex-col gap-3 pt-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <span className="font-heading font-bold text-sm text-[#1E2A2E] dark:text-[#F7FAFA]">
+          <span className="font-heading font-bold text-sm text-[#0F172A] dark:text-[#F8FAFC]">
             Permanently Delete HealthCare Navigator Account
           </span>
-          <p className="text-xs text-[#5C6B6E] dark:text-[#A3B2B5]">
+          <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">
             Irreversibly delete your account, patient profile, symptom chat history, and uploaded medical documents.
           </p>
         </div>
@@ -35,7 +35,7 @@ export const DangerZone: React.FC = () => {
           onClick={() => setIsConfirmOpen(true)}
           variant="ghost"
           size="md"
-          className="text-[#E5573F] border border-[#E5573F]/40 hover:bg-[#FDF0EE] dark:hover:bg-[#2C1A18] shrink-0"
+          className="text-[#EF4444] border border-[#EF4444]/40 hover:bg-[#FEF2F2] dark:hover:bg-[#450A0A] shrink-0"
         >
           <Trash2 className="w-4 h-4 mr-1.5" />
           Delete Account

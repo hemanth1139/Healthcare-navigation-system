@@ -29,23 +29,23 @@ export const ProfileCompletenessBar: React.FC<{ record: FullPatientRecord }> = (
   }
 
   return (
-    <div className="bg-[#E6F4F3]/80 border border-[#0F6E7A]/20 rounded-2xl p-4 flex flex-col gap-2.5 shadow-sm">
+    <div className="bg-[#F0FDFA]/80 border border-[#0D9488]/20 rounded-2xl p-4 flex flex-col gap-2.5 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[#0F6E7A]" />
-          <span className="font-heading font-semibold text-xs text-[#1E2A2E]">
-            Profile Completeness: <strong className="text-[#0F6E7A] font-mono">{percentage}%</strong>
+          <Sparkles className="w-4 h-4 text-[#0D9488]" />
+          <span className="font-heading font-semibold text-xs text-[#0F172A]">
+            Profile Completeness: <strong className="text-[#0D9488] font-mono">{percentage}%</strong>
           </span>
         </div>
-        <span className="text-[11px] text-[#5C6B6E] hidden sm:inline">
+        <span className="text-[11px] text-[#64748B] hidden sm:inline">
           Complete your record for accurate clinical triage
         </span>
       </div>
 
       {/* Progress Bar Track */}
-      <div className="w-full h-2 rounded-full bg-white/80 overflow-hidden border border-[#0F6E7A]/10">
+      <div className="w-full h-2 rounded-full bg-white/80 overflow-hidden border border-[#0D9488]/10">
         <div
-          className="h-full bg-gradient-to-r from-[#0F6E7A] to-[#25A0B0] transition-all duration-500 rounded-full"
+          className="h-full bg-gradient-to-r from-[#0D9488] to-[#14B8A6] transition-all duration-500 rounded-full"
           style={{ width: `${percentage}%` }}
         />
       </div>

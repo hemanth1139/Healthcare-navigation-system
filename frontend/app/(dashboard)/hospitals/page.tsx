@@ -75,7 +75,7 @@ export default function HospitalsPage() {
     return (
       <div className="flex flex-col items-center justify-center p-12 min-h-[400px]">
         <Spinner size="lg" color="primary" />
-        <span className="text-xs text-[#5C6B6E] mt-2">
+        <span className="text-xs text-[#64748B] mt-2">
           {language === "ta" ? "அருகிலுள்ள மருத்துவமனைகள் தேடப்படுகின்றன..." : "Searching nearby medical facilities & ER trauma centers..."}
         </span>
       </div>
@@ -85,12 +85,12 @@ export default function HospitalsPage() {
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 lg:pb-0">
       {/* Page Header */}
-      <div className="border-b border-[#E6F4F3] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="border-b border-[#F0FDFA] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#1E2A2E] tracking-tight">
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#0F172A] tracking-tight">
             {t.hospitals}
           </h1>
-          <p className="text-xs sm:text-sm text-[#5C6B6E]">
+          <p className="text-xs sm:text-sm text-[#64748B]">
             {language === "ta"
               ? "24/7 அவசர சிகிச்சை மற்றும் சிறப்பு மருத்துவமனைகளைக் கண்டறியவும்"
               : "Locate 24/7 emergency rooms and specialized care facilities near your position"}

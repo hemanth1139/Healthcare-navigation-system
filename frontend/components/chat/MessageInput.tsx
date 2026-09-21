@@ -39,7 +39,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <div className="bg-white border-t border-[#E6F4F3] p-3 sm:p-4 shadow-lg sticky bottom-0 z-20">
+    <div className="bg-white border-t border-[#F0FDFA] p-3 sm:p-4 shadow-lg sticky bottom-0 z-20">
       <div className="flex items-end gap-2 max-w-4xl mx-auto">
         {/* Voice Recording Button */}
         <VoiceRecordButton onTranscribed={handleVoiceTranscribed} disabled={disabled} />
@@ -55,7 +55,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             onKeyDown={handleKeyDown}
             placeholder="Type your symptoms or health concerns... (Press Enter to send)"
             aria-label="Type your symptoms or health concerns"
-            className="w-full font-body text-xs sm:text-sm text-[#1E2A2E] bg-[#F7FAFA] placeholder-[#5C6B6E]/70 border border-[#E6F4F3] rounded-xl px-3.5 py-2.5 max-h-32 min-h-[44px] resize-none focus-ring"
+            className="w-full font-body text-xs sm:text-sm text-[#0F172A] bg-[#F8FAFC] placeholder-[#64748B]/70 border border-[#F0FDFA] rounded-xl px-3.5 py-2.5 max-h-32 min-h-[44px] resize-none focus-ring"
           />
         </div>
 

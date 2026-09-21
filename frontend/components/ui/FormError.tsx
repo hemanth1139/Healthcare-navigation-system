@@ -14,7 +14,7 @@ export const FormError: React.FC<FormErrorProps> = ({ message, id, className = "
     <div
       id={id}
       aria-live="polite"
-      className={`flex items-center gap-1.5 text-xs font-medium text-[#E5573F] ${className}`}
+      className={`flex items-center gap-1.5 text-xs font-medium text-[#EF4444] ${className}`}
     >
       <AlertCircle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
       <span>{message}</span>

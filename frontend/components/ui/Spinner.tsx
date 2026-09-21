@@ -18,7 +18,7 @@ export const Spinner: React.FC<SpinnerProps> = ({
   };
 
   const colorMap = {
-    primary: "border-blue-600 border-t-transparent",
+    primary: "border-teal-600 border-t-transparent",
     white: "border-white border-t-transparent",
     urgent: "border-red-500 border-t-transparent",
   };

@@ -15,28 +15,28 @@ export const EmergencyContactCard: React.FC<EmergencyContactCardProps> = ({ name
   const { t, language } = useLanguage();
 
   return (
-    <Card className="border-2 border-[#0F6E7A]/25 bg-gradient-to-r from-[#E6F4F3]/90 via-[#F7FAFA] to-white shadow-sm p-4 sm:p-5">
+    <Card className="border-2 border-[#0D9488]/25 bg-gradient-to-r from-[#F0FDFA]/90 via-[#F8FAFC] to-white shadow-sm p-4 sm:p-5">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-[#0F6E7A] text-white flex items-center justify-center shrink-0 shadow-sm">
+          <div className="w-11 h-11 rounded-xl bg-[#0D9488] text-white flex items-center justify-center shrink-0 shadow-sm">
             <ShieldAlert className="w-6 h-6" />
           </div>
 
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0F6E7A] bg-white px-2.5 py-0.5 rounded-full border border-[#0F6E7A]/20">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0D9488] bg-white px-2.5 py-0.5 rounded-full border border-[#0D9488]/20">
                 {t.emergencyContactTitle}
               </span>
             </div>
 
             {hasContact ? (
               <>
-                <h3 className="font-heading font-bold text-base text-[#1E2A2E] mt-0.5">
+                <h3 className="font-heading font-bold text-base text-[#0F172A] mt-0.5">
                   {name}
                 </h3>
                 <a
                   href={`tel:${phone.replace(/\s+/g, "")}`}
-                  className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#0F6E7A] hover:underline"
+                  className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-[#0D9488] hover:underline"
                 >
                   <Phone className="w-3.5 h-3.5" />
                   <span>{phone}</span>
@@ -44,10 +44,10 @@ export const EmergencyContactCard: React.FC<EmergencyContactCardProps> = ({ name
               </>
             ) : (
               <>
-                <h3 className="font-heading font-semibold text-sm text-[#E5573F] mt-0.5">
+                <h3 className="font-heading font-semibold text-sm text-[#EF4444] mt-0.5">
                   {language === "ta" ? "அவசர கால தொடர்பு அமைக்கப்படவில்லை" : "No Emergency Contact Configured"}
                 </h3>
-                <p className="text-xs text-[#5C6B6E]">
+                <p className="text-xs text-[#64748B]">
                   {language === "ta"
                     ? "அவசர நிலையில் தொடர்புகொள்ள ஒருவரைச் சேர்க்கவும்."
                     : "Please specify an emergency contact so care navigators can reach your family in a crisis."}

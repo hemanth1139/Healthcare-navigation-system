@@ -76,15 +76,15 @@ export default function DashboardHomePage() {
       {/* Welcome Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
         <div>
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#1E2A2E] tracking-tight">
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#0F172A] tracking-tight">
             {t.welcomeBack}, {user?.fullName || (language === "ta" ? "நோயாளி" : "Patient")}
           </h1>
-          <p className="text-xs sm:text-sm text-[#5C6B6E] mt-0.5">
+          <p className="text-xs sm:text-sm text-[#64748B] mt-0.5">
             {t.dashboardSub}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-mono font-medium text-blue-700 bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200 self-start sm:self-auto">
+        <div className="flex items-center gap-2 text-xs font-mono font-medium text-teal-700 bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-200 self-start sm:self-auto">
           <Calendar className="w-4 h-4" />
           <span>{todayDate}</span>
         </div>
@@ -94,12 +94,12 @@ export default function DashboardHomePage() {
       {latestAssessment && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-heading font-bold text-base text-[#1E2A2E]">
+            <h2 className="font-heading font-bold text-base text-[#0F172A]">
               {t.latestAssessment}
             </h2>
             <Link
               href="/history"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-teal-600 hover:underline"
             >
               {t.viewAllConsultations}
               <ArrowRight className="w-3 h-3" />
@@ -115,7 +115,7 @@ export default function DashboardHomePage() {
 
       {/* Quick Actions */}
       <div className="flex flex-col gap-3">
-        <h2 className="font-heading font-bold text-base text-[#1E2A2E]">
+        <h2 className="font-heading font-bold text-base text-[#0F172A]">
           {t.quickActionsTitle}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -135,12 +135,12 @@ export default function DashboardHomePage() {
         {/* Side Column: Health Tip + Quick Links */}
         <div className="lg:col-span-1 flex flex-col gap-4">
           {/* Health Tip */}
-          <Card className="bg-gradient-to-br from-blue-50/70 to-slate-50 border-2 border-blue-200 p-5 flex flex-col gap-3">
+          <Card className="bg-gradient-to-br from-teal-50/70 to-slate-50 border-2 border-teal-200 p-5 flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-600 bg-white px-2.5 py-1 rounded-full border border-blue-200">
-                <Sparkles className="w-3.5 h-3.5 text-blue-600" /> {t.tipOfTheDay}
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-teal-600 bg-white px-2.5 py-1 rounded-full border border-teal-200">
+                <Sparkles className="w-3.5 h-3.5 text-teal-600" /> {t.tipOfTheDay}
               </span>
-              <span className="text-[11px] font-mono text-[#5C6B6E]">
+              <span className="text-[11px] font-mono text-[#64748B]">
                 {MOCK_DASHBOARD_DATA.healthTip.readTime}
               </span>
             </div>
@@ -149,14 +149,14 @@ export default function DashboardHomePage() {
               {language === "ta" ? "நீரிழிவு நோயில் நீரேற்றத்தின் முக்கியத்துவம்" : MOCK_DASHBOARD_DATA.healthTip.title}
             </h2>
 
-            <p className="text-xs text-[#5C6B6E] leading-relaxed">
+            <p className="text-xs text-[#64748B] leading-relaxed">
               {language === "ta" ? "அதிக இரத்த சர்க்கரை நீரிழப்பை ஏற்படுத்தக்கூடும். தினமும் 8-10 டம்ளர் தண்ணீர் குடிப்பது சிறுநீரகங்களை பாதுகாக்கும்." : MOCK_DASHBOARD_DATA.healthTip.summary}
             </p>
 
-            <div className="pt-2 border-t border-blue-100 mt-1">
+            <div className="pt-2 border-t border-teal-100 mt-1">
               <Link
                 href="/tips"
-                className="inline-flex items-center text-xs font-semibold text-blue-600 hover:underline focus-ring rounded p-1 -ml-1 gap-1"
+                className="inline-flex items-center text-xs font-semibold text-teal-600 hover:underline focus-ring rounded p-1 -ml-1 gap-1"
               >
                 <span>{language === "ta" ? "அனைத்து குறிப்புகளையும் காண்க" : "View all health tips"}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -181,7 +181,7 @@ export default function DashboardHomePage() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-blue-50 text-xs font-medium text-slate-700 hover:text-blue-700 transition-colors"
+                  className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-teal-50 text-xs font-medium text-slate-700 hover:text-teal-700 transition-colors"
                 >
                   <Icon className="w-4 h-4 text-slate-400" />
                   {item.label}

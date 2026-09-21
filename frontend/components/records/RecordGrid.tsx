@@ -24,14 +24,14 @@ export const RecordGrid: React.FC<RecordGridProps> = ({
   // Empty State: Filtered with no matches
   if (records.length === 0 && isFiltered) {
     return (
-      <div className="bg-white border-2 border-dashed border-[#E6F4F3] rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3 my-4">
-        <div className="w-12 h-12 rounded-2xl bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center">
+      <div className="bg-white border-2 border-dashed border-[#F0FDFA] rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3 my-4">
+        <div className="w-12 h-12 rounded-2xl bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center">
           <FilterX className="w-6 h-6" />
         </div>
-        <h3 className="font-heading font-bold text-base text-[#1E2A2E]">
+        <h3 className="font-heading font-bold text-base text-[#0F172A]">
           No medical records in this category yet
         </h3>
-        <p className="text-xs text-[#5C6B6E] max-w-sm">
+        <p className="text-xs text-[#64748B] max-w-sm">
           Try clearing the category filter or upload a new record to this category.
         </p>
 
@@ -46,16 +46,16 @@ export const RecordGrid: React.FC<RecordGridProps> = ({
   // Empty State: Brand new user with 0 records
   if (records.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-[#E6F4F3]/60 via-[#F7FAFA] to-white border-2 border-[#0F6E7A]/20 rounded-2xl p-8 sm:p-12 text-center flex flex-col items-center justify-center gap-4 my-4 shadow-xs">
-        <div className="w-16 h-16 rounded-2xl bg-[#0F6E7A] text-white flex items-center justify-center shadow-clinical">
+      <div className="bg-gradient-to-br from-[#F0FDFA]/60 via-[#F8FAFC] to-white border-2 border-[#0D9488]/20 rounded-2xl p-8 sm:p-12 text-center flex flex-col items-center justify-center gap-4 my-4 shadow-xs">
+        <div className="w-16 h-16 rounded-2xl bg-[#0D9488] text-white flex items-center justify-center shadow-clinical">
           <FolderOpen className="w-8 h-8" />
         </div>
 
         <div className="flex flex-col gap-1 max-w-md">
-          <h3 className="font-heading font-bold text-xl text-[#1E2A2E]">
+          <h3 className="font-heading font-bold text-xl text-[#0F172A]">
             Keep your prescriptions and reports in one secure place
           </h3>
-          <p className="text-xs sm:text-sm text-[#5C6B6E] leading-relaxed">
+          <p className="text-xs sm:text-sm text-[#64748B] leading-relaxed">
             Upload your medical documents for automated PII privacy protection, HL7 FHIR indexing, and instant sharing with health specialists.
           </p>
         </div>

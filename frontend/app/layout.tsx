@@ -37,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sora.variable} ${inter.variable} ${ibmPlexMono.variable}`}>
-      <body className="bg-[#F7FAFA] dark:bg-[#121C1F] text-[#1E2A2E] dark:text-[#F7FAFA] antialiased font-body min-h-screen transition-colors duration-200">
+      <body className="bg-[#F8FAFC] dark:bg-[#020617] text-[#0F172A] dark:text-[#F8FAFC] antialiased font-body min-h-screen transition-colors duration-200">
         <ThemeProvider>
           <LanguageProvider>
             <AuthProvider>{children}</AuthProvider>

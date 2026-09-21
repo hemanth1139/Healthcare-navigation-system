@@ -85,11 +85,11 @@ export const AllergyFormModal: React.FC<AllergyFormModalProps> = ({
         />
 
         <div className="flex flex-col gap-1.5 w-full">
-          <label className="text-sm font-medium text-[#1E2A2E]">
-            Reaction Severity <span className="text-[#E5573F]">*</span>
+          <label className="text-sm font-medium text-[#0F172A]">
+            Reaction Severity <span className="text-[#EF4444]">*</span>
           </label>
           <select
-            className="w-full font-body text-sm text-[#1E2A2E] bg-white border border-[#E6F4F3] rounded-xl px-3.5 py-2.5 focus-ring"
+            className="w-full font-body text-sm text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl px-3.5 py-2.5 focus-ring"
             {...register("severity")}
           >
             <option value="Mild">Mild (slight rash, itchiness)</option>
@@ -99,16 +99,16 @@ export const AllergyFormModal: React.FC<AllergyFormModalProps> = ({
         </div>
 
         <div className="flex flex-col gap-1.5 w-full">
-          <label className="text-sm font-medium text-[#1E2A2E]">Clinical Notes / Guidance</label>
+          <label className="text-sm font-medium text-[#0F172A]">Clinical Notes / Guidance</label>
           <textarea
             rows={3}
             placeholder="e.g. Triggers severe reaction. Avoid Cephalosporins if possible."
-            className="w-full font-body text-sm text-[#1E2A2E] bg-white border border-[#E6F4F3] rounded-xl p-3 focus-ring"
+            className="w-full font-body text-sm text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl p-3 focus-ring"
             {...register("notes")}
           />
         </div>
 
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E6F4F3] mt-2">
+        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0FDFA] mt-2">
           <Button variant="ghost" size="md" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>

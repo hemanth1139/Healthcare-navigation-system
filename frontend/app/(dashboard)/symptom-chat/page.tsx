@@ -44,7 +44,7 @@ export default function SymptomChatPage() {
     return (
       <div className="flex flex-col items-center justify-center p-12 min-h-[300px]">
         <Spinner size="lg" color="primary" />
-        <span className="text-xs text-[#5C6B6E] mt-2">
+        <span className="text-xs text-[#64748B] mt-2">
           Preparing AI symptom intake session...
         </span>
       </div>
@@ -54,16 +54,16 @@ export default function SymptomChatPage() {
   return (
     <div className="flex flex-col gap-5 py-2 max-w-3xl mx-auto">
       {/* Page Header */}
-      <div className="border-b border-[#E6F4F3] pb-4">
+      <div className="border-b border-[#F0FDFA] pb-4">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center">
             <Stethoscope className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-heading text-2xl font-bold text-[#1E2A2E] tracking-tight">
+            <h1 className="font-heading text-2xl font-bold text-[#0F172A] tracking-tight">
               {t.symptomChatTitle}
             </h1>
-            <p className="text-xs text-[#5C6B6E]">
+            <p className="text-xs text-[#64748B]">
               {t.symptomChatSubtitle}
             </p>
           </div>

@@ -20,9 +20,9 @@ export default function Home() {
   }, [isAuthenticated, isLoading, router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7FAFA]">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC]">
       <Spinner size="lg" color="primary" />
-      <span className="mt-4 text-sm font-medium text-[#5C6B6E]">
+      <span className="mt-4 text-sm font-medium text-[#64748B]">
         Connecting to HealthCare Navigator...
       </span>
     </div>

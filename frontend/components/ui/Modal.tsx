@@ -59,7 +59,7 @@ export const Modal: React.FC<ModalProps> = ({
       {/* Backdrop overlay */}
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-[#1E2A2E]/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-[#0F172A]/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
         aria-hidden="true"
       />
 
@@ -82,7 +82,7 @@ export const Modal: React.FC<ModalProps> = ({
             onClick={onClose}
             type="button"
             aria-label="Close modal dialog"
-            className="text-slate-400 hover:text-blue-600 p-1 rounded-xl hover:bg-blue-50 transition-colors focus-ring"
+            className="text-slate-400 hover:text-teal-600 p-1 rounded-xl hover:bg-teal-50 transition-colors focus-ring"
           >
             <X className="w-5 h-5" />
           </button>

@@ -22,15 +22,15 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
     <section id={id} className={`flex flex-col gap-3 ${className}`}>
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center gap-2">
-          {icon && <div className="text-[#0F6E7A] dark:text-[#25A0B0]">{icon}</div>}
-          <h2 className="font-heading font-bold text-lg text-[#1E2A2E] dark:text-[#F7FAFA]">
+          {icon && <div className="text-[#0D9488] dark:text-[#14B8A6]">{icon}</div>}
+          <h2 className="font-heading font-bold text-lg text-[#0F172A] dark:text-[#F8FAFC]">
             {title}
           </h2>
         </div>
-        <p className="text-xs text-[#5C6B6E] dark:text-[#A3B2B5]">{description}</p>
+        <p className="text-xs text-[#64748B] dark:text-[#94A3B8]">{description}</p>
       </div>
 
-      <Card className="p-5 sm:p-6 border-2 border-[#E6F4F3] dark:border-[#25363B] bg-white dark:bg-[#1A262A] shadow-xs">
+      <Card className="p-5 sm:p-6 border-2 border-[#F0FDFA] dark:border-[#1E293B] bg-white dark:bg-[#0F172A] shadow-xs">
         {children}
       </Card>
     </section>

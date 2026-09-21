@@ -58,10 +58,10 @@ export const MedicationList: React.FC<{
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-heading font-bold text-base text-[#1E2A2E]">
+          <h3 className="font-heading font-bold text-base text-[#0F172A]">
             Current Active Medications
           </h3>
-          <p className="text-xs text-[#5C6B6E]">
+          <p className="text-xs text-[#64748B]">
             Active prescriptions, dosages, and schedules
           </p>
         </div>
@@ -74,14 +74,14 @@ export const MedicationList: React.FC<{
 
       {/* List or Empty State */}
       {medications.length === 0 ? (
-        <Card className="p-8 text-center flex flex-col items-center justify-center gap-3 border-2 border-dashed border-[#E6F4F3]">
-          <div className="w-12 h-12 rounded-xl bg-[#E6F4F3] text-[#0F6E7A] flex items-center justify-center">
+        <Card className="p-8 text-center flex flex-col items-center justify-center gap-3 border-2 border-dashed border-[#F0FDFA]">
+          <div className="w-12 h-12 rounded-xl bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center">
             <Pill className="w-6 h-6" />
           </div>
-          <h4 className="font-heading font-semibold text-base text-[#1E2A2E]">
+          <h4 className="font-heading font-semibold text-base text-[#0F172A]">
             No Current Medications Recorded
           </h4>
-          <p className="text-xs text-[#5C6B6E] max-w-sm">
+          <p className="text-xs text-[#64748B] max-w-sm">
             You currently have no documented active prescriptions.
           </p>
           <Button variant="secondary" size="sm" onClick={handleOpenAdd} className="mt-1">
@@ -94,25 +94,25 @@ export const MedicationList: React.FC<{
           {medications.map((item) => (
             <div
               key={item.medication_id}
-              className="bg-white p-4 rounded-xl border border-[#E6F4F3] hover:border-[#0F6E7A]/30 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs"
+              className="bg-white p-4 rounded-xl border border-[#F0FDFA] hover:border-[#0D9488]/30 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs"
             >
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2.5">
-                  <h4 className="font-heading font-bold text-base text-[#1E2A2E]">
+                  <h4 className="font-heading font-bold text-base text-[#0F172A]">
                     {item.medicine_name}
                   </h4>
-                  <span className="text-xs font-mono font-bold text-[#0F6E7A] bg-[#E6F4F3] px-2.5 py-0.5 rounded-full">
+                  <span className="text-xs font-mono font-bold text-[#0D9488] bg-[#F0FDFA] px-2.5 py-0.5 rounded-full">
                     {item.dosage}
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#5C6B6E]">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#64748B]">
                   <span className="flex items-center gap-1 font-medium">
-                    <Clock className="w-3.5 h-3.5 text-[#0F6E7A]" /> {item.frequency}
+                    <Clock className="w-3.5 h-3.5 text-[#0D9488]" /> {item.frequency}
                   </span>
                   {item.prescribed_by && (
                     <span className="flex items-center gap-1">
-                      <UserCheck className="w-3.5 h-3.5 text-[#5C6B6E]" /> {item.prescribed_by}
+                      <UserCheck className="w-3.5 h-3.5 text-[#64748B]" /> {item.prescribed_by}
                     </span>
                   )}
                 </div>
@@ -123,7 +123,7 @@ export const MedicationList: React.FC<{
                   onClick={() => handleOpenEdit(item)}
                   type="button"
                   aria-label={`Edit ${item.medicine_name}`}
-                  className="p-1.5 rounded-lg text-[#0F6E7A] hover:bg-[#E6F4F3] transition-colors focus-ring"
+                  className="p-1.5 rounded-lg text-[#0D9488] hover:bg-[#F0FDFA] transition-colors focus-ring"
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
@@ -132,7 +132,7 @@ export const MedicationList: React.FC<{
                   onClick={() => setDeleteTarget(item)}
                   type="button"
                   aria-label={`Delete ${item.medicine_name}`}
-                  className="p-1.5 rounded-lg text-[#E5573F] hover:bg-[#FDF0EE] transition-colors focus-ring"
+                  className="p-1.5 rounded-lg text-[#EF4444] hover:bg-[#FEF2F2] transition-colors focus-ring"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

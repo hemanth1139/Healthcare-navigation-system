@@ -51,13 +51,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileNav }) => {
           onClick={onOpenMobileNav}
           type="button"
           aria-label="Open navigation menu"
-          className="md:hidden p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-blue-600 focus-ring transition-colors"
+          className="md:hidden p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-teal-600 focus-ring transition-colors"
         >
           <Menu className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-2.5">
-          <div className="md:hidden w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-800 text-white flex items-center justify-center shadow-md">
+          <div className="md:hidden w-9 h-9 rounded-lg bg-teal-600 text-white flex items-center justify-center">
             <HeartPulse className="w-5 h-5" />
           </div>
           <h1 className="font-heading font-bold text-lg sm:text-xl text-slate-900 dark:text-white">
@@ -74,9 +74,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileNav }) => {
             onClick={() => setIsLangOpen(!isLangOpen)}
             type="button"
             aria-label="Select language"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors focus-ring"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 border border-slate-200 dark:border-slate-700 transition-colors focus-ring"
           >
-            <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <Globe className="w-4 h-4 text-teal-600 dark:text-teal-400" />
             <span className="font-semibold">{language === "ta" ? "தமிழ்" : "English"}</span>
           </button>
 
@@ -92,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenMobileNav }) => {
                   type="button"
                   className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between transition-colors ${
                     language === lang.id
-                      ? "bg-blue-50 dark:bg-blue-950/60 font-bold text-blue-600 dark:text-blue-400"
+                      ? "bg-teal-50 dark:bg-teal-950/60 font-bold text-teal-600 dark:text-teal-400"
                       : "text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50"
                   }`}
                 >

@@ -73,15 +73,15 @@ function ResetPasswordForm() {
   if (!token || token === "invalid" || token === "expired") {
     return (
       <div className="flex flex-col items-center text-center gap-5 py-2">
-        <div className="w-14 h-14 rounded-full bg-[#FDF0EE] text-[#E5573F] flex items-center justify-center border-2 border-[#E5573F]/20">
+        <div className="w-14 h-14 rounded-full bg-[#FEF2F2] text-[#EF4444] flex items-center justify-center border-2 border-[#EF4444]/20">
           <AlertTriangle className="w-8 h-8" />
         </div>
 
         <div className="flex flex-col gap-2">
-          <h1 className="font-heading text-xl font-bold text-[#1E2A2E]">
+          <h1 className="font-heading text-xl font-bold text-[#0F172A]">
             Invalid or Expired Reset Link
           </h1>
-          <p className="text-sm text-[#5C6B6E] leading-relaxed">
+          <p className="text-sm text-[#64748B] leading-relaxed">
             This password reset link is missing, corrupted, or has expired for security reasons.
           </p>
         </div>
@@ -106,10 +106,10 @@ function ResetPasswordForm() {
     <div className="flex flex-col gap-6">
       {/* Heading */}
       <div className="flex flex-col gap-1">
-        <h1 className="font-heading text-2xl font-bold text-[#1E2A2E]">
+        <h1 className="font-heading text-2xl font-bold text-[#0F172A]">
           Set New Password
         </h1>
-        <p className="text-sm text-[#5C6B6E]">
+        <p className="text-sm text-[#64748B]">
           Create a secure password with at least 8 characters and 1 number.
         </p>
       </div>
@@ -147,7 +147,7 @@ function ResetPasswordForm() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="text-[#5C6B6E] hover:text-[#1E2A2E] p-1 rounded focus-ring"
+              className="text-[#64748B] hover:text-[#0F172A] p-1 rounded focus-ring"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -169,7 +169,7 @@ function ResetPasswordForm() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="text-[#5C6B6E] hover:text-[#1E2A2E] p-1 rounded focus-ring"
+              className="text-[#64748B] hover:text-[#0F172A] p-1 rounded focus-ring"
               aria-label={
                 showConfirmPassword ? "Hide confirm password" : "Show confirm password"
               }
@@ -199,11 +199,11 @@ function ResetPasswordForm() {
         </Button>
       </form>
 
-      <div className="pt-2 border-t border-[#E6F4F3] text-center text-xs text-[#5C6B6E]">
+      <div className="pt-2 border-t border-[#F0FDFA] text-center text-xs text-[#64748B]">
         Remember your password?{" "}
         <Link
           href="/login"
-          className="font-bold text-[#0F6E7A] hover:underline focus-ring rounded-sm px-1 py-0.5"
+          className="font-bold text-[#0D9488] hover:underline focus-ring rounded-sm px-1 py-0.5"
         >
           Back to Sign In
         </Link>
@@ -218,7 +218,7 @@ export default function ResetPasswordPage() {
       fallback={
         <div className="flex flex-col items-center justify-center p-8 gap-3">
           <Spinner size="lg" color="primary" />
-          <span className="text-xs text-[#5C6B6E]">Verifying token...</span>
+          <span className="text-xs text-[#64748B]">Verifying token...</span>
         </div>
       }
     >

@@ -23,15 +23,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Full-page branded loading state while resolving auth
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7FAFA] p-4">
-        <div className="w-14 h-14 rounded-2xl bg-[#0F6E7A] text-white flex items-center justify-center shadow-clinical-lg animate-pulse mb-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC] p-4">
+        <div className="w-14 h-14 rounded-xl bg-[#0D9488] text-white flex items-center justify-center animate-pulse mb-4">
           <HeartPulse className="w-8 h-8 stroke-[2.5]" />
         </div>
         <Spinner size="lg" color="primary" />
-        <p className="mt-4 text-sm font-semibold text-[#1E2A2E]">
+        <p className="mt-4 text-sm font-semibold text-[#0F172A]">
           Loading HealthCare Navigator...
         </p>
-        <span className="text-xs text-[#5C6B6E] mt-1">Verifying clinical credentials</span>
+        <span className="text-xs text-[#64748B] mt-1">Verifying clinical credentials</span>
       </div>
     );
   }
@@ -41,7 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen bg-[#F7FAFA] flex flex-col md:flex-row text-[#1E2A2E]">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col md:flex-row text-[#0F172A]">
       {/* Desktop Sidebar (md+) */}
       <Sidebar />
 

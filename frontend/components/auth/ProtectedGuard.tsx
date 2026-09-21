@@ -17,9 +17,9 @@ export const ProtectedGuard: React.FC<{ children: React.ReactNode }> = ({ childr
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7FAFA] p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC] p-4">
         <Spinner size="lg" color="primary" />
-        <p className="mt-4 text-sm font-medium text-[#5C6B6E]">Loading HealthCare Navigator...</p>
+        <p className="mt-4 text-sm font-medium text-[#64748B]">Loading HealthCare Navigator...</p>
       </div>
     );
   }

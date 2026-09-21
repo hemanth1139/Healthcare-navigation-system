@@ -25,10 +25,10 @@ export const FollowUpQuestionCard: React.FC<FollowUpQuestionCardProps> = ({
   };
 
   return (
-    <div className="bg-[#E6F4F3]/60 border border-[#0F6E7A]/20 rounded-2xl p-3.5 sm:p-4 my-2 flex flex-col gap-3 max-w-md shadow-xs">
+    <div className="bg-[#F0FDFA]/60 border border-[#0D9488]/20 rounded-2xl p-3.5 sm:p-4 my-2 flex flex-col gap-3 max-w-md shadow-xs">
       <div className="flex items-center gap-2">
-        <HelpCircle className="w-4 h-4 text-[#0F6E7A] shrink-0" />
-        <h4 className="font-heading font-semibold text-xs text-[#1E2A2E]">
+        <HelpCircle className="w-4 h-4 text-[#0D9488] shrink-0" />
+        <h4 className="font-heading font-semibold text-xs text-[#0F172A]">
           {question.question_text}
         </h4>
       </div>
@@ -46,10 +46,10 @@ export const FollowUpQuestionCard: React.FC<FollowUpQuestionCardProps> = ({
                 type="button"
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer focus-ring ${
                   isSelected
-                    ? "bg-[#0F6E7A] text-white shadow-sm"
+                    ? "bg-[#0D9488] text-white shadow-sm"
                     : isAnswered
-                    ? "bg-white/60 text-[#5C6B6E] opacity-60 cursor-not-allowed border border-[#E6F4F3]"
-                    : "bg-white hover:bg-[#0F6E7A] text-[#0F6E7A] hover:text-white border border-[#0F6E7A]/30 hover:border-[#0F6E7A] shadow-2xs"
+                    ? "bg-white/60 text-[#64748B] opacity-60 cursor-not-allowed border border-[#F0FDFA]"
+                    : "bg-white hover:bg-[#0D9488] text-[#0D9488] hover:text-white border border-[#0D9488]/30 hover:border-[#0D9488] shadow-2xs"
                 }`}
               >
                 {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -61,7 +61,7 @@ export const FollowUpQuestionCard: React.FC<FollowUpQuestionCardProps> = ({
       )}
 
       {question.allowFreeText && !isAnswered && (
-        <span className="text-[11px] text-[#5C6B6E]">
+        <span className="text-[11px] text-[#64748B]">
           Or type your detailed response below.
         </span>
       )}
