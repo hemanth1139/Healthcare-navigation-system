@@ -13,9 +13,20 @@ from app.models.profile import PatientProfile
 from app.models.user import User
 from app.schemas.record import MedicalRecordOut
 from app.utils.cloudinary import FileUploadManager
-from app.privacy.presidio import PIIScrubber
 from app.fhir.formatter import FHIRFormatter
 from app.core.exceptions import NotFoundError, ValidationError
+import re
+
+
+def _scrub_pii(text: str) -> str:
+    """Lightweight regex-based PII scrubber. Redacts emails, phones, Aadhaar numbers."""
+    # Emails
+    text = re.sub(r'[\w.+-]+@[\w-]+\.[\w.]+', '[EMAIL REDACTED]', text)
+    # Phone numbers (Indian & international formats)
+    text = re.sub(r'(\+?\d[\d\s\-().]{7,}\d)', '[PHONE REDACTED]', text)
+    # Aadhaar numbers (12-digit)
+    text = re.sub(r'\b\d{4}\s?\d{4}\s?\d{4}\b', '[AADHAAR REDACTED]', text)
+    return text
 
 
 class RecordService:
@@ -59,7 +70,7 @@ class RecordService:
             )
 
         # Execute PII Scrubbing
-        anonymized_text = PIIScrubber.scrub_text(raw_text)
+        anonymized_text = _scrub_pii(raw_text)
 
         # 4. Save to Database
         rec = MedicalRecord(

@@ -1,205 +1,196 @@
 """
-Prediction service — orchestrates XGBoost predictions, SHAP explainers,
-severity evaluations, and specialist mappings, committing all results to PostgreSQL.
+Rule-Based Prediction Service.
+Triggered when a triage conversation concludes with a symptom list.
+Runs the rule-based disease predictor, saves results to the database,
+and returns a structured prediction report.
 """
 
 import json
-from uuid import UUID, uuid4
+import uuid
+from typing import List, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from typing import List, Dict, Any, Optional
 
-from app.models.conversation import Conversation
-from app.models.profile import PatientProfile
 from app.models.user import User
+from app.models.conversation import Conversation
 from app.models.prediction import (
-    DiseasePrediction, ShapExplanation, SeverityAssessment, SpecialistRecommendation,
+    DiseasePrediction,
+    SeverityAssessment,
+    SpecialistRecommendation,
 )
-from app.schemas.prediction import (
-    FullPredictionReportOut, DiseasePredictionOut, DifferentialDisease,
-    ShapExplanationOut, SeverityAssessmentOut,
-)
-from app.ml.xgboost_model import XGBoostPredictor
-from app.ml.shap_explainer import ShapExplainer
-from app.agents.severity_agent import run_severity_agent
-from app.agents.specialist_agent import recommend_specialist
+from app.models.profile import PatientProfile
+from app.ml.rule_based_predictor import predict_disease
 from app.core.exceptions import NotFoundError, ValidationError
 
-# Initialize ML Predictor and Explainer singletons
-predictor = XGBoostPredictor()
-explainer = ShapExplainer(predictor)
+
+async def _get_profile(db: AsyncSession, user: User) -> PatientProfile:
+    result = await db.execute(
+        select(PatientProfile).where(PatientProfile.user_id == user.user_id)
+    )
+    profile = result.scalar_one_or_none()
+    if not profile:
+        raise NotFoundError("Patient profile")
+    return profile
 
 
-class PredictionService:
+class RuleBasedPredictionService:
 
     @staticmethod
-    async def create_prediction(db: AsyncSession, user: User, conversation_id: UUID) -> FullPredictionReportOut:
-        """Create a disease prediction report from the symptoms of an ended conversation."""
-        # 1. Fetch conversation
-        result = await db.execute(
-            select(Conversation)
-            .where(Conversation.conversation_id == conversation_id)
-            .options(selectinload(Conversation.messages))
+    async def run_prediction(
+        db: AsyncSession,
+        user: User,
+        conversation_id: uuid.UUID,
+        symptoms: List[str],
+    ) -> Dict[str, Any]:
+        """
+        Runs rule-based prediction on symptoms extracted by the triage agent.
+        Saves DiseasePrediction, SeverityAssessment, and SpecialistRecommendation to DB.
+        Returns a full prediction report dict.
+        """
+        profile = await _get_profile(db, user)
+
+        # Verify the conversation belongs to this user
+        conv_result = await db.execute(
+            select(Conversation).where(
+                Conversation.conversation_id == conversation_id,
+                Conversation.profile_id == profile.profile_id,
+            )
         )
-        conv = result.scalar_one_or_none()
+        conv = conv_result.scalar_one_or_none()
         if not conv:
             raise NotFoundError("Conversation")
 
-        # 2. Extract symptoms list from conversation history
-        # (For simulation, search the message logs for clinical symptom matches)
-        user_messages = [m.message.lower() for m in conv.messages if m.sender == "user"]
-        all_text = " ".join(user_messages)
-        
-        detected_symptoms = []
-        # Search for presence of clinical symptoms in user messages
-        for symptom in predictor.features:
-            symptom_kw = symptom.replace("_", " ")
-            if symptom_kw in all_text or symptom in all_text:
-                detected_symptoms.append(symptom)
+        # ── 1. Run rule-based prediction ──────────────────────────────────────
+        prediction_result = predict_disease(symptoms)
 
-        # Fallback if no symptoms detected in text
-        if not detected_symptoms:
-            detected_symptoms = ["fever", "headache"]  # Default base case
-
-        # 3. XGBoost prediction
-        disease_name, confidence, differential_raw, vector = predictor.predict(detected_symptoms)
-
-        # 4. Save base prediction model
-        pred = DiseasePrediction(
+        # ── 2. Save DiseasePrediction ─────────────────────────────────────────
+        disease_pred = DiseasePrediction(
             conversation_id=conversation_id,
-            predicted_disease=disease_name,
-            confidence_score=confidence,
-            differential_diagnoses=json.dumps(differential_raw),
-            prediction_model=predictor.model.__class__.__name__ + f"-TreeClassifier-v{predictor.model.n_estimators}",
-            symptom_vector=json.dumps(vector.tolist())
+            predicted_disease=prediction_result["predicted_disease"],
+            confidence_score=prediction_result["confidence_score"],
+            differential_diagnoses=json.dumps(prediction_result["differential"]),
+            prediction_model=prediction_result["prediction_model"],
+            symptom_vector=json.dumps(symptoms),
         )
-        db.add(pred)
-        await db.flush()  # Generate prediction_id
-
-        # 5. Calculate SHAP Explanations
-        shap_vals = explainer.explain(vector, str(pred.prediction_id), disease_name)
-        shap_list = []
-        for val in shap_vals:
-            exp_row = ShapExplanation(
-                prediction_id=pred.prediction_id,
-                feature_name=val["feature_name"],
-                plain_language_label=val["plain_language_label"],
-                contribution_score=val["contribution_score"]
-            )
-            db.add(exp_row)
-            shap_list.append(exp_row)
-
-        # 6. Execute Severity Agent (runs LLM or fallback rules)
-        severity_data = await run_severity_agent(disease_name, confidence)
-        sev = SeverityAssessment(
-            prediction_id=pred.prediction_id,
-            severity=severity_data["severity"],
-            urgency_level=severity_data["urgency_level"],
-            emergency_flag=severity_data["emergency_flag"],
-            explanation=severity_data["explanation"]
-        )
-        db.add(sev)
-
-        # 7. Execute Specialist Agent (rules mapping)
-        specialist_data = recommend_specialist(disease_name, severity_data["severity"])
-        spec = SpecialistRecommendation(
-            prediction_id=pred.prediction_id,
-            specialist=specialist_data["specialist"],
-            reason=specialist_data["reason"]
-        )
-        db.add(spec)
+        db.add(disease_pred)
         await db.flush()
 
-        # Compile final outputs
-        differential = [
-            DifferentialDisease(
-                diseaseName=d["disease_name"],
-                confidenceScore=d["confidence_score"],
-                isTopMatch=d["is_top_match"],
-                description=d.get("description", "Potential diagnosis match based on symptom configuration."),
-                category=specialist_data["specialist"] if d["is_top_match"] else "General Medicine"
-            ) for d in differential_raw
-        ]
-
-        return FullPredictionReportOut(
-            prediction=DiseasePredictionOut.from_orm(pred),
-            differential=differential,
-            shapExplanations=[ShapExplanationOut.from_orm(s) for s in shap_list],
-            severityAssessment=SeverityAssessmentOut.from_orm(sev),
-            recommendedSpecialistCategory=spec.specialist
+        # ── 3. Save SeverityAssessment ────────────────────────────────────────
+        severity = SeverityAssessment(
+            prediction_id=disease_pred.prediction_id,
+            severity=prediction_result["severity"],
+            urgency_level=prediction_result["urgency_level"],
+            emergency_flag=prediction_result["emergency_flag"],
+            explanation=prediction_result["explanation"],
         )
+        db.add(severity)
+
+        # ── 4. Save SpecialistRecommendation ──────────────────────────────────
+        specialist = SpecialistRecommendation(
+            prediction_id=disease_pred.prediction_id,
+            specialist=prediction_result["specialist"],
+            reason=prediction_result["explanation"],
+        )
+        db.add(specialist)
+
+        await db.flush()
+
+        # ── 5. Return structured report ───────────────────────────────────────
+        return {
+            "prediction_id": str(disease_pred.prediction_id),
+            "predicted_disease": prediction_result["predicted_disease"],
+            "confidence_score": prediction_result["confidence_score"],
+            "prediction_model": prediction_result["prediction_model"],
+            "differential": prediction_result["differential"],
+            "triggered_rules": prediction_result["triggered_rules"],
+            "severity": {
+                "assessment_id": str(severity.assessment_id),
+                "severity": prediction_result["severity"],
+                "urgency_level": prediction_result["urgency_level"],
+                "emergency_flag": prediction_result["emergency_flag"],
+                "explanation": prediction_result["explanation"],
+            },
+            "specialist": {
+                "recommendation_id": str(specialist.recommendation_id),
+                "specialist": prediction_result["specialist"],
+                "reason": prediction_result["explanation"],
+            },
+            "symptoms_used": symptoms,
+        }
 
     @staticmethod
-    async def get_prediction(db: AsyncSession, user: User, prediction_id: UUID) -> FullPredictionReportOut:
-        """Fetch full disease prediction report."""
-        result = await db.execute(
-            select(DiseasePrediction)
-            .where(DiseasePrediction.prediction_id == prediction_id)
-            .options(
-                selectinload(DiseasePrediction.shap_explanations),
-                selectinload(DiseasePrediction.severity_assessment),
-                selectinload(DiseasePrediction.specialist_recommendation)
+    async def get_prediction_by_conversation(
+        db: AsyncSession,
+        user: User,
+        conversation_id: uuid.UUID,
+    ) -> Dict[str, Any] | None:
+        """
+        Retrieves the stored prediction report for a completed conversation.
+        Returns None if no prediction exists yet.
+        """
+        profile = await _get_profile(db, user)
+
+        # Get conversation
+        conv_result = await db.execute(
+            select(Conversation).where(
+                Conversation.conversation_id == conversation_id,
+                Conversation.profile_id == profile.profile_id,
             )
         )
-        pred = result.scalar_one_or_none()
-        if not pred:
-            raise NotFoundError("Disease prediction report")
+        conv = conv_result.scalar_one_or_none()
+        if not conv:
+            raise NotFoundError("Conversation")
 
-        # Parse stored differential
-        differential_raw = json.loads(pred.differential_diagnoses) if pred.differential_diagnoses else []
-        differential = [
-            DifferentialDisease(
-                diseaseName=d["disease_name"],
-                confidenceScore=d["confidence_score"],
-                isTopMatch=d["is_top_match"],
-                description=d.get("description", "Potential diagnosis match based on symptom configuration."),
-                category=pred.specialist_recommendation.specialist if d["is_top_match"] else "General Care"
-            ) for d in differential_raw
-        ]
-
-        return FullPredictionReportOut(
-            prediction=DiseasePredictionOut.from_orm(pred),
-            differential=differential,
-            shapExplanations=[ShapExplanationOut.from_orm(s) for s in pred.shap_explanations],
-            severityAssessment=SeverityAssessmentOut.from_orm(pred.severity_assessment),
-            recommendedSpecialistCategory=pred.specialist_recommendation.specialist if pred.specialist_recommendation else None
-        )
-
-    @staticmethod
-    async def list_predictions(db: AsyncSession, user: User) -> List[DiseasePredictionOut]:
-        """List all previous predictions."""
-        # Find user profile
-        prof_res = await db.execute(select(PatientProfile).where(PatientProfile.user_id == user.user_id))
-        profile = prof_res.scalar_one_or_none()
-        if not profile:
-            return []
-            
-        result = await db.execute(
+        # Get prediction for this conversation
+        pred_result = await db.execute(
             select(DiseasePrediction)
-            .join(Conversation)
-            .where(Conversation.profile_id == profile.profile_id)
+            .where(DiseasePrediction.conversation_id == conversation_id)
+            .options(
+                selectinload(DiseasePrediction.severity_assessment),
+                selectinload(DiseasePrediction.specialist_recommendation),
+            )
             .order_by(DiseasePrediction.predicted_at.desc())
+            .limit(1)
         )
-        predictions = result.scalars().all()
-        return [DiseasePredictionOut.from_orm(p) for p in predictions]
+        pred = pred_result.scalar_one_or_none()
 
-    @staticmethod
-    async def get_shap_explanations(db: AsyncSession, user: User, prediction_id: UUID) -> List[ShapExplanationOut]:
-        """Get SHAP explanations for a specific prediction."""
-        result = await db.execute(
-            select(ShapExplanation).where(ShapExplanation.prediction_id == prediction_id)
-        )
-        exps = result.scalars().all()
-        return [ShapExplanationOut.from_orm(e) for e in exps]
+        if not pred:
+            return None
 
-    @staticmethod
-    async def get_severity_assessment(db: AsyncSession, user: User, prediction_id: UUID) -> SeverityAssessmentOut:
-        """Get severity assessment for a prediction."""
-        result = await db.execute(
-            select(SeverityAssessment).where(SeverityAssessment.prediction_id == prediction_id)
-        )
-        sev = result.scalar_one_or_none()
-        if not sev:
-            raise NotFoundError("Severity assessment")
-        return SeverityAssessmentOut.from_orm(sev)
+        differential = []
+        if pred.differential_diagnoses:
+            try:
+                differential = json.loads(pred.differential_diagnoses)
+            except Exception:
+                differential = []
+
+        symptoms_used = []
+        if pred.symptom_vector:
+            try:
+                symptoms_used = json.loads(pred.symptom_vector)
+            except Exception:
+                symptoms_used = []
+
+        return {
+            "prediction_id": str(pred.prediction_id),
+            "predicted_disease": pred.predicted_disease,
+            "confidence_score": float(pred.confidence_score),
+            "prediction_model": pred.prediction_model,
+            "differential": differential,
+            "triggered_rules": [],
+            "severity": {
+                "assessment_id": str(pred.severity_assessment.assessment_id) if pred.severity_assessment else None,
+                "severity": pred.severity_assessment.severity if pred.severity_assessment else "low",
+                "urgency_level": pred.severity_assessment.urgency_level if pred.severity_assessment else "Routine",
+                "emergency_flag": pred.severity_assessment.emergency_flag if pred.severity_assessment else False,
+                "explanation": pred.severity_assessment.explanation if pred.severity_assessment else "",
+            },
+            "specialist": {
+                "recommendation_id": str(pred.specialist_recommendation.recommendation_id) if pred.specialist_recommendation else None,
+                "specialist": pred.specialist_recommendation.specialist if pred.specialist_recommendation else "General Physician",
+                "reason": pred.specialist_recommendation.reason if pred.specialist_recommendation else "",
+            },
+            "symptoms_used": symptoms_used,
+            "predicted_at": pred.predicted_at.isoformat(),
+        }

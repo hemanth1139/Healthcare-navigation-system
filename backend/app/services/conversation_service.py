@@ -18,6 +18,7 @@ from app.schemas.conversation import (
 )
 from app.agents.graph import execute_triage
 from app.core.exceptions import NotFoundError, ValidationError
+from app.services.prediction_service import RuleBasedPredictionService
 
 
 async def _get_profile_by_user(db: AsyncSession, user: User) -> PatientProfile:
@@ -166,13 +167,22 @@ class ConversationService:
                 isAnswered=False
             )
 
-        # If triage has concluded, we would trigger disease prediction.
-        # This will be integrated in Phase 5: Disease Prediction.
+        # ── Trigger rule-based prediction when triage concludes ──────────────
         prediction_id = None
-        if not needs_more_info and not is_emergency:
-            # We will create a disease prediction record in Phase 5
-            # For now, pass a dummy prediction ID so frontend redirects properly if desired
-            prediction_id = str(uuid4())
+        if not needs_more_info and not is_emergency and symptoms:
+            try:
+                pred_report = await RuleBasedPredictionService.run_prediction(
+                    db=db,
+                    user=user,
+                    conversation_id=conversation_id,
+                    symptoms=symptoms,
+                )
+                prediction_id = pred_report["prediction_id"]
+                print(f"[SUCCESS] Rule-based prediction completed: {pred_report['predicted_disease']} "
+                      f"(confidence: {pred_report['confidence_score']:.2f})")
+            except Exception as e:
+                print(f"[WARN] Rule-based prediction failed: {e}")
+                prediction_id = None
 
         return MessageOut.from_orm(
             agent_msg,

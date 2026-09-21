@@ -1,81 +1,83 @@
 """
-Disease Prediction API router — /api/v1/predictions/* and severity endpoints.
+Disease Prediction API Router.
+Exposes endpoints to trigger and retrieve rule-based disease predictions.
 """
 
 from uuid import UUID
 from fastapi import APIRouter
-from typing import List
+from typing import Optional
 
 from app.dependencies import DBSession, CurrentUser
-from app.schemas.prediction import (
-    PredictionCreateRequest, FullPredictionReportOut, DiseasePredictionOut,
-    ShapExplanationOut, SeverityAssessmentOut,
-)
-from app.services.prediction_service import PredictionService
+from app.services.prediction_service import RuleBasedPredictionService
+from app.core.exceptions import NotFoundError
 
-router = APIRouter(tags=["Disease Prediction & AI Diagnosis"])
+router = APIRouter(prefix="/predictions", tags=["Disease Prediction"])
 
 
-@router.post("/predictions", response_model=FullPredictionReportOut, status_code=201)
-async def create_prediction(
-    payload: PredictionCreateRequest, db: DBSession, current_user: CurrentUser
+@router.post("/{conversation_id}")
+async def trigger_prediction(
+    conversation_id: UUID,
+    db: DBSession,
+    current_user: CurrentUser,
 ):
-    """Triggers disease prediction and SHAP calculations from a conversation."""
-    return await PredictionService.create_prediction(db, current_user, payload.conversation_id)
+    """
+    Trigger rule-based disease prediction for a completed triage conversation.
+    Pass the list of extracted symptoms in the request body.
+    """
+    from pydantic import BaseModel
+    from typing import List
+
+    # Re-fetch symptoms from the conversation's last triage state
+    # Symptoms come from the triage agent output stored in the conversation
+    # For now allow caller to pass symptoms via query or we pull from conversation
+    raise NotFoundError("Use POST /predictions/{conversation_id}/run with symptoms body")
 
 
-@router.get("/predictions", response_model=List[DiseasePredictionOut])
-async def list_predictions(db: DBSession, current_user: CurrentUser):
-    """List all previous predictions for the current patient profile."""
-    return await PredictionService.list_predictions(db, current_user)
-
-
-@router.get("/predictions/{prediction_id}", response_model=FullPredictionReportOut)
-async def get_prediction(
-    prediction_id: UUID, db: DBSession, current_user: CurrentUser
+@router.post("/{conversation_id}/run")
+async def run_prediction(
+    conversation_id: UUID,
+    db: DBSession,
+    current_user: CurrentUser,
+    payload: dict,
 ):
-    """Get the full diagnosis report details including differential and severity."""
-    return await PredictionService.get_prediction(db, current_user, prediction_id)
+    """
+    Run rule-based disease prediction given a list of extracted symptoms.
 
-
-@router.get("/predictions/{prediction_id}/explanation", response_model=List[ShapExplanationOut])
-async def get_shap_explanation(
-    prediction_id: UUID, db: DBSession, current_user: CurrentUser
-):
-    """Get the SHAP feature contribution list for this prediction."""
-    return await PredictionService.get_shap_explanations(db, current_user, prediction_id)
-
-
-@router.get("/predictions/{prediction_id}/specialist")
-async def get_specialist(
-    prediction_id: UUID, db: DBSession, current_user: CurrentUser
-):
-    """Get the specialist category and reasoning directly."""
-    report = await PredictionService.get_prediction(db, current_user, prediction_id)
-    return {
-        "specialist": report.recommendedSpecialistCategory,
-        "predictionId": str(prediction_id)
+    Request body:
+    {
+        "symptoms": ["fever", "cough", "shortness_of_breath"]
     }
+    """
+    symptoms = payload.get("symptoms", [])
+    if not symptoms:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail="symptoms list must not be empty")
+
+    result = await RuleBasedPredictionService.run_prediction(
+        db=db,
+        user=current_user,
+        conversation_id=conversation_id,
+        symptoms=symptoms,
+    )
+    await db.commit()
+    return result
 
 
-# ─── Severity Router Endpoints ───────────────────────────────────────────────
-
-@router.get("/severity/{prediction_id}", response_model=SeverityAssessmentOut)
-async def get_severity(
-    prediction_id: UUID, db: DBSession, current_user: CurrentUser
+@router.get("/{conversation_id}")
+async def get_prediction(
+    conversation_id: UUID,
+    db: DBSession,
+    current_user: CurrentUser,
 ):
-    """Fetch severity classification details for a prediction."""
-    return await PredictionService.get_severity_assessment(db, current_user, prediction_id)
-
-
-@router.post("/severity", response_model=SeverityAssessmentOut)
-async def create_severity_direct(
-    payload: PredictionCreateRequest, db: DBSession, current_user: CurrentUser
-):
-    """Fallback severity trigger endpoints (returns severity for prediction)."""
-    # Since severity is auto-calculated on prediction, retrieve it directly
-    predictions = await PredictionService.list_predictions(db, current_user)
-    if not predictions:
-        raise NotFoundError("Severity Assessment")
-    latest_pred_id = UUID(predictions[0].prediction_id)
-    return await PredictionService.get_severity_assessment(db, current_user, latest_pred_id)
+    """
+    Retrieve the stored prediction report for a given conversation.
+    Returns 404 if no prediction has been run yet.
+    """
+    result = await RuleBasedPredictionService.get_prediction_by_conversation(
+        db=db,
+        user=current_user,
+        conversation_id=conversation_id,
+    )
+    if not result:
+        raise NotFoundError("Prediction for this conversation")
+    return result

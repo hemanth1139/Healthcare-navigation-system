@@ -12,8 +12,6 @@ from app.api.v1.predictions import router as predictions_router
 from app.api.v1.hospitals import router as hospitals_router
 from app.api.v1.schemes import router as schemes_router
 from app.api.v1.records import router as records_router
-from app.api.v1.voice import router as voice_router
-from app.api.v1.translate import router as translate_router
 from app.api.v1.tips import router as tips_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.history import router as history_router
@@ -32,7 +30,7 @@ api_router.include_router(profile_router)
 # ─── Phase 4 ─────────────────────────────────────────────────────────────────
 api_router.include_router(conversations_router)
 
-# ─── Phase 5 ─────────────────────────────────────────────────────────────────
+# ─── Phase 5 (Rule-Based Disease Prediction) ──────────────────────────────
 api_router.include_router(predictions_router)
 
 # ─── Phase 6 ─────────────────────────────────────────────────────────────────
@@ -44,9 +42,7 @@ api_router.include_router(schemes_router)
 # ─── Phase 8 ─────────────────────────────────────────────────────────────────
 api_router.include_router(records_router)
 
-# ─── Phase 9 ─────────────────────────────────────────────────────────────────
-api_router.include_router(voice_router)
-api_router.include_router(translate_router)
+# ─── Phase 9 ────────────────────────────────────────────────────────────────
 api_router.include_router(tips_router)
 
 # ─── Phase 10 ────────────────────────────────────────────────────────────────

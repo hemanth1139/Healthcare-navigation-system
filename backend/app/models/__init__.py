@@ -7,7 +7,6 @@ from app.models.profile import PatientProfile, Allergy, ChronicCondition, Medica
 from app.models.conversation import Conversation, ConversationMessage
 from app.models.prediction import (
     DiseasePrediction,
-    ShapExplanation,
     SeverityAssessment,
     SpecialistRecommendation,
     HealthTip,
@@ -26,7 +25,6 @@ __all__ = [
     "Conversation",
     "ConversationMessage",
     "DiseasePrediction",
-    "ShapExplanation",
     "SeverityAssessment",
     "SpecialistRecommendation",
     "HealthTip",
