@@ -7,9 +7,10 @@ import { User as UserIcon, Settings, HelpCircle, LogOut, ShieldCheck, ChevronDow
 
 export interface UserMenuProps {
   compact?: boolean;
+  dark?: boolean;
 }
 
-export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
+export const UserMenu: React.FC<UserMenuProps> = ({ compact = false, dark = false }) => {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -52,26 +53,36 @@ export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
         aria-expanded={isOpen}
         aria-haspopup="true"
         aria-label="User account menu"
-        className={`flex items-center gap-2.5 p-1.5 rounded-xl transition-colors focus-ring cursor-pointer hover:bg-teal-50 dark:hover:bg-teal-950/40 ${
-          isOpen ? "bg-teal-50 dark:bg-teal-950/60" : ""
+        className={`flex items-center gap-2.5 p-1.5 rounded-xl transition-colors focus-ring cursor-pointer ${
+          dark
+            ? `hover:bg-white/5 ${isOpen ? "bg-white/5" : ""}`
+            : `hover:bg-teal-50 dark:hover:bg-teal-950/40 ${isOpen ? "bg-teal-50 dark:bg-teal-950/60" : ""}`
         }`}
       >
-        <div className="w-9 h-9 rounded-lg bg-teal-600 text-white flex items-center justify-center font-heading font-semibold text-xs">
+        <div className="w-9 h-9 rounded-lg bg-teal-500 text-white flex items-center justify-center font-heading font-semibold text-xs shrink-0">
           {userInitials}
         </div>
 
         {!compact && (
           <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-semibold text-slate-900 dark:text-white leading-snug line-clamp-1">
+            <span
+              className={`text-xs font-semibold leading-snug line-clamp-1 ${
+                dark ? "text-white" : "text-slate-900 dark:text-white"
+              }`}
+            >
               {user?.fullName || "Patient Account"}
             </span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+            <span className={`text-[11px] line-clamp-1 ${dark ? "text-slate-400" : "text-slate-500 dark:text-slate-400"}`}>
               {user?.email || "patient@example.com"}
             </span>
           </div>
         )}
 
-        <ChevronDown className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`w-3.5 h-3.5 transition-transform duration-200 ${dark ? "text-slate-500" : "text-slate-500 dark:text-slate-400"} ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
       </button>
 
       {/* Popover Dropdown Menu */}

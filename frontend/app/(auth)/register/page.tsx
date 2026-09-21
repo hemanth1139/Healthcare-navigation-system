@@ -88,11 +88,11 @@ export default function RegisterPage() {
     <div className="flex flex-col gap-6">
       {/* Heading */}
       <div className="flex flex-col gap-1 pt-1">
-        <h1 className="font-heading text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-          Create Your Account
+        <h1 className="font-heading text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+          Create your account
         </h1>
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-          Join HealthCare Navigator to manage care plans & navigation
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Join MediNav to manage your care journey end-to-end.
         </p>
       </div>
 
@@ -207,16 +207,16 @@ export default function RegisterPage() {
             <input
               type="checkbox"
               required
-              className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              className="mt-1 w-4 h-4 rounded border-slate-300 text-[#0D9488] focus:ring-teal-500 cursor-pointer"
               {...register("acceptTerms")}
             />
             <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               I agree to the{" "}
-              <Link href="/privacy" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+              <Link href="/privacy" className="font-semibold text-[#0D9488] hover:underline">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+              <Link href="/privacy" className="font-semibold text-[#0D9488] hover:underline">
                 HIPAA Privacy Policy
               </Link>
               .
@@ -235,7 +235,7 @@ export default function RegisterPage() {
           fullWidth
           isLoading={isSubmitting}
           disabled={!isValid && isSubmitting}
-          className="mt-2"
+          className="mt-2 rounded-full"
         >
           <UserPlus className="w-5 h-5 mr-2" />
           Create Account
@@ -243,11 +243,11 @@ export default function RegisterPage() {
       </form>
 
       {/* Footer link to Login */}
-      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+      <div className="pt-6 mt-2 border-t border-slate-100 dark:border-slate-800 text-center text-sm text-slate-500 dark:text-slate-400">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline focus-ring rounded-sm px-1 py-0.5"
+          className="font-semibold text-[#0D9488] hover:underline focus-ring rounded-sm px-1 py-0.5"
         >
           Sign In
         </Link>

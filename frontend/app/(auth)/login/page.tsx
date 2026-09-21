@@ -50,19 +50,19 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col">
-      {/* Centered Heading & Subtitle */}
-      <div className="text-center mb-6">
-        <h1 className="font-heading font-bold text-2xl sm:text-[28px] text-slate-900 dark:text-white tracking-tight">
+      {/* Heading & Subtitle */}
+      <div className="mb-8">
+        <h1 className="font-heading font-bold text-3xl text-slate-900 dark:text-white tracking-tight">
           Welcome back
         </h1>
-        <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 mt-1.5">
-          Please enter your details to sign in.
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+          Sign in to continue to your MediNav dashboard.
         </p>
       </div>
 
       {/* General Error Banner */}
       {generalError && (
-        <div className="mb-4">
+        <div className="mb-5">
           <Toast
             type="error"
             title="Authentication Failed"
@@ -73,24 +73,24 @@ export default function LoginPage() {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
         {/* Username / Email Field */}
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor="email"
-            className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
           >
-            USERNAME OR EMAIL
+            Email address
           </label>
           <input
             id="email"
             type="email"
-            placeholder="Enter your email"
+            placeholder="you@example.com"
             autoComplete="email"
-            className={`w-full text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-[#1E293B] placeholder:text-slate-400 border rounded-xl px-4 py-3 transition-all duration-200 focus:outline-none ${
+            className={`w-full text-sm text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-[#0F172A] placeholder:text-slate-400 border-0 border-b-2 px-1 py-2.5 transition-colors duration-150 focus:outline-none ${
               errors.email
-                ? "border-rose-500 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
-                : "border-slate-200 dark:border-slate-700 hover:border-slate-300 focus:border-[#0D9488] focus:ring-4 focus:ring-teal-500/10"
+                ? "border-b-rose-500"
+                : "border-b-slate-200 dark:border-b-slate-700 focus:border-b-[#0D9488]"
             }`}
             {...register("email")}
           />
@@ -104,9 +104,9 @@ export default function LoginPage() {
           <div className="flex items-center justify-between">
             <label
               htmlFor="password"
-              className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300"
+              className="text-xs font-semibold text-slate-700 dark:text-slate-300"
             >
-              PASSWORD
+              Password
             </label>
             <Link
               href="/forgot-password"
@@ -122,17 +122,17 @@ export default function LoginPage() {
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               autoComplete="current-password"
-              className={`w-full text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-[#1E293B] placeholder:text-slate-400 border rounded-xl pl-4 pr-11 py-3 transition-all duration-200 focus:outline-none ${
+              className={`w-full text-sm text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-[#0F172A] placeholder:text-slate-400 border-0 border-b-2 pl-1 pr-9 py-2.5 transition-colors duration-150 focus:outline-none ${
                 errors.password
-                  ? "border-rose-500 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
-                  : "border-slate-200 dark:border-slate-700 hover:border-slate-300 focus:border-[#0D9488] focus:ring-4 focus:ring-teal-500/10"
+                  ? "border-b-rose-500"
+                  : "border-b-slate-200 dark:border-b-slate-700 focus:border-b-[#0D9488]"
               }`}
               {...register("password")}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+              className="absolute right-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -147,26 +147,28 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="mt-2 w-full bg-[#0D9488] hover:bg-[#0F766E] active:bg-[#115E59] text-white font-semibold py-3.5 rounded-xl shadow-md shadow-teal-500/20 transition-all duration-150 text-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+          className="mt-3 w-full bg-[#0D9488] hover:bg-[#0F766E] active:bg-[#115E59] text-white font-semibold py-3 rounded-full shadow-lg shadow-teal-500/20 transition-all duration-150 text-sm cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isSubmitting ? "Signing in..." : "Sign In"}
         </button>
       </form>
 
       {/* Demo helper info */}
-      <div className="mt-5 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400 text-center">
-        <span className="font-semibold text-slate-700 dark:text-slate-300">Quick Demo: </span>
-        <code>sarah@example.com</code> | <code>password123</code>
+      <div className="mt-6 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 justify-center">
+        <span className="font-semibold text-slate-700 dark:text-slate-300">Demo access:</span>
+        <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">sarah@example.com</code>
+        <span>/</span>
+        <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">password123</code>
       </div>
 
       {/* Footer link to Register */}
-      <div className="mt-6 text-center text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+      <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center text-sm text-slate-500 dark:text-slate-400">
         Don&apos;t have an account?{" "}
         <Link
           href="/register"
           className="font-semibold text-[#0D9488] hover:underline ml-1"
         >
-          Register now
+          Create one
         </Link>
       </div>
     </div>
