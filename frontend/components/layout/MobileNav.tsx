@@ -54,11 +54,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
             {/* Drawer Header */}
             <div className="h-16 px-4 flex items-center justify-between border-b border-[#F0FDFA]">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-teal-600 text-white flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center">
                   <HeartPulse className="w-5 h-5" />
                 </div>
                 <span className="font-heading font-bold text-base text-slate-900">
-                  HealthCare<span className="text-teal-600">Nav</span>
+                  MediNav
                 </span>
               </div>
 
@@ -110,7 +110,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ isOpen, onClose }) => {
             </nav>
 
             <div className="p-4 border-t border-slate-200 bg-slate-50 text-xs text-slate-400 text-center">
-              HealthCare Navigator &copy; {new Date().getFullYear()}
+              MediNav &copy; {new Date().getFullYear()}
             </div>
           </div>
         </div>
