@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Filter, SlidersHorizontal, MapPin, Search } from "lucide-react";
+import React, { useState } from "react";
+import { SlidersHorizontal, MapPin, Navigation, Search } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 export interface HospitalFilterBarProps {
@@ -24,80 +24,120 @@ export const HospitalFilterBar: React.FC<HospitalFilterBarProps> = ({
   resultCount,
 }) => {
   const { language } = useLanguage();
+  const [locationText, setLocationText] = useState("Chennai, Tamil Nadu");
+  const [isDetecting, setIsDetecting] = useState(false);
+
+  const handleDetectGPS = () => {
+    setIsDetecting(true);
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        () => {
+          setLocationText("Current GPS Location (Auto-Detected)");
+          setIsDetecting(false);
+        },
+        () => {
+          setLocationText("Chennai Central (Default GPS)");
+          setIsDetecting(false);
+        }
+      );
+    } else {
+      setIsDetecting(false);
+    }
+  };
 
   return (
-    <div className="bg-white border-2 border-[#F0FDFA] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-4">
-      {/* Top Header & Count */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#F0FDFA] pb-3">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-[#0D9488]" />
-          <h3 className="font-heading font-bold text-sm text-[#0F172A]">
-            {language === "ta" ? "மருத்துவமனைகளை வடிகட்டவும்" : "Filter & Sort Facilities"}
-          </h3>
+    <div className="card-clinical p-5 flex flex-col gap-4">
+      {/* Search Header Bar */}
+      <div className="flex flex-col md:flex-row items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+        {/* Location Input with GPS */}
+        <div className="relative flex-1 w-full">
+          <MapPin className="w-4 h-4 text-[#0D9488] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={locationText}
+            onChange={(e) => setLocationText(e.target.value)}
+            placeholder="Enter city, pincode, or landmark..."
+            className="w-full text-xs font-semibold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-24 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-[#0D9488]"
+          />
+          <button
+            type="button"
+            onClick={handleDetectGPS}
+            className="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-lg bg-teal-500/10 text-[#0D9488] hover:bg-teal-500/20 text-[11px] font-bold flex items-center gap-1 transition-colors"
+          >
+            <Navigation className={`w-3 h-3 ${isDetecting ? "animate-spin" : ""}`} />
+            <span>GPS</span>
+          </button>
         </div>
 
-        <span className="text-xs font-mono font-bold text-[#0D9488] bg-[#F0FDFA] px-3 py-1 rounded-full w-fit">
-          {resultCount} {language === "ta" ? "மருத்துவமனைகள் கண்டறியப்பட்டன" : resultCount === 1 ? "Hospital Found" : "Hospitals Found"}
-        </span>
+        {/* Search Trigger Button */}
+        <button
+          type="button"
+          className="w-full md:w-auto px-6 py-2.5 rounded-xl bg-[#0D9488] hover:bg-[#0F766E] text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+        >
+          <Search className="w-4 h-4" />
+          <span>Search Hospitals</span>
+        </button>
       </div>
 
       {/* Filter Options Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Specialist Specialty Filter */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+        {/* Specialty Filter */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-[#64748B]">
-            {language === "ta" ? "சிறப்பு பிரிவு வடிகட்டி" : "Specialty Filter"}
-          </label>
-          <div className="relative">
-            <select
-              value={specialistFilter}
-              onChange={(e) => onSpecialistChange(e.target.value)}
-              className="w-full font-body text-xs text-[#0F172A] bg-[#F8FAFC] border border-[#F0FDFA] rounded-xl px-3 py-2 focus-ring cursor-pointer"
-            >
-              <option value="">{language === "ta" ? "அனைத்து மருத்துவ பிரிவுகள்" : "All Specialties"}</option>
-              <option value="Cardiology">{language === "ta" ? "இதயவியல் (Cardiology)" : "Cardiology"}</option>
-              <option value="Neurology">{language === "ta" ? "நரம்பியல் (Neurology)" : "Neurology"}</option>
-              <option value="Pulmonology">{language === "ta" ? "நுரையீரலியல் (Pulmonology)" : "Pulmonology"}</option>
-              <option value="General Medicine">{language === "ta" ? "பொது மருத்துவம் (General Medicine)" : "General Medicine"}</option>
-              <option value="Emergency Medicine">{language === "ta" ? "அவசர மருத்துவம் (Emergency Medicine)" : "Emergency Medicine"}</option>
-              <option value="ENT">{language === "ta" ? "காது மூக்கு தொண்டை (ENT)" : "ENT"}</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Distance Radius Filter */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-[#64748B]">
-            {language === "ta" ? "தொலைவு எல்லை" : "Distance Radius"}
+          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Specialty Department
           </label>
           <select
-            value={maxDistance}
-            onChange={(e) => onDistanceChange(Number(e.target.value))}
-            className="w-full font-body text-xs text-[#0F172A] bg-[#F8FAFC] border border-[#F0FDFA] rounded-xl px-3 py-2 focus-ring cursor-pointer font-mono"
+            value={specialistFilter}
+            onChange={(e) => onSpecialistChange(e.target.value)}
+            className="w-full text-xs font-semibold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:border-[#0D9488]"
           >
-            <option value={0}>{language === "ta" ? "எந்த தொலைவும்" : "Any Distance"}</option>
-            <option value={5}>{language === "ta" ? "5 கி.மீ எல்லைக்குள்" : "Within 5 km"}</option>
-            <option value={10}>{language === "ta" ? "10 கி.மீ எல்லைக்குள்" : "Within 10 km"}</option>
-            <option value={25}>{language === "ta" ? "25 கி.மீ எல்லைக்குள்" : "Within 25 km"}</option>
+            <option value="">All Specialty Departments</option>
+            <option value="Cardiology">Cardiology (Heart)</option>
+            <option value="Neurology">Neurology (Brain & Nerves)</option>
+            <option value="Pulmonology">Pulmonology (Lungs)</option>
+            <option value="General Medicine">General Medicine</option>
+            <option value="Emergency Medicine">Emergency Trauma (24/7)</option>
+            <option value="Gastroenterology">Gastroenterology</option>
           </select>
+        </div>
+
+        {/* Distance Radius Slider (1km - 50km) */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Radius Slider
+            </label>
+            <span className="text-xs font-mono font-bold text-[#0D9488]">
+              {maxDistance === 0 ? "Any distance" : `${maxDistance} km`}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={50}
+            value={maxDistance || 10}
+            onChange={(e) => onDistanceChange(Number(e.target.value))}
+            className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#0D9488]"
+          />
         </div>
 
         {/* Sort By */}
         <div className="flex flex-col gap-1">
-          <label className="text-xs font-semibold text-[#64748B]">
-            {language === "ta" ? "வரிசைப்படுத்துக" : "Sort By"}
+          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Sort Order
           </label>
           <select
             value={sortBy}
             onChange={(e) => onSortChange(e.target.value)}
-            className="w-full font-body text-xs text-[#0F172A] bg-[#F8FAFC] border border-[#F0FDFA] rounded-xl px-3 py-2 focus-ring cursor-pointer"
+            className="w-full text-xs font-semibold text-slate-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:border-[#0D9488]"
           >
-            <option value="distance">{language === "ta" ? "தொலைவு (அருகில் இருப்பது முதலில்)" : "Distance (Nearest First)"}</option>
-            <option value="time">{language === "ta" ? "பயண நேரம்" : "Estimated Drive Time"}</option>
-            <option value="rating">{language === "ta" ? "நோயாளி மதிப்பீடு" : "Patient Rating"}</option>
+            <option value="distance">Distance (Nearest First)</option>
+            <option value="time">Drive Time</option>
+            <option value="rating">Patient Rating (Highest First)</option>
           </select>
         </div>
       </div>
     </div>
   );
 };
+

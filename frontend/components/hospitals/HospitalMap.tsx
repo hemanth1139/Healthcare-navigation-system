@@ -32,18 +32,27 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
 }) => {
   const [activeMarkerId, setActiveMarkerId] = useState<string | null>(selectedHospitalId || null);
 
-  // Note: Using placeholder key for development; gracefully handles missing/unauthorized keys
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: "google-map-script",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSy_MOCK_DEV_KEY",
-  });
+  const rawApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const hasValidApiKey = Boolean(rawApiKey && !rawApiKey.includes("MOCK"));
+
+  const { isLoaded, loadError } = useJsApiLoader(
+    hasValidApiKey
+      ? {
+          id: "google-map-script",
+          googleMapsApiKey: rawApiKey as string,
+        }
+      : {
+          id: "disabled-map",
+          googleMapsApiKey: "",
+        }
+  );
 
   const selectedHospital = hospitals.find(
     (h) => h.hospital_id === (activeMarkerId || selectedHospitalId)
   );
 
-  // If Google Maps API key isn't live or fails to load, render an interactive Soft Clinical Map Mock
-  if (loadError || !isLoaded) {
+  // If no valid Google Maps API key or if loading fails, immediately render the interactive Soft Clinical Map
+  if (!hasValidApiKey || loadError || !isLoaded) {
     return (
       <div className="w-full h-full min-h-[380px] bg-gradient-to-br from-[#F0FDFA]/80 via-[#F8FAFC] to-white border-2 border-[#F0FDFA] rounded-2xl p-4 sm:p-6 flex flex-col justify-between relative overflow-hidden shadow-inner">
         {/* Mock Map Grid Background Lines */}

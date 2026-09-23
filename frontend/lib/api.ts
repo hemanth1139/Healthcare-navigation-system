@@ -3,11 +3,10 @@ import { getAccessToken, setAccessToken, getRefreshToken, clearAuthSession, save
 import { AuthResponse, User } from "@/types/auth";
 
 /**
- * MOCK MODE TOGGLE
- * Set USE_MOCK_API to true to simulate backend responses without a running backend server.
- * Set to false when connecting to a real API at process.env.NEXT_PUBLIC_API_URL or '/api/v1'.
+ * API Configuration
+ * Real backend is used by default. Set NEXT_PUBLIC_USE_MOCK_API=true only for isolated frontend-only demos.
  */
-export const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === "false" ? false : true;
+export const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
@@ -16,7 +15,7 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000,
+  timeout: 4000,
 });
 
 // Request Interceptor: Attach Bearer Authorization token
@@ -69,27 +68,13 @@ api.interceptors.response.use(
   }
 );
 
-// Helper function to simulate network delay for mock endpoints
-const delay = (ms: number = 600) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Mock user database in memory
-const MOCK_USER: User = {
-  id: "usr_9981247",
-  email: "sarah.jenkins@example.com",
-  fullName: "Dr. Sarah Jenkins",
-  phone: "+1 (555) 234-5678",
-  createdAt: new Date().toISOString(),
-};
-
 /**
  * Authentication API Service Abstraction
- * Handles both Mock Mode and Real Backend Requests
+ * Handles Real Backend Requests (and instant local fallback if mock mode is explicitly turned on)
  */
 export const authApi = {
   login: async (payload: { email: string; password: string }): Promise<AuthResponse> => {
     if (USE_MOCK_API) {
-      await delay(800);
-      // Demo error case trigger
       if (payload.email === "fail@example.com" || payload.password === "wrongpassword") {
         throw {
           response: {
@@ -101,13 +86,14 @@ export const authApi = {
 
       const mockResponse: AuthResponse = {
         user: {
-          ...MOCK_USER,
+          id: `usr_${Date.now()}`,
           email: payload.email,
           fullName: payload.email.split("@")[0].replace(".", " "),
+          createdAt: new Date().toISOString(),
         },
         tokens: {
-          accessToken: `mock_jwt_access_${Date.now()}`,
-          refreshToken: `mock_jwt_refresh_${Date.now()}`,
+          accessToken: `jwt_access_${Date.now()}`,
+          refreshToken: `jwt_refresh_${Date.now()}`,
         },
         message: "Login successful",
       };
@@ -128,27 +114,17 @@ export const authApi = {
     password: string;
   }): Promise<AuthResponse> => {
     if (USE_MOCK_API) {
-      await delay(900);
-      if (payload.email === "existing@example.com") {
-        throw {
-          response: {
-            status: 409,
-            data: { message: "An account with this email address already exists." },
-          },
-        };
-      }
-
       const mockResponse: AuthResponse = {
         user: {
-          id: `usr_${Math.floor(Math.random() * 1000000)}`,
+          id: `usr_${Date.now()}`,
           email: payload.email,
           fullName: payload.fullName,
           phone: payload.phone,
           createdAt: new Date().toISOString(),
         },
         tokens: {
-          accessToken: `mock_jwt_access_${Date.now()}`,
-          refreshToken: `mock_jwt_refresh_${Date.now()}`,
+          accessToken: `jwt_access_${Date.now()}`,
+          refreshToken: `jwt_refresh_${Date.now()}`,
         },
         message: "Account created successfully.",
       };
@@ -164,7 +140,6 @@ export const authApi = {
 
   forgotPassword: async (payload: { email: string }): Promise<{ message: string }> => {
     if (USE_MOCK_API) {
-      await delay(700);
       return {
         message: `Password reset instructions have been sent to ${payload.email}`,
       };
@@ -176,7 +151,6 @@ export const authApi = {
 
   resetPassword: async (payload: { token: string; newPassword: string }): Promise<{ message: string }> => {
     if (USE_MOCK_API) {
-      await delay(800);
       if (payload.token === "invalid" || payload.token === "expired") {
         throw {
           response: {
@@ -196,11 +170,15 @@ export const authApi = {
 
   refreshToken: async (refreshToken: string): Promise<AuthResponse> => {
     if (USE_MOCK_API) {
-      await delay(0); // Instant session restore — no delay needed for mock
       const mockResponse: AuthResponse = {
-        user: MOCK_USER,
+        user: {
+          id: `usr_${Date.now()}`,
+          email: "user@example.com",
+          fullName: "Patient",
+          createdAt: new Date().toISOString(),
+        },
         tokens: {
-          accessToken: `mock_jwt_access_refreshed_${Date.now()}`,
+          accessToken: `jwt_access_refreshed_${Date.now()}`,
           refreshToken: refreshToken,
         },
       };
@@ -214,11 +192,6 @@ export const authApi = {
   },
 
   getCurrentUser: async (): Promise<User> => {
-    if (USE_MOCK_API) {
-      await delay(300);
-      return MOCK_USER;
-    }
-
     const { data } = await api.get<User>("/auth/me");
     return data;
   },

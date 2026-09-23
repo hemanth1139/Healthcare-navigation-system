@@ -5,8 +5,6 @@ import {
   FollowUpQuestion,
 } from "@/types/chat";
 
-const delay = (ms: number = 600) => new Promise((resolve) => setTimeout(resolve, ms));
-
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: "en", name: "English", nativeName: "English" },
   { code: "ta", name: "Tamil", nativeName: "தமிழ்" },
@@ -31,7 +29,6 @@ export const mockChatApi = {
   getLanguages: (): LanguageOption[] => SUPPORTED_LANGUAGES,
 
   getRecentConversation: async (): Promise<Conversation | null> => {
-    await delay(200);
     const keys = Object.keys(MOCK_CONVERSATIONS);
     if (keys.length === 0) return null;
     const active = Object.values(MOCK_CONVERSATIONS).find((c) => c.status === "active");
@@ -39,12 +36,10 @@ export const mockChatApi = {
   },
 
   getConversation: async (conversationId: string): Promise<Conversation | null> => {
-    await delay(200);
     return MOCK_CONVERSATIONS[conversationId] || null;
   },
 
   getMessages: async (conversationId: string): Promise<ConversationMessage[]> => {
-    await delay(200);
     return MOCK_MESSAGES[conversationId] || [];
   },
 
@@ -53,7 +48,6 @@ export const mockChatApi = {
     language: string = "en",
     inputType: "text" | "voice" = "text"
   ): Promise<Conversation> => {
-    await delay(300);
     const conversationId = `conv_${Date.now()}`;
     const newConv: Conversation = {
       conversation_id: conversationId,
@@ -102,8 +96,6 @@ export const mockChatApi = {
     userText: string,
     inputType: "text" | "voice" = "text"
   ): Promise<{ userMsg: ConversationMessage; agentMsg: ConversationMessage }> => {
-    await delay(500);
-
     const conv = MOCK_CONVERSATIONS[conversationId];
     const currentLang = conv?.language || "en";
 
@@ -209,7 +201,6 @@ export const mockChatApi = {
   },
 
   switchLanguage: async (conversationId: string, newLang: string): Promise<ConversationMessage> => {
-    await delay(200);
     if (MOCK_CONVERSATIONS[conversationId]) {
       MOCK_CONVERSATIONS[conversationId].language = newLang;
     }
@@ -230,7 +221,6 @@ export const mockChatApi = {
   },
 
   endConversation: async (conversationId: string): Promise<void> => {
-    await delay(300);
     if (MOCK_CONVERSATIONS[conversationId]) {
       MOCK_CONVERSATIONS[conversationId].status = "completed";
       MOCK_CONVERSATIONS[conversationId].ended_at = new Date().toISOString();

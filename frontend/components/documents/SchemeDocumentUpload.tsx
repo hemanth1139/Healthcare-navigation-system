@@ -17,34 +17,8 @@ import {
   FolderUp,
 } from "lucide-react";
 
-// Mock document list (in real app, fetched from backend)
-const MOCK_DOCUMENTS: SchemeDocument[] = [
-  {
-    document_id: "doc_001",
-    profile_id: "user_001",
-    scheme_id: "sch_03",
-    document_type: "income_certificate",
-    document_type_label: "Income Certificate",
-    file_name: "income_certificate_2026.pdf",
-    file_size_bytes: 245000,
-    mime_type: "application/pdf",
-    processing_status: "verified",
-    uploaded_at: "2026-07-28T14:00:00Z",
-    verified_at: "2026-07-29T10:00:00Z",
-  },
-  {
-    document_id: "doc_002",
-    profile_id: "user_001",
-    scheme_id: "sch_03",
-    document_type: "aadhaar_card",
-    document_type_label: "Aadhaar Card",
-    file_name: "aadhaar_card_scan.jpg",
-    file_size_bytes: 980000,
-    mime_type: "image/jpeg",
-    processing_status: "processing",
-    uploaded_at: "2026-07-15T10:00:00Z",
-  },
-];
+// Document list (empty by default, populated upon user upload)
+const MOCK_DOCUMENTS: SchemeDocument[] = [];
 
 const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
   { value: "income_certificate", label: "Income Certificate" },
@@ -244,7 +218,15 @@ export const SchemeDocumentUpload: React.FC = () => {
       </Card>
 
       {/* Uploaded Documents List */}
-      {documents.length > 0 && (
+      {documents.length === 0 ? (
+        <Card className="p-8 text-center flex flex-col items-center justify-center gap-2">
+          <FileText className="w-8 h-8 text-slate-300" />
+          <h4 className="font-heading font-semibold text-sm text-slate-700">No Documents Uploaded Yet</h4>
+          <p className="text-xs text-slate-400 max-w-sm">
+            Upload your income certificate, Aadhaar card, or ration card above to verify eligibility for government healthcare schemes.
+          </p>
+        </Card>
+      ) : (
         <Card className="p-5 flex flex-col gap-3">
           <h3 className="font-heading font-bold text-sm text-slate-900">
             Uploaded Documents ({documents.length})

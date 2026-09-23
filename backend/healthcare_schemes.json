@@ -1,0 +1,798 @@
+[
+  {
+    "scheme_id": "scheme_01",
+    "scheme_name": "Ayushman Bharat – Pradhan Mantri Jan Arogya Yojana (AB-PMJAY)",
+    "department": "National Health Authority, Ministry of Health and Family Welfare",
+    "state": "Central / All India",
+    "official_url": "https://pmjay.gov.in/",
+    "benefits_summary": "Cashless and paperless secondary and tertiary hospitalization cover up to ₹5 lakh per eligible family per year at empanelled hospitals, portable across India.",
+    "coverage_amount_inr": "500000 per eligible family per year",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "No single nationwide income ceiling; primarily SECC 2011 and notified categories",
+      "bpl_or_secc_required": "SECC 2011 or another officially notified category",
+      "age_group": "All Ages",
+      "target_beneficiaries": "Poor and vulnerable households",
+      "required_documents": [
+        "Ayushman card or beneficiary record",
+        "Aadhaar or approved identity document",
+        "Ration card or family record where applicable"
+      ]
+    },
+    "key_covered_conditions": [
+      "Secondary and tertiary hospitalization",
+      "Oncology",
+      "Cardiovascular procedures",
+      "Major surgeries"
+    ],
+    "key_exclusions": [
+      "Routine OPD outside packages",
+      "Cosmetic procedures",
+      "Non-approved treatment"
+    ],
+    "chunks": [
+      "AB-PMJAY provides cashless cover up to ₹5 lakh per eligible family per year.",
+      "Eligibility is primarily based on SECC 2011 and notified categories.",
+      "Treatment is portable across India at empanelled hospitals."
+    ]
+  },
+  {
+    "scheme_id": "scheme_02",
+    "scheme_name": "Central Government Health Scheme (CGHS)",
+    "department": "Ministry of Health and Family Welfare",
+    "state": "Central / Selected cities and Government establishments in India",
+    "official_url": "https://cghs.nic.in/",
+    "benefits_summary": "Comprehensive medical care for eligible Central Government employees, pensioners and dependents, including OPD, medicines, diagnostics and hospitalization under CGHS rules.",
+    "coverage_amount_inr": "No fixed annual sum insured; governed by CGHS entitlement and approved rates",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "N/A",
+      "bpl_or_secc_required": "No",
+      "age_group": "Eligible employees, pensioners and dependents",
+      "target_beneficiaries": "Central Government employees, pensioners and eligible dependents",
+      "required_documents": [
+        "CGHS card or electronic record",
+        "Employee or pension documentation",
+        "Identity proof",
+        "Dependency proof where applicable"
+      ]
+    },
+    "key_covered_conditions": [
+      "OPD consultation",
+      "Diagnostics",
+      "Medicines",
+      "Hospitalization"
+    ],
+    "key_exclusions": [
+      "Non-beneficiaries",
+      "Unapproved services",
+      "Non-medically necessary procedures"
+    ],
+    "chunks": [
+      "CGHS provides comprehensive care rather than a fixed insurance limit.",
+      "Eligibility depends on Central Government employment or pension status.",
+      "Services are obtained through CGHS facilities and authorized hospitals."
+    ]
+  },
+  {
+    "scheme_id": "scheme_03",
+    "scheme_name": "Ex-Servicemen Contributory Health Scheme (ECHS)",
+    "department": "Department of Ex-Servicemen Welfare, Ministry of Defence",
+    "state": "Central / All India",
+    "official_url": "https://www.echs.gov.in/",
+    "benefits_summary": "Comprehensive healthcare for eligible ex-servicemen pensioners, family pensioners and dependents through ECHS polyclinics and empanelled hospitals.",
+    "coverage_amount_inr": "No monetary ceiling, subject to ECHS rules and entitlement",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "No limit for principal pensioner; dependency limits may apply",
+      "bpl_or_secc_required": "No",
+      "age_group": "Eligible ex-servicemen and dependents",
+      "target_beneficiaries": "Ex-servicemen pensioners and eligible dependents",
+      "required_documents": [
+        "ECHS card",
+        "Pension or service records",
+        "Identity proof",
+        "Dependency documents where applicable"
+      ]
+    },
+    "key_covered_conditions": [
+      "OPD",
+      "Hospitalization",
+      "Emergency care",
+      "Diagnostics",
+      "Medicines"
+    ],
+    "key_exclusions": [
+      "Non-eligible persons",
+      "Unauthorized non-empanelled treatment",
+      "Services outside ECHS rules"
+    ],
+    "chunks": [
+      "ECHS provides comprehensive care without a fixed monetary ceiling under scheme rules.",
+      "Eligibility covers eligible ex-servicemen pensioners and dependents.",
+      "Care is delivered through ECHS polyclinics and empanelled hospitals."
+    ]
+  },
+  {
+    "scheme_id": "scheme_04",
+    "scheme_name": "Rashtriya Arogya Nidhi (RAN)",
+    "department": "Ministry of Health and Family Welfare",
+    "state": "Central / All India",
+    "official_url": "https://main.mohfw.gov.in/major-programmes/poor-patients-financial-assistance/rashtriya-arogya-nidhi",
+    "benefits_summary": "One-time financial assistance for BPL patients with specified life-threatening diseases receiving treatment in eligible Government hospitals.",
+    "coverage_amount_inr": "Case-based one-time grant; no universal fixed amount",
+    "cashless": false,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "Applicable BPL threshold",
+      "bpl_or_secc_required": "BPL required",
+      "age_group": "All Ages",
+      "target_beneficiaries": "BPL patients with specified life-threatening diseases",
+      "required_documents": [
+        "RAN application",
+        "Medical report and treatment estimate",
+        "BPL or ration card",
+        "Income certificate",
+        "Identity proof"
+      ]
+    },
+    "key_covered_conditions": [
+      "Specified life-threatening diseases",
+      "Cancer and other listed serious illnesses",
+      "Major treatment in Government hospitals"
+    ],
+    "key_exclusions": [
+      "Non-BPL applicants",
+      "Private treatment outside rules",
+      "Already incurred expenditure",
+      "Treatment available free elsewhere"
+    ],
+    "chunks": [
+      "RAN provides a case-based one-time grant, not annual insurance.",
+      "Eligibility requires BPL status and a qualifying life-threatening disease.",
+      "Assistance is released to the treating Government hospital."
+    ]
+  },
+  {
+    "scheme_id": "scheme_05",
+    "scheme_name": "Pradhan Mantri Matru Vandana Yojana (PMMVY)",
+    "department": "Ministry of Women and Child Development",
+    "state": "Central / All India",
+    "official_url": "https://www.spniwcd.wcd.gov.in/pradhan-mantri-vandana-yojna/faqs",
+    "benefits_summary": "Direct maternity benefit for eligible pregnant women and lactating mothers from specified disadvantaged groups.",
+    "coverage_amount_inr": "₹5000 for first living child; ₹6000 for second living child if the second child is a girl, subject to conditions",
+    "cashless": false,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "No single universal ceiling; eligible disadvantaged categories apply",
+      "bpl_or_secc_required": "Not universally required",
+      "age_group": "Pregnant Women and Lactating Mothers",
+      "target_beneficiaries": "Eligible pregnant women and lactating mothers",
+      "required_documents": [
+        "Identity proof",
+        "Bank or post-office account details",
+        "Pregnancy and ANC record",
+        "Birth record",
+        "Immunization record"
+      ]
+    },
+    "key_covered_conditions": [
+      "Pregnancy registration",
+      "Antenatal care",
+      "Childbirth",
+      "Child immunization"
+    ],
+    "key_exclusions": [
+      "Failure to meet milestone conditions",
+      "Duplicate benefits",
+      "Claims outside permitted child-order rules"
+    ],
+    "chunks": [
+      "PMMVY provides maternity assistance through DBT.",
+      "Benefits depend on pregnancy registration, ANC, childbirth and immunization milestones.",
+      "Identity, bank and maternal-child health records are generally required."
+    ]
+  },
+  {
+    "scheme_id": "scheme_06",
+    "scheme_name": "Chief Minister's Comprehensive Health Insurance Scheme (CMCHIS)",
+    "department": "Health and Family Welfare Department, Government of Tamil Nadu",
+    "state": "Tamil Nadu",
+    "official_url": "https://www.cmchistn.com/eligibility",
+    "benefits_summary": "Cashless hospitalization insurance for eligible Tamil Nadu resident families at empanelled hospitals.",
+    "coverage_amount_inr": "500000 per eligible family per year",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "Less than ₹120000 per family per year under current eligibility documentation",
+      "bpl_or_secc_required": "No; income and family-card eligibility apply",
+      "age_group": "All Ages",
+      "target_beneficiaries": "Eligible low-income Tamil Nadu resident families",
+      "required_documents": [
+        "Tamil Nadu family or ration card",
+        "Income certificate",
+        "Aadhaar or identity proof",
+        "Residence proof"
+      ]
+    },
+    "key_covered_conditions": [
+      "Secondary and tertiary hospitalization",
+      "Oncology",
+      "Cardiac procedures",
+      "Major surgeries"
+    ],
+    "key_exclusions": [
+      "Routine OPD outside packages",
+      "Cosmetic procedures",
+      "Non-approved treatment"
+    ],
+    "chunks": [
+      "CMCHIS provides cashless cover up to ₹5 lakh per eligible family per year.",
+      "Eligibility requires Tamil Nadu residence and the applicable income criterion.",
+      "Treatment is provided through empanelled hospitals using family and identity records."
+    ]
+  },
+  {
+    "scheme_id": "scheme_07",
+    "scheme_name": "Swasthya Sathi",
+    "department": "Department of Health and Family Welfare, Government of West Bengal",
+    "state": "West Bengal",
+    "official_url": "https://www.wbhealth.gov.in/",
+    "benefits_summary": "West Bengal cashless family-floater hospitalization scheme for eligible residents and notified categories.",
+    "coverage_amount_inr": "Up to ₹500000 per family per year under the State scheme framework",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "State-notified household and beneficiary rules; no universal ceiling verified",
+      "bpl_or_secc_required": "No universal BPL or SECC requirement",
+      "age_group": "All Ages",
+      "target_beneficiaries": "Eligible West Bengal resident families",
+      "required_documents": [
+        "Swasthya Sathi card",
+        "Identity proof",
+        "Residence or household proof",
+        "Ration card where applicable"
+      ]
+    },
+    "key_covered_conditions": [
+      "Hospitalization",
+      "Major surgeries",
+      "Oncology",
+      "Cardiac treatment"
+    ],
+    "key_exclusions": [
+      "Routine OPD outside packages",
+      "Cosmetic procedures",
+      "Non-approved treatment"
+    ],
+    "chunks": [
+      "Swasthya Sathi offers cashless family-floater hospitalization cover.",
+      "Eligibility follows current West Bengal enrolment and exclusion rules.",
+      "Beneficiaries use the card and approved documents at empanelled hospitals."
+    ]
+  },
+  {
+    "scheme_id": "scheme_08",
+    "scheme_name": "Mahatma Jyotirao Phule Jan Arogya Yojana (MJPJAY)",
+    "department": "Public Health Department, Government of Maharashtra",
+    "state": "Maharashtra",
+    "official_url": "https://phd.maharashtra.gov.in/",
+    "benefits_summary": "Cashless treatment for approved procedures for eligible Maharashtra families through empanelled hospitals, integrated with AB-PMJAY.",
+    "coverage_amount_inr": "Depends on current MJPJAY and AB-PMJAY package and Government resolution",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "Varies by beneficiary category",
+      "bpl_or_secc_required": "Eligible ration-card or notified category; AB-PMJAY criteria may also apply",
+      "age_group": "All Ages",
+      "target_beneficiaries": "Eligible Maharashtra families including specified ration-card groups",
+      "required_documents": [
+        "Maharashtra ration card",
+        "Identity proof",
+        "Residence proof",
+        "Category or income document where applicable"
+      ]
+    },
+    "key_covered_conditions": [
+      "Major surgeries",
+      "Oncology",
+      "Cardiac procedures",
+      "Renal treatment",
+      "Approved hospitalization"
+    ],
+    "key_exclusions": [
+      "Non-package treatment",
+      "Routine OPD outside packages",
+      "Cosmetic procedures"
+    ],
+    "chunks": [
+      "MJPJAY provides cashless approved treatment through empanelled hospitals.",
+      "Eligibility depends on Maharashtra beneficiary categories and AB-PMJAY integration.",
+      "Ration-card, identity and residence records support verification."
+    ]
+  },
+  {
+    "scheme_id": "scheme_09",
+    "scheme_name": "Karunya Arogya Suraksha Padhathi (KASP)",
+    "department": "State Health Agency, Government of Kerala",
+    "state": "Kerala",
+    "official_url": "https://sha.kerala.gov.in/?page_id=110&lang=en",
+    "benefits_summary": "Kerala implementation of AB-PMJAY providing secondary and tertiary hospitalization cover for eligible poor and vulnerable families.",
+    "coverage_amount_inr": "500000 per eligible family per year",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "Primarily SECC, legacy-scheme and State-notified eligibility; no single universal ceiling",
+      "bpl_or_secc_required": "SECC or eligible legacy or State category",
+      "age_group": "All Ages",
+      "target_beneficiaries": "Poor and vulnerable Kerala families",
+      "required_documents": [
+        "KASP or AB-PMJAY record",
+        "Identity proof",
+        "Ration or family record",
+        "Eligibility record"
+      ]
+    },
+    "key_covered_conditions": [
+      "Secondary hospitalization",
+      "Tertiary hospitalization",
+      "Oncology",
+      "Cardiac procedures",
+      "Renal treatment"
+    ],
+    "key_exclusions": [
+      "Routine OPD outside packages",
+      "Cosmetic procedures",
+      "Non-approved treatment"
+    ],
+    "chunks": [
+      "KASP provides ₹5 lakh annual cashless hospitalization cover.",
+      "Eligibility includes SECC and Kerala-notified categories.",
+      "Treatment is delivered through empanelled hospitals."
+    ]
+  },
+  {
+    "scheme_id": "scheme_10",
+    "scheme_name": "Biju Swasthya Kalyan Yojana (BSKY)",
+    "department": "Health and Family Welfare Department, Government of Odisha",
+    "state": "Odisha",
+    "official_url": "https://bskydashboard.odisha.gov.in/About",
+    "benefits_summary": "Free public-facility care and additional cashless private-hospital coverage for eligible vulnerable Odisha families.",
+    "coverage_amount_inr": "₹500000 per family per year plus additional ₹500000 for women members after exhaustion of the initial limit, according to current official dashboard material",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "Linked to NFSA, SFSA, BSKY and other notified categories; some older documents cite rural and urban income thresholds",
+      "bpl_or_secc_required": "NFSA, SFSA, BSKY smart card, BPL, AAY or notified category",
+      "age_group": "All Ages",
+      "target_beneficiaries": "All families for specified Government-facility care and vulnerable families for private coverage",
+      "required_documents": [
+        "BSKY card",
+        "NFSA or SFSA card",
+        "Identity proof",
+        "Residence proof",
+        "Category or income document"
+      ]
+    },
+    "key_covered_conditions": [
+      "Public-facility healthcare",
+      "Hospitalization",
+      "Cancer",
+      "Cardiac treatment",
+      "Kidney treatment"
+    ],
+    "key_exclusions": [
+      "Private care outside eligibility",
+      "Non-package treatment",
+      "Cosmetic procedures"
+    ],
+    "chunks": [
+      "BSKY provides free public-facility care and additional private-hospital cover for eligible families.",
+      "Eligibility uses BSKY, NFSA, SFSA, BPL, AAY and other notified categories.",
+      "Cards and identity documents are used at empanelled hospitals."
+    ]
+  },
+  {
+    "scheme_id": "scheme_11",
+    "scheme_name": "Mukhyamantri Amrutam (MA) and Mukhyamantri Amrutam Vatsalya (MAV) integrated with AB-PMJAY",
+    "department": "Health and Family Welfare Department, Government of Gujarat",
+    "state": "Gujarat",
+    "official_url": "https://ma.gujarat.gov.in/",
+    "benefits_summary": "Cashless family health assurance for BPL, low-income and other notified Gujarat categories, integrated with AB-PMJAY.",
+    "coverage_amount_inr": "500000 per eligible family per year",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "Varies by category and current Gujarat Government orders",
+      "bpl_or_secc_required": "BPL, Gujarat income or category certificate, or AB-PMJAY record",
+      "age_group": "All Ages",
+      "target_beneficiaries": "BPL and low-income Gujarat families and notified categories",
+      "required_documents": [
+        "MA, MAV or Ayushman card",
+        "Gujarat ration card",
+        "Income or BPL record",
+        "Identity and residence proof"
+      ]
+    },
+    "key_covered_conditions": [
+      "Primary, secondary and tertiary care",
+      "Major surgeries",
+      "Oncology",
+      "Cardiac procedures",
+      "Renal treatment"
+    ],
+    "key_exclusions": [
+      "Non-package treatment",
+      "Routine OPD outside packages",
+      "Cosmetic procedures"
+    ],
+    "chunks": [
+      "MA and MAV provide ₹5 lakh annual cashless family cover.",
+      "Eligibility varies by BPL, income, category and AB-PMJAY rules.",
+      "Treatment is provided through empanelled Government and private hospitals."
+    ]
+  },
+  {
+    "scheme_id": "scheme_12",
+    "scheme_name": "Dr. Muthulakshmi Reddy Maternity Benefit Scheme (MRMBS)",
+    "department": "Health and Family Welfare Department, Government of Tamil Nadu",
+    "state": "Tamil Nadu",
+    "official_url": "https://picme.tn.gov.in/picme_public/mrmbs.pdf",
+    "benefits_summary": "Maternity assistance scheme providing ₹18000 per eligible beneficiary through cash instalments and two nutrition kits, subject to pregnancy registration, antenatal care, childbirth and immunization conditions.",
+    "coverage_amount_inr": "₹18000 per eligible beneficiary, including cash and nutrition-kit benefits, subject to current guidelines",
+    "cashless": false,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "Poor or eligible pregnant women under current Tamil Nadu guidelines",
+      "bpl_or_secc_required": "Eligibility-category and income conditions apply; not an insurance scheme",
+      "age_group": "Pregnant Women and Lactating Mothers",
+      "target_beneficiaries": "Eligible poor pregnant women and mothers",
+      "required_documents": [
+        "Aadhaar or identity proof",
+        "PICME registration",
+        "Antenatal record",
+        "Bank account details",
+        "Birth and immunization records"
+      ]
+    },
+    "key_covered_conditions": [
+      "Pregnancy registration",
+      "Antenatal care",
+      "Childbirth",
+      "Child immunization",
+      "Nutrition support"
+    ],
+    "key_exclusions": [
+      "Failure to meet milestone conditions",
+      "Duplicate benefits",
+      "Ineligible applicants"
+    ],
+    "chunks": [
+      "MRMBS provides ₹18000 maternity assistance through cash and nutrition-kit benefits.",
+      "Eligibility depends on pregnancy registration, antenatal care, childbirth and immunization conditions.",
+      "PICME, identity, bank and maternal-child health records support payment."
+    ]
+  },
+  {
+    "scheme_id": "scheme_13",
+    "scheme_name": "Janani Shishu Suraksha Karyakram (JSSK)",
+    "department": "National Health Mission, Ministry of Health and Family Welfare, implemented in Tamil Nadu by NHM Tamil Nadu",
+    "state": "Central / All India; implemented in Tamil Nadu",
+    "official_url": "https://www.nhm.tn.gov.in/en/nhm-programsrmncha/janani-shishu-suraksha-karyakram-jssk",
+    "benefits_summary": "Free and no-expense delivery, caesarean section, medicines, diagnostics, blood, diet and transport in public health institutions for eligible pregnant women and sick newborns.",
+    "coverage_amount_inr": "No fixed monetary limit; free-of-cost entitlement under programme rules",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "N/A for the universal public-facility entitlement, subject to programme rules",
+      "bpl_or_secc_required": "No",
+      "age_group": "Pregnant Women and Newborns",
+      "target_beneficiaries": "Pregnant women delivering in public institutions and eligible sick newborns",
+      "required_documents": [
+        "Identity proof where available",
+        "Pregnancy or delivery record",
+        "Newborn health record where applicable"
+      ]
+    },
+    "key_covered_conditions": [
+      "Normal delivery",
+      "Caesarean delivery",
+      "Sick newborn care",
+      "Diagnostics",
+      "Blood and medicines",
+      "Transport"
+    ],
+    "key_exclusions": [
+      "Non-public-facility care outside programme rules",
+      "Non-eligible services",
+      "Services after the applicable entitlement period"
+    ],
+    "chunks": [
+      "JSSK provides free delivery and caesarean services in public health institutions.",
+      "The programme includes medicines, diagnostics, blood, diet and transport.",
+      "It is a Government service guarantee rather than a fixed-sum insurance policy."
+    ]
+  },
+  {
+    "scheme_id": "scheme_14",
+    "scheme_name": "Janani Suraksha Yojana (JSY)",
+    "department": "Ministry of Health and Family Welfare, Government of India; implemented by NHM Tamil Nadu",
+    "state": "Central / All India; implemented in Tamil Nadu",
+    "official_url": "https://www.nhm.tn.gov.in/en/nhm-programsrmncha/jsy",
+    "benefits_summary": "Safe-motherhood cash assistance programme encouraging institutional delivery among eligible pregnant women under Government rules.",
+    "coverage_amount_inr": "Amount varies by State, rural or urban location and beneficiary category; no single India-wide amount",
+    "cashless": false,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "Eligibility depends on current JSY State and category rules",
+      "bpl_or_secc_required": "BPL or other notified category may be required",
+      "age_group": "Pregnant Women",
+      "target_beneficiaries": "Eligible pregnant women, especially poor and vulnerable women",
+      "required_documents": [
+        "Identity proof",
+        "MCH or pregnancy record",
+        "BPL or category document where required",
+        "Bank account details"
+      ]
+    },
+    "key_covered_conditions": [
+      "Institutional delivery",
+      "Antenatal and postnatal care linkage",
+      "Maternal referral support"
+    ],
+    "key_exclusions": [
+      "Applicants outside notified categories",
+      "Incomplete institutional-delivery conditions",
+      "Duplicate claims"
+    ],
+    "chunks": [
+      "JSY provides cash assistance to encourage institutional delivery.",
+      "Eligibility and payment vary by State, residence and beneficiary category.",
+      "The programme is a maternity cash benefit, not hospitalization insurance."
+    ]
+  },
+  {
+    "scheme_id": "scheme_15",
+    "scheme_name": "Amma Baby Care Kit",
+    "department": "Health and Family Welfare Department, Government of Tamil Nadu",
+    "state": "Tamil Nadu",
+    "official_url": "https://www.tn.gov.in/",
+    "benefits_summary": "Distribution of a newborn care kit to eligible babies delivered in Government health institutions under Tamil Nadu maternal and child-health programmes.",
+    "coverage_amount_inr": "In-kind benefit; value and contents depend on current Tamil Nadu Government specifications",
+    "cashless": false,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "Generally linked to delivery in eligible Government facilities and current State rules",
+      "bpl_or_secc_required": "Not universally required; facility and State conditions apply",
+      "age_group": "Newborns",
+      "target_beneficiaries": "Babies born in eligible Tamil Nadu Government health institutions",
+      "required_documents": [
+        "Delivery record",
+        "Mother and child health record",
+        "Identity proof where required"
+      ]
+    },
+    "key_covered_conditions": [
+      "Newborn hygiene",
+      "Basic newborn care",
+      "Maternal and child-health support"
+    ],
+    "key_exclusions": [
+      "Births outside eligible facilities or rules",
+      "Duplicate distribution",
+      "Items outside the approved kit"
+    ],
+    "chunks": [
+      "Amma Baby Care Kit is an in-kind newborn-care benefit in Tamil Nadu.",
+      "Eligibility generally depends on delivery in an eligible Government institution.",
+      "Delivery and mother-child health records support distribution."
+    ]
+  },
+  {
+    "scheme_id": "scheme_16",
+    "scheme_name": "Amma Arokiya Scheme",
+    "department": "Health and Family Welfare Department, Government of Tamil Nadu",
+    "state": "Tamil Nadu",
+    "official_url": "https://www.nhm.tn.gov.in/",
+    "benefits_summary": "Preventive health-screening initiative providing basic health checks and investigations through public health facilities, especially for adults aged 30 years and above.",
+    "coverage_amount_inr": "Free or Government-funded screening services; no fixed insurance sum",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "N/A",
+      "bpl_or_secc_required": "No",
+      "age_group": "Adults aged 30 years and above",
+      "target_beneficiaries": "Tamil Nadu residents eligible for public preventive screening",
+      "required_documents": [
+        "Identity proof where required",
+        "Health or screening record"
+      ]
+    },
+    "key_covered_conditions": [
+      "Non-communicable disease screening",
+      "Blood pressure screening",
+      "Diabetes screening",
+      "Basic investigations"
+    ],
+    "key_exclusions": [
+      "Specialist treatment outside the screening service",
+      "Non-programme investigations",
+      "Private services outside authorization"
+    ],
+    "chunks": [
+      "Amma Arokiya provides preventive screening through Tamil Nadu public facilities.",
+      "The programme focuses particularly on adults aged 30 and above.",
+      "It is a screening service and not a fixed-sum insurance scheme."
+    ]
+  },
+  {
+    "scheme_id": "scheme_17",
+    "scheme_name": "SUMAN Service Guarantee Initiative",
+    "department": "National Health Mission, Ministry of Health and Family Welfare, implemented in Tamil Nadu",
+    "state": "Central / All India; implemented in Tamil Nadu",
+    "official_url": "https://www.nhm.tn.gov.in/en/nhm-programsrmncha",
+    "benefits_summary": "Service-guarantee initiative providing assured, dignified and free maternal and newborn services at public health facilities.",
+    "coverage_amount_inr": "No fixed monetary limit; free service entitlement under programme rules",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "N/A for eligible public-facility maternal and newborn services",
+      "bpl_or_secc_required": "No",
+      "age_group": "Pregnant Women and Newborns",
+      "target_beneficiaries": "Pregnant women and newborns visiting public health facilities",
+      "required_documents": [
+        "Identity proof where available",
+        "Pregnancy or newborn record"
+      ]
+    },
+    "key_covered_conditions": [
+      "Maternal care",
+      "Newborn care",
+      "Delivery services",
+      "Diagnostics",
+      "Referral services"
+    ],
+    "key_exclusions": [
+      "Services outside public-facility entitlement",
+      "Non-programme specialist care",
+      "Non-eligible service periods"
+    ],
+    "chunks": [
+      "SUMAN guarantees free maternal and newborn services in public facilities.",
+      "It covers a service package rather than a fixed monetary insurance amount.",
+      "Pregnancy and newborn records support access and continuity of care."
+    ]
+  },
+  {
+    "scheme_id": "scheme_18",
+    "scheme_name": "Nammai Kaakkum 48",
+    "department": "Health and Family Welfare Department, Government of Tamil Nadu",
+    "state": "Tamil Nadu",
+    "official_url": "https://www.tn.gov.in/go.php?dep_id=MTE=&year=MjAyNA==",
+    "benefits_summary": "Tamil Nadu emergency-care programme providing cashless treatment during the first 48 hours after eligible road-traffic accidents and other notified emergencies, subject to current Government rules and hospital authorization.",
+    "coverage_amount_inr": "Up to ₹200000 for eligible treatment under the cited revised Tamil Nadu Government provision",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "N/A",
+      "bpl_or_secc_required": "No; emergency and scheme conditions apply",
+      "age_group": "All Ages",
+      "target_beneficiaries": "Eligible emergency and accident patients in Tamil Nadu",
+      "required_documents": [
+        "Identity proof where available",
+        "Accident or emergency record",
+        "Hospital admission and treatment records"
+      ]
+    },
+    "key_covered_conditions": [
+      "Emergency stabilization",
+      "Accident injuries",
+      "Critical care",
+      "Surgery and trauma care"
+    ],
+    "key_exclusions": [
+      "Non-eligible cases",
+      "Treatment outside notified emergency period",
+      "Non-approved services"
+    ],
+    "chunks": [
+      "Nammai Kaakkum 48 provides cashless emergency treatment during the first 48 hours.",
+      "The cited Tamil Nadu Government material reports a revised ceiling of ₹2 lakh.",
+      "Emergency and hospital records are used for authorization and settlement."
+    ]
+  },
+  {
+    "scheme_id": "scheme_19",
+    "scheme_name": "National Health Mission (NHM)",
+    "department": "Ministry of Health and Family Welfare, Government of India; implemented through NHM Tamil Nadu",
+    "state": "Central / All India; implemented in Tamil Nadu",
+    "official_url": "https://www.nhm.tn.gov.in/",
+    "benefits_summary": "Umbrella public-health mission supporting rural and urban health services, maternal and child health, communicable and non-communicable disease programmes, health-system strengthening and free or subsidized public services.",
+    "coverage_amount_inr": "Programme-specific; no single insurance amount",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "Varies by programme; many public-health services are not income-restricted",
+      "bpl_or_secc_required": "Varies by programme",
+      "age_group": "All Ages",
+      "target_beneficiaries": "Residents using public health services and programme-specific target groups",
+      "required_documents": [
+        "Identity proof where required",
+        "Programme-specific health or beneficiary record"
+      ]
+    },
+    "key_covered_conditions": [
+      "Maternal and child health",
+      "Immunization",
+      "Communicable diseases",
+      "Non-communicable diseases",
+      "Public primary healthcare"
+    ],
+    "key_exclusions": [
+      "Services outside the relevant programme",
+      "Non-authorized private treatment",
+      "Programme-specific eligibility exclusions"
+    ],
+    "chunks": [
+      "NHM is an umbrella mission supporting public healthcare across India and Tamil Nadu.",
+      "Benefits and eligibility vary by programme, including maternal, child, communicable and non-communicable disease services.",
+      "It is not a single insurance policy and has no universal sum insured."
+    ]
+  },
+  {
+    "scheme_id": "scheme_20",
+    "scheme_name": "National Programme for Health Care of the Elderly (NPHCE)",
+    "department": "Ministry of Health and Family Welfare, Government of India; implemented in Tamil Nadu through NHM",
+    "state": "Central / All India; implemented in Tamil Nadu",
+    "official_url": "https://www.nhm.tn.gov.in/en/nhm-programsnon-communicable-diseases/national-programme-for-the-healthcare-of-the-elderly-nphce",
+    "benefits_summary": "Public-health programme providing preventive, curative, rehabilitative and geriatric services through designated public facilities for older persons.",
+    "coverage_amount_inr": "Free or subsidized programme services; no fixed insurance sum",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "N/A or programme-specific",
+      "bpl_or_secc_required": "No universal BPL or SECC requirement",
+      "age_group": "Senior Citizens",
+      "target_beneficiaries": "Older persons using designated public health facilities",
+      "required_documents": [
+        "Identity proof where required",
+        "Age or health record"
+      ]
+    },
+    "key_covered_conditions": [
+      "Geriatric disease management",
+      "Chronic disease care",
+      "Rehabilitation",
+      "Preventive elderly care"
+    ],
+    "key_exclusions": [
+      "Services outside designated facilities",
+      "Non-programme specialist treatment",
+      "Non-authorized private services"
+    ],
+    "chunks": [
+      "NPHCE supports geriatric preventive, curative and rehabilitative care.",
+      "It targets older persons through designated public facilities.",
+      "NPHCE is a public-health programme, not a fixed-sum insurance scheme."
+    ]
+  },
+  {
+    "scheme_id": "scheme_21",
+    "scheme_name": "Universal Health Coverage Programme – Tamil Nadu",
+    "department": "Directorate of Public Health and Preventive Medicine, Government of Tamil Nadu",
+    "state": "Tamil Nadu",
+    "official_url": "https://www.nhm.tn.gov.in/en/nhm-programs/universal-health-coverage",
+    "benefits_summary": "Tamil Nadu public-health initiative focused on community-level screening and management of non-communicable diseases through Women Health Volunteers and public-health systems.",
+    "coverage_amount_inr": "Programme-specific free or subsidized services; no fixed insurance amount",
+    "cashless": true,
+    "eligibility_criteria": {
+      "income_limit_per_annum_inr": "N/A",
+      "bpl_or_secc_required": "No universal requirement",
+      "age_group": "All Ages; screening focus varies by condition",
+      "target_beneficiaries": "Tamil Nadu residents receiving public NCD screening and management services",
+      "required_documents": [
+        "Identity proof where required",
+        "Screening or health record"
+      ]
+    },
+    "key_covered_conditions": [
+      "Diabetes screening",
+      "Hypertension screening",
+      "NCD detection",
+      "Community referral and management"
+    ],
+    "key_exclusions": [
+      "Non-programme specialist treatment",
+      "Private services outside authorization",
+      "Services outside public-health scope"
+    ],
+    "chunks": [
+      "Tamil Nadu's UHC programme supports community-level NCD screening and management.",
+      "Women Health Volunteers and public-health teams support outreach and referral.",
+      "The initiative is a public-health service programme rather than insurance."
+    ]
+  }
+]

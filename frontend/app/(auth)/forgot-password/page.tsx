@@ -9,7 +9,6 @@ import { Mail, ArrowLeft, Send, CheckCircle2, RotateCw } from "lucide-react";
 
 import { authApi } from "@/lib/api";
 import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 
 const forgotPasswordSchema = z.object({
@@ -30,13 +29,12 @@ export default function ForgotPasswordPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting, isValid },
+    formState: { errors, isSubmitting },
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     mode: "onBlur",
   });
 
-  // Handle 30-second countdown timer for resend
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
@@ -54,9 +52,7 @@ export default function ForgotPasswordPage() {
       setSubmittedEmail(data.email);
       setCountdown(30);
     } catch (err: any) {
-      setGeneralError(
-        err?.response?.data?.message || "Failed to send reset email. Please try again later."
-      );
+      setGeneralError(err?.message || "Failed to dispatch reset link. Please check your email and try again.");
     }
   };
 
@@ -69,32 +65,30 @@ export default function ForgotPasswordPage() {
       setCountdown(30);
       setResendNotice("A new reset link has been dispatched to your email address.");
     } catch (err: any) {
-      setGeneralError("Failed to resend email. Please try again.");
+      setGeneralError(err?.message || "Failed to resend reset link.");
     }
   };
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header Back Button */}
       <div>
         <Link
           href="/login"
-          className="inline-flex items-center text-xs font-semibold text-[#0D9488] hover:underline focus-ring rounded p-1 -ml-1 gap-1"
+          className="inline-flex items-center text-xs font-semibold text-[#0D9488] dark:text-[#14B8A6] hover:underline gap-1.5"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Back to Sign In
+          <span>Back to Login</span>
         </Link>
       </div>
 
       {!submittedEmail ? (
         <>
-          {/* Initial Form State */}
           <div className="flex flex-col gap-1">
-            <h1 className="font-heading text-2xl font-bold text-[#0F172A]">
+            <h1 className="font-heading text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
               Reset Password
             </h1>
-            <p className="text-sm text-[#64748B]">
-              Enter your registered email address and we&apos;ll send you a link to reset your password.
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Enter your registered email address to receive password reset instructions.
             </p>
           </div>
 
@@ -111,42 +105,38 @@ export default function ForgotPasswordPage() {
             <Input
               label="Registered Email Address"
               type="email"
-              placeholder="sarah.jenkins@example.com"
+              placeholder="patient@example.com"
               autoComplete="email"
               required
-              leftIcon={<Mail className="w-4 h-4" />}
+              leftIcon={<Mail className="w-4 h-4 text-slate-400" />}
               error={errors.email?.message}
               {...register("email")}
             />
 
-            <Button
+            <button
               type="submit"
-              variant="primary"
-              size="lg"
-              fullWidth
-              isLoading={isSubmitting}
-              disabled={!isValid && isSubmitting}
+              disabled={isSubmitting}
+              className="w-full bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold py-3 rounded-xl shadow-md shadow-teal-500/25 transition-all text-sm cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2"
             >
-              <Send className="w-4 h-4 mr-2" />
-              Send Reset Link
-            </Button>
+              <Send className="w-4 h-4" />
+              <span>Send Reset Link</span>
+            </button>
           </form>
         </>
       ) : (
-        /* Confirmation State In-Page */
-        <div className="flex flex-col items-center text-center gap-5 py-2">
-          <div className="w-14 h-14 rounded-full bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center border-2 border-[#0D9488]/20">
+        <div className="flex flex-col items-center text-center gap-5 py-4">
+          <div className="w-16 h-16 rounded-2xl bg-teal-500/10 text-[#0D9488] dark:text-[#14B8A6] flex items-center justify-center border border-teal-500/20 shadow-md">
             <CheckCircle2 className="w-8 h-8" />
           </div>
 
           <div className="flex flex-col gap-2">
-            <h2 className="font-heading text-xl font-bold text-[#0F172A]">
+            <h2 className="font-heading text-2xl font-bold text-slate-900 dark:text-white">
               Check Your Email
             </h2>
-            <p className="text-sm text-[#64748B] leading-relaxed">
-              We have sent password reset instructions to:
+            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              We have dispatched password reset instructions to:
             </p>
-            <p className="font-mono font-medium text-sm text-[#0D9488] bg-[#F0FDFA] py-1.5 px-3 rounded-lg border border-[#0D9488]/20 inline-block mx-auto break-all">
+            <p className="font-mono font-semibold text-sm text-[#0D9488] dark:text-[#14B8A6] bg-teal-50 dark:bg-teal-950/50 py-1.5 px-3 rounded-lg border border-teal-500/20 inline-block mx-auto break-all">
               {submittedEmail}
             </p>
           </div>
@@ -159,31 +149,21 @@ export default function ForgotPasswordPage() {
             />
           )}
 
-          {generalError && (
-            <Toast
-              type="error"
-              message={generalError}
-              onClose={() => setGeneralError(null)}
-            />
-          )}
-
-          <p className="text-xs text-[#64748B]">
-            Didn&apos;t receive the email? Check your spam folder or click below to resend.
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Didn&apos;t receive the email? Check your spam folder or resend.
           </p>
 
-          <Button
+          <button
             onClick={handleResend}
-            variant="secondary"
-            size="md"
             disabled={countdown > 0}
-            fullWidth
-            className="mt-1"
+            className="w-full py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
           >
-            <RotateCw className={`w-4 h-4 mr-2 ${countdown > 0 ? "" : "group-hover:rotate-180 transition-transform"}`} />
-            {countdown > 0 ? `Resend email in ${countdown}s` : "Resend Reset Email"}
-          </Button>
+            <RotateCw className="w-4 h-4" />
+            <span>{countdown > 0 ? `Resend email in ${countdown}s` : "Resend Reset Email"}</span>
+          </button>
         </div>
       )}
     </div>
   );
 }
+

@@ -1,430 +1,807 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { FullPatientRecord } from "@/types/profile";
-import { profileApi } from "@/lib/mockProfileData";
-import { ProfileCompletenessBar } from "@/components/profile/ProfileCompletenessBar";
-import { EmergencyContactCard } from "@/components/profile/EmergencyContactCard";
-import { AllergyList } from "@/components/profile/AllergyList";
-import { ChronicConditionList } from "@/components/profile/ChronicConditionList";
-import { MedicationList } from "@/components/profile/MedicationList";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Toast } from "@/components/ui/Toast";
-import { Spinner } from "@/components/ui/Spinner";
-import {
-  User,
-  Edit,
-  ShieldCheck,
-  AlertTriangle,
-  Activity,
+import React, { useState } from 'react';
+import { 
+  User, 
+  HeartPulse, 
+  ShieldAlert, 
+  Edit3, 
+  Save, 
+  Plus, 
+  Trash2, 
+  AlertCircle, 
+  Check, 
+  Download, 
+  Printer, 
+  Phone, 
+  MapPin, 
+  Calendar, 
+  Activity, 
   Pill,
-  ChevronDown,
-  ChevronUp,
-  MapPin,
-  Calendar,
-  Ruler,
-  Weight,
-} from "lucide-react";
-import { useLanguage } from "@/context/LanguageContext";
+  Droplet
+} from 'lucide-react';
+
+import { useAuth } from '@/context/AuthContext';
+import { profileApi } from '@/lib/mockProfileData';
+
+interface Allergy {
+  id: string;
+  name: string;
+  severity: 'Mild' | 'Moderate' | 'Severe';
+  notes: string;
+}
+
+interface ChronicCondition {
+  id: string;
+  condition: string;
+  diagnosedYear: string;
+  notes: string;
+}
+
+interface Medication {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  prescribedBy: string;
+}
 
 export default function ProfilePage() {
-  const searchParams = useSearchParams();
-  const toastParam = searchParams.get("toast");
-  const { t, language } = useLanguage();
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'personal' | 'medical' | 'emergency'>('personal');
+  const [isEditingPersonal, setIsEditingPersonal] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  const [record, setRecord] = useState<FullPatientRecord | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [showToast, setShowToast] = useState<boolean>(toastParam === "updated");
-
-  // Tab state for desktop
-  const [activeTab, setActiveTab] = useState<"details" | "allergies" | "conditions" | "medications">(
-    "details"
-  );
-
-  // Accordion state for mobile (multiple or single open)
-  const [openAccordions, setOpenAccordions] = useState<Record<string, boolean>>({
-    details: true,
-    allergies: true,
-    conditions: false,
-    medications: false,
+  // Tab 1 Data
+  const [personalDetails, setPersonalDetails] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    dob: '',
+    gender: 'Male',
+    bloodGroup: 'O+',
+    height: '',
+    weight: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    emergencyName: '',
+    emergencyPhone: ''
   });
 
-  const loadRecord = async () => {
-    try {
-      const data = await profileApi.getRecord();
-      setRecord(data);
-    } catch (err) {
-      console.error("Failed to load profile record", err);
-    } finally {
-      setLoading(false);
-    }
+  // Tab 2 Data
+  const [allergies, setAllergies] = useState<Allergy[]>([]);
+  const [conditions, setConditions] = useState<ChronicCondition[]>([]);
+  const [medications, setMedications] = useState<Medication[]>([]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    profileApi.getRecord().then((rec) => {
+      if (!isMounted || !rec) return;
+      if (rec.profile) {
+        setPersonalDetails((prev) => ({
+          ...prev,
+          fullName: rec.profile.patient_name || user?.fullName || '',
+          dob: rec.profile.date_of_birth || '',
+          gender: rec.profile.gender || 'Male',
+          bloodGroup: rec.profile.blood_group || 'O+',
+          height: rec.profile.height_cm ? String(rec.profile.height_cm) : '',
+          weight: rec.profile.weight_kg ? String(rec.profile.weight_kg) : '',
+          address: rec.profile.address || '',
+          city: rec.profile.city || '',
+          state: rec.profile.state || '',
+          pincode: rec.profile.pincode || '',
+          emergencyName: rec.profile.emergency_contact_name || '',
+          emergencyPhone: rec.profile.emergency_contact_phone || '',
+        }));
+      }
+      if (Array.isArray(rec.allergies)) {
+        setAllergies(
+          rec.allergies.map((a) => ({
+            id: a.allergy_id,
+            name: a.allergy_name,
+            severity: a.severity,
+            notes: a.notes || '',
+          }))
+        );
+      }
+      if (Array.isArray(rec.chronicConditions)) {
+        setConditions(
+          rec.chronicConditions.map((c) => ({
+            id: c.condition_id,
+            condition: c.condition_name,
+            diagnosedYear: c.diagnosed_year ? String(c.diagnosed_year) : '',
+            notes: c.notes || '',
+          }))
+        );
+      }
+      if (Array.isArray(rec.medications)) {
+        setMedications(
+          rec.medications.map((m) => ({
+            id: m.medication_id,
+            name: m.medicine_name,
+            dosage: m.dosage,
+            frequency: m.frequency,
+            prescribedBy: m.prescribed_by || '',
+          }))
+        );
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  // Form states for adding items
+  const [newAllergy, setNewAllergy] = useState<Omit<Allergy, 'id'>>({ name: '', severity: 'Mild', notes: '' });
+  const [newCondition, setNewCondition] = useState<Omit<ChronicCondition, 'id'>>({ condition: '', diagnosedYear: '', notes: '' });
+  const [newMed, setNewMed] = useState<Omit<Medication, 'id'>>({ name: '', dosage: '', frequency: '', prescribedBy: '' });
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 3000);
   };
 
-  useEffect(() => {
-    loadRecord();
-  }, []);
-
-  const toggleAccordion = (key: string) => {
-    setOpenAccordions((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+  const handlePersonalSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsEditingPersonal(false);
+    showToast('Personal details updated successfully!');
   };
 
-  if (loading || !record) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 gap-3 min-h-[400px]">
-        <Spinner size="lg" color="primary" />
-        <span className="text-xs text-[#64748B]">
-          {language === "ta" ? "நோயாளி சுயவிவர விவரங்கள் ஏற்றப்படுகின்றன..." : "Loading patient clinical profile..."}
-        </span>
-      </div>
-    );
-  }
+  const addAllergy = () => {
+    if (!newAllergy.name) return;
+    setAllergies([...allergies, { ...newAllergy, id: `a-${Date.now()}` }]);
+    setNewAllergy({ name: '', severity: 'Mild', notes: '' });
+    showToast('Allergy added!');
+  };
 
-  const { profile, allergies, chronicConditions, medications } = record;
+  const addCondition = () => {
+    if (!newCondition.condition) return;
+    setConditions([...conditions, { ...newCondition, id: `c-${Date.now()}` }]);
+    setNewCondition({ condition: '', diagnosedYear: '', notes: '' });
+    showToast('Condition recorded!');
+  };
+
+  const addMedication = () => {
+    if (!newMed.name) return;
+    setMedications([...medications, { ...newMed, id: `m-${Date.now()}` }]);
+    setNewMed({ name: '', dosage: '', frequency: '', prescribedBy: '' });
+    showToast('Medication added!');
+  };
 
   return (
-    <div className="flex flex-col gap-6 sm:gap-8">
-      {/* Toast Banner */}
-      {showToast && (
-        <Toast
-          type="success"
-          title={language === "ta" ? "சுயவிவரம் சேமிக்கப்பட்டது" : "Profile Saved"}
-          message={language === "ta" ? "உங்கள் தனிப்பட்ட உடல்நல விவரங்கள் புதுப்பிக்கப்பட்டன." : "Your personal health details have been updated."}
-          onClose={() => setShowToast(false)}
-        />
+    <div className="space-y-8 pb-12 max-w-5xl">
+      {/* Header Banner */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold text-xl sm:text-2xl flex items-center justify-center shadow-md">
+              {(personalDetails.fullName || user?.fullName || 'PT')
+                .split(' ')
+                .map((w) => w[0])
+                .slice(0, 2)
+                .join('')
+                .toUpperCase()}
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-50 flex items-center gap-2">
+                {personalDetails.fullName || user?.fullName || 'Patient Profile'}
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Blood Group: <span className="font-bold text-rose-600">{personalDetails.bloodGroup || 'Not specified'}</span>
+                {personalDetails.dob && ` • DOB: ${personalDetails.dob}`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setActiveTab('emergency')}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm flex items-center justify-center gap-2 transition-colors"
+            >
+              <ShieldAlert className="w-4 h-4" />
+              Emergency ID Card
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 mt-8 pt-2 overflow-x-auto">
+          {[
+            { id: 'personal', label: 'Personal Details', icon: User },
+            { id: 'medical', label: 'Medical History', icon: HeartPulse },
+            { id: 'emergency', label: 'Emergency Info & ID', icon: ShieldAlert }
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
+                  isActive
+                    ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Toast Alert */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-xs font-semibold animate-bounce">
+          <Check className="w-4 h-4" />
+          {toastMsg}
+        </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#F0FDFA] pb-4">
-        <div>
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold text-[#0F172A]">
-            {t.profileTitle}
-          </h1>
-          <p className="text-xs sm:text-sm text-[#64748B]">
-            {t.profileSubtitle}
-          </p>
-        </div>
-
-        <Link href="/profile/edit">
-          <Button variant="primary" size="md">
-            <Edit className="w-4 h-4 mr-2" />
-            {t.editProfile}
-          </Button>
-        </Link>
-      </div>
-
-      {/* Profile Completeness Bar (<100%) */}
-      <ProfileCompletenessBar record={record} />
-
-      {/* Patient Identity Header Banner */}
-      <Card className="p-5 bg-gradient-to-r from-[#0D9488]/10 via-[#0D9488]/5 to-transparent border border-[#0D9488]/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-[#0D9488] text-white flex items-center justify-center font-heading font-bold text-xl shadow-md shrink-0">
-            {profile.patient_name
-              ? profile.patient_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-              : "PT"}
+      {/* TAB 1: PERSONAL DETAILS */}
+      {activeTab === 'personal' && (
+        <form onSubmit={handlePersonalSave} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 shadow-sm space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Demographic & Contact Information</h2>
+            <button
+              type="button"
+              onClick={() => setIsEditingPersonal(!isEditingPersonal)}
+              className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-emerald-600 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              {isEditingPersonal ? 'Cancel Editing' : 'Edit Information'}
+            </button>
           </div>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-heading text-xl sm:text-2xl font-bold text-[#0F172A]">
-                {profile.patient_name || "Dr. Sarah Jenkins"}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
+              <input
+                type="text"
+                disabled={!isEditingPersonal}
+                value={personalDetails.fullName}
+                onChange={(e) => setPersonalDetails({ ...personalDetails, fullName: e.target.value })}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
+              <input
+                type="email"
+                disabled
+                value={personalDetails.email}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/40 text-slate-500 text-xs sm:text-sm font-medium cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Phone Number</label>
+              <input
+                type="text"
+                disabled={!isEditingPersonal}
+                value={personalDetails.phone}
+                onChange={(e) => setPersonalDetails({ ...personalDetails, phone: e.target.value })}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Date of Birth</label>
+              <input
+                type="date"
+                disabled={!isEditingPersonal}
+                value={personalDetails.dob}
+                onChange={(e) => setPersonalDetails({ ...personalDetails, dob: e.target.value })}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Gender</label>
+              <select
+                disabled={!isEditingPersonal}
+                value={personalDetails.gender}
+                onChange={(e) => setPersonalDetails({ ...personalDetails, gender: e.target.value })}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Blood Group</label>
+              <select
+                disabled={!isEditingPersonal}
+                value={personalDetails.bloodGroup}
+                onChange={(e) => setPersonalDetails({ ...personalDetails, bloodGroup: e.target.value })}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+              >
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bg) => (
+                  <option key={bg} value={bg}>{bg}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Height (cm)</label>
+              <input
+                type="number"
+                disabled={!isEditingPersonal}
+                value={personalDetails.height}
+                onChange={(e) => setPersonalDetails({ ...personalDetails, height: e.target.value })}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Weight (kg)</label>
+              <input
+                type="number"
+                disabled={!isEditingPersonal}
+                value={personalDetails.weight}
+                onChange={(e) => setPersonalDetails({ ...personalDetails, weight: e.target.value })}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Pincode</label>
+              <input
+                type="text"
+                disabled={!isEditingPersonal}
+                value={personalDetails.pincode}
+                onChange={(e) => setPersonalDetails({ ...personalDetails, pincode: e.target.value })}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          {/* Address */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 pt-2">
+            <div className="sm:col-span-2">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Residential Address</label>
+              <input
+                type="text"
+                disabled={!isEditingPersonal}
+                value={personalDetails.address}
+                onChange={(e) => setPersonalDetails({ ...personalDetails, address: e.target.value })}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">City / State</label>
+              <input
+                type="text"
+                disabled={!isEditingPersonal}
+                value={`${personalDetails.city}, ${personalDetails.state}`}
+                onChange={(e) => {
+                  const parts = e.target.value.split(',');
+                  setPersonalDetails({ ...personalDetails, city: parts[0] || '', state: parts[1] || '' });
+                }}
+                className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+
+          {/* Emergency Contact */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4" />
+              Primary Emergency Contact
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Contact Name & Relation</label>
+                <input
+                  type="text"
+                  disabled={!isEditingPersonal}
+                  value={personalDetails.emergencyName}
+                  onChange={(e) => setPersonalDetails({ ...personalDetails, emergencyName: e.target.value })}
+                  className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Emergency Phone Number</label>
+                <input
+                  type="text"
+                  disabled={!isEditingPersonal}
+                  value={personalDetails.emergencyPhone}
+                  onChange={(e) => setPersonalDetails({ ...personalDetails, emergencyPhone: e.target.value })}
+                  className="w-full mt-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 text-xs sm:text-sm font-medium disabled:opacity-75 focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {isEditingPersonal && (
+            <div className="flex justify-end pt-4">
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Save Demographic Profile
+              </button>
+            </div>
+          )}
+        </form>
+      )}
+
+      {/* TAB 2: MEDICAL HISTORY */}
+      {activeTab === 'medical' && (
+        <div className="space-y-6">
+          {/* SECTION 1: ALLERGIES */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-rose-500" />
+                Known Drug & Food Allergies
               </h2>
-              <span className="text-[11px] font-semibold text-[#0D9488] bg-[#F0FDFA] border border-[#0D9488]/20 px-2.5 py-0.5 rounded-full">
-                Primary Patient
-              </span>
             </div>
-            <p className="text-xs text-[#64748B] flex items-center gap-2 flex-wrap">
-              <span>Patient ID: <strong className="font-mono text-[#0F172A]">{profile.profile_id}</strong></span>
-              <span>•</span>
-              <span>{profile.gender || "Female"}</span>
-              {profile.date_of_birth && (
-                <>
-                  <span>•</span>
-                  <span>DOB: {profile.date_of_birth}</span>
-                </>
-              )}
-            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {allergies.map((all) => (
+                <div key={all.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{all.name}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        all.severity === 'Severe' 
+                          ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900' 
+                          : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900'
+                      }`}>
+                        {all.severity}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{all.notes}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setAllergies(allergies.filter((a) => a.id !== all.id));
+                      showToast('Allergy removed');
+                    }}
+                    className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Allergy inline form */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <input
+                type="text"
+                placeholder="Allergy name (e.g. Sulfa drugs)"
+                value={newAllergy.name}
+                onChange={(e) => setNewAllergy({ ...newAllergy, name: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100"
+              />
+              <select
+                value={newAllergy.severity}
+                onChange={(e) => setNewAllergy({ ...newAllergy, severity: e.target.value as any })}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100"
+              >
+                <option value="Mild">Mild</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Severe">Severe</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Notes / reactions"
+                value={newAllergy.notes}
+                onChange={(e) => setNewAllergy({ ...newAllergy, notes: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100"
+              />
+              <button
+                type="button"
+                onClick={addAllergy}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1"
+              >
+                <Plus className="w-4 h-4" /> Add Allergy
+              </button>
+            </div>
+          </div>
+
+          {/* SECTION 2: CHRONIC CONDITIONS */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                Chronic Pre-existing Conditions
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {conditions.map((c) => (
+                <div key={c.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{c.condition}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                        Diagnosed {c.diagnosedYear}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{c.notes}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setConditions(conditions.filter((cond) => cond.id !== c.id));
+                      showToast('Condition removed');
+                    }}
+                    className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Condition inline form */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <input
+                type="text"
+                placeholder="Condition name (e.g. Asthma)"
+                value={newCondition.condition}
+                onChange={(e) => setNewCondition({ ...newCondition, condition: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100"
+              />
+              <input
+                type="text"
+                placeholder="Year (e.g. 2022)"
+                value={newCondition.diagnosedYear}
+                onChange={(e) => setNewCondition({ ...newCondition, diagnosedYear: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100"
+              />
+              <input
+                type="text"
+                placeholder="Notes / Severity"
+                value={newCondition.notes}
+                onChange={(e) => setNewCondition({ ...newCondition, notes: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100"
+              />
+              <button
+                type="button"
+                onClick={addCondition}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1"
+              >
+                <Plus className="w-4 h-4" /> Add Condition
+              </button>
+            </div>
+          </div>
+
+          {/* SECTION 3: MEDICATIONS */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Pill className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                Active Prescribed Medications
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {medications.map((m) => (
+                <div key={m.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{m.name}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                        {m.dosage}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">Frequency: {m.frequency}</p>
+                    <p className="text-[11px] text-slate-400">Rx: {m.prescribedBy}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMedications(medications.filter((med) => med.id !== m.id));
+                      showToast('Medication removed');
+                    }}
+                    className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Add Medication inline form */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 grid grid-cols-1 sm:grid-cols-5 gap-2.5">
+              <input
+                type="text"
+                placeholder="Medicine name"
+                value={newMed.name}
+                onChange={(e) => setNewMed({ ...newMed, name: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100"
+              />
+              <input
+                type="text"
+                placeholder="Dosage (500mg)"
+                value={newMed.dosage}
+                onChange={(e) => setNewMed({ ...newMed, dosage: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100"
+              />
+              <input
+                type="text"
+                placeholder="Frequency"
+                value={newMed.frequency}
+                onChange={(e) => setNewMed({ ...newMed, frequency: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100"
+              />
+              <input
+                type="text"
+                placeholder="Prescribing Doctor"
+                value={newMed.prescribedBy}
+                onChange={(e) => setNewMed({ ...newMed, prescribedBy: e.target.value })}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-slate-100"
+              />
+              <button
+                type="button"
+                onClick={addMedication}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1"
+              >
+                <Plus className="w-4 h-4" /> Add Rx
+              </button>
+            </div>
           </div>
         </div>
-      </Card>
+      )}
 
-      {/* Emergency Contact Card (Pinned near top) */}
-      <EmergencyContactCard
-        name={profile.emergency_contact_name}
-        phone={profile.emergency_contact_phone}
-      />
-
-      {/* Desktop Tabs Header (md+) */}
-      <div className="hidden md:flex items-center gap-2 border-b border-[#F0FDFA]">
-        <button
-          onClick={() => setActiveTab("details")}
-          type="button"
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-            activeTab === "details"
-              ? "border-[#0D9488] text-[#0D9488] bg-[#F0FDFA]/50 rounded-t-xl"
-              : "border-transparent text-[#64748B] hover:text-[#0F172A]"
-          }`}
-        >
-          <User className="w-4 h-4" />
-          <span>{t.personalInformation}</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("allergies")}
-          type="button"
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-            activeTab === "allergies"
-              ? "border-[#0D9488] text-[#0D9488] bg-[#F0FDFA]/50 rounded-t-xl"
-              : "border-transparent text-[#64748B] hover:text-[#0F172A]"
-          }`}
-        >
-          <AlertTriangle className="w-4 h-4" />
-          <span>{t.knownAllergiesTitle} ({allergies.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("conditions")}
-          type="button"
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-            activeTab === "conditions"
-              ? "border-[#0D9488] text-[#0D9488] bg-[#F0FDFA]/50 rounded-t-xl"
-              : "border-transparent text-[#64748B] hover:text-[#0F172A]"
-          }`}
-        >
-          <Activity className="w-4 h-4" />
-          <span>{t.chronicConditionsTitle} ({chronicConditions.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("medications")}
-          type="button"
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-            activeTab === "medications"
-              ? "border-[#0D9488] text-[#0D9488] bg-[#F0FDFA]/50 rounded-t-xl"
-              : "border-transparent text-[#64748B] hover:text-[#0F172A]"
-          }`}
-        >
-          <Pill className="w-4 h-4" />
-          <span>{t.currentMedicationsTitle} ({medications.length})</span>
-        </button>
-      </div>
-
-      {/* Desktop Tab Content (md+) */}
-      <div className="hidden md:block">
-        {activeTab === "details" && (
-          <Card className="p-6 flex flex-col gap-6">
-            <div className="flex items-center justify-between border-b border-[#F0FDFA] pb-4">
-              <h3 className="font-heading font-bold text-lg text-[#0F172A]">
-                {t.personalInformation}
-              </h3>
-              <Link href="/profile/edit">
-                <Button variant="secondary" size="sm">
-                  <Edit className="w-3.5 h-3.5 mr-1" />
-                  {t.editProfile}
-                </Button>
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#F0FDFA]">
-                <span className="text-xs text-[#64748B] flex items-center gap-1 mb-1">
-                  <User className="w-3.5 h-3.5 text-[#0D9488]" /> Patient Name
-                </span>
-                <span className="text-sm font-bold text-[#0F172A]">
-                  {profile.patient_name || "Dr. Sarah Jenkins"}
-                </span>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#F0FDFA]">
-                <span className="text-xs text-[#64748B] flex items-center gap-1 mb-1">
-                  <Calendar className="w-3.5 h-3.5 text-[#0D9488]" /> {language === "ta" ? "பிறந்த தேதி" : "Date of Birth"}
-                </span>
-                <span className="text-sm font-semibold text-[#0F172A]">
-                  {profile.date_of_birth || "Not specified"}
-                </span>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#F0FDFA]">
-                <span className="text-xs text-[#64748B] flex items-center gap-1 mb-1">
-                  <User className="w-3.5 h-3.5 text-[#0D9488]" /> {t.gender}
-                </span>
-                <span className="text-sm font-semibold text-[#0F172A]">
-                  {profile.gender || "Not specified"}
-                </span>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#F0FDFA]">
-                <span className="text-xs text-[#64748B] flex items-center gap-1 mb-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#0D9488]" /> {t.bloodGroup}
-                </span>
-                <span className="text-sm font-mono font-bold text-[#0D9488] bg-[#F0FDFA] px-2 py-0.5 rounded-md inline-block">
-                  {profile.blood_group || "Unknown"}
-                </span>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#F0FDFA]">
-                <span className="text-xs text-[#64748B] flex items-center gap-1 mb-1">
-                  <Ruler className="w-3.5 h-3.5 text-[#0D9488]" /> {language === "ta" ? "உயரம் & எடைக" : "Height & Weight"}
-                </span>
-                <span className="text-sm font-semibold text-[#0F172A]">
-                  {profile.height_cm ? `${profile.height_cm} cm` : "--"} /{" "}
-                  {profile.weight_kg ? `${profile.weight_kg} kg` : "--"}
-                </span>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#F0FDFA] flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-[#0D9488] shrink-0 mt-0.5" />
-              <div className="flex flex-col gap-0.5">
-                <span className="text-xs text-[#64748B]">{t.address}</span>
-                <span className="text-sm font-medium text-[#0F172A]">
-                  {profile.address
-                    ? `${profile.address}, ${profile.city}, ${profile.state} - ${profile.pincode}`
-                    : "No address recorded."}
-                </span>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {activeTab === "allergies" && (
-          <Card className="p-6">
-            <AllergyList allergies={allergies} onRefresh={loadRecord} />
-          </Card>
-        )}
-
-        {activeTab === "conditions" && (
-          <Card className="p-6">
-            <ChronicConditionList conditions={chronicConditions} onRefresh={loadRecord} />
-          </Card>
-        )}
-
-        {activeTab === "medications" && (
-          <Card className="p-6">
-            <MedicationList medications={medications} onRefresh={loadRecord} />
-          </Card>
-        )}
-      </div>
-
-      {/* Mobile Stacked Accordions (sm and below) */}
-      <div className="md:hidden flex flex-col gap-4">
-        {/* Accordion 1: Personal Details */}
-        <Card className="p-4">
-          <button
-            onClick={() => toggleAccordion("details")}
-            type="button"
-            className="w-full flex items-center justify-between font-heading font-bold text-base text-[#0F172A]"
-          >
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-[#0D9488]" />
-              <span>Personal Details</span>
-            </div>
-            {openAccordions.details ? <ChevronUp className="w-5 h-5 text-[#64748B]" /> : <ChevronDown className="w-5 h-5 text-[#64748B]" />}
-          </button>
-
-          {openAccordions.details && (
-            <div className="mt-4 pt-4 border-t border-[#F0FDFA] flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="col-span-2 pb-1 border-b border-[#F0FDFA]">
-                  <span className="text-[#64748B]">Patient Name:</span>{" "}
-                  <span className="font-bold text-[#0F172A]">{profile.patient_name || "Dr. Sarah Jenkins"}</span>
+      {/* TAB 3: EMERGENCY INFO & MEDICAL ID */}
+      {activeTab === 'emergency' && (
+        <div className="space-y-6">
+          {/* Prominent Emergency Contact Card */}
+          <div className="rounded-2xl border-2 border-rose-500/50 bg-rose-500/5 dark:bg-rose-950/20 p-6 sm:p-8 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center animate-pulse">
+                  <ShieldAlert className="w-7 h-7" />
                 </div>
                 <div>
-                  <span className="text-[#64748B]">DOB:</span>{" "}
-                  <span className="font-semibold">{profile.date_of_birth || "--"}</span>
-                </div>
-                <div>
-                  <span className="text-[#64748B]">Blood:</span>{" "}
-                  <span className="font-bold text-[#0D9488] font-mono">{profile.blood_group || "--"}</span>
-                </div>
-                <div>
-                  <span className="text-[#64748B]">Height:</span>{" "}
-                  <span className="font-semibold">{profile.height_cm ? `${profile.height_cm}cm` : "--"}</span>
-                </div>
-                <div>
-                  <span className="text-[#64748B]">Weight:</span>{" "}
-                  <span className="font-semibold">{profile.weight_kg ? `${profile.weight_kg}kg` : "--"}</span>
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-50">Primary Emergency Contact</h2>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">Designated first responder for urgent medical notifications</p>
                 </div>
               </div>
 
-              <div className="text-xs pt-2 border-t border-[#F0FDFA]">
-                <span className="text-[#64748B] block">Address:</span>
-                <span className="font-medium text-[#0F172A]">
-                  {profile.address ? `${profile.address}, ${profile.city}` : "Not specified"}
+              <a
+                href={`tel:${personalDetails.emergencyPhone}`}
+                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md flex items-center gap-2"
+              >
+                <Phone className="w-4 h-4" />
+                Call Emergency Contact
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-rose-200 dark:border-rose-900/60">
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Contact Name</p>
+                <p className="text-base font-bold text-slate-900 dark:text-slate-100">{personalDetails.emergencyName}</p>
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-rose-200 dark:border-rose-900/60">
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Phone Number</p>
+                <p className="text-base font-bold text-slate-900 dark:text-slate-100 font-mono">{personalDetails.emergencyPhone}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Critical Warnings */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Blood Group */}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-950/80 text-rose-600 flex items-center justify-center border border-rose-200/50">
+                <Droplet className="w-7 h-7" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Verified Blood Group</p>
+                <p className="text-2xl font-black text-rose-600 dark:text-rose-400">{personalDetails.bloodGroup} Positive</p>
+              </div>
+            </div>
+
+            {/* Severe Drug Allergies Highlighted */}
+            <div className="rounded-2xl border border-rose-200 dark:border-rose-900 bg-rose-50/40 dark:bg-rose-950/30 p-6 flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-rose-600 text-white flex items-center justify-center">
+                <AlertCircle className="w-7 h-7" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-rose-700 dark:text-rose-400">Severe Drug Allergy Warning</p>
+                <p className="text-base font-bold text-slate-900 dark:text-slate-100">
+                  {allergies.filter((a) => a.severity === 'Severe').map((a) => a.name).join(', ') || 'No severe allergies'}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Do NOT administer without specialist clearance</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Printable Emergency Medical ID Card */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 space-y-6 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Emergency Medical ID Card Preview</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Digital wallet card for emergency medical responders</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-emerald-600 text-xs font-semibold flex items-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Print Card
+                </button>
+                <button
+                  onClick={() => showToast('Medical ID Card downloaded as PDF')}
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download PDF
+                </button>
+              </div>
+            </div>
+
+            {/* Digital ID Card Canvas */}
+            <div className="max-w-md mx-auto rounded-3xl bg-gradient-to-br from-slate-900 via-slate-850 to-slate-950 text-white p-6 shadow-2xl border border-slate-700 space-y-5 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl" />
+
+              {/* ID Header */}
+              <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-black text-xs">
+                    HN
+                  </div>
+                  <span className="font-bold text-sm tracking-wide">HealthNav Emergency ID</span>
+                </div>
+                <span className="text-[10px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded">
+                  CRITICAL CARE
                 </span>
               </div>
-            </div>
-          )}
-        </Card>
 
-        {/* Accordion 2: Allergies */}
-        <Card className="p-4">
-          <button
-            onClick={() => toggleAccordion("allergies")}
-            type="button"
-            className="w-full flex items-center justify-between font-heading font-bold text-base text-[#0F172A]"
-          >
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-[#0D9488]" />
-              <span>Allergies ({allergies.length})</span>
-            </div>
-            {openAccordions.allergies ? <ChevronUp className="w-5 h-5 text-[#64748B]" /> : <ChevronDown className="w-5 h-5 text-[#64748B]" />}
-          </button>
+              {/* Patient Core Info */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-lg font-black tracking-tight">{personalDetails.fullName || user?.fullName || 'Patient'}</h4>
+                  {personalDetails.dob && <p className="text-xs text-slate-400">DOB: {personalDetails.dob}</p>}
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Blood Group</p>
+                  <p className="text-2xl font-black text-rose-500">{personalDetails.bloodGroup || 'O+'}</p>
+                </div>
+              </div>
 
-          {openAccordions.allergies && (
-            <div className="mt-4 pt-4 border-t border-[#F0FDFA]">
-              <AllergyList allergies={allergies} onRefresh={loadRecord} />
-            </div>
-          )}
-        </Card>
+              {/* Medical Specs */}
+              <div className="grid grid-cols-2 gap-3 text-xs bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
+                <div>
+                  <p className="text-[10px] text-slate-400">Severe Allergies</p>
+                  <p className="font-bold text-rose-400">
+                    {allergies.filter((a) => a.severity === 'Severe').map((a) => a.name).join(', ') || 'None Reported'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400">Chronic Conditions</p>
+                  <p className="font-semibold text-slate-200">
+                    {conditions.map((c) => c.condition).join(', ') || 'None Reported'}
+                  </p>
+                </div>
+              </div>
 
-        {/* Accordion 3: Chronic Conditions */}
-        <Card className="p-4">
-          <button
-            onClick={() => toggleAccordion("conditions")}
-            type="button"
-            className="w-full flex items-center justify-between font-heading font-bold text-base text-[#0F172A]"
-          >
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-[#0D9488]" />
-              <span>Chronic Conditions ({chronicConditions.length})</span>
+              {/* Emergency Contact */}
+              <div className="pt-2 border-t border-slate-700/80 flex items-center justify-between text-xs">
+                <div>
+                  <p className="text-[10px] text-slate-400">In Case of Emergency (ICE):</p>
+                  <p className="font-bold text-slate-100">{personalDetails.emergencyName}</p>
+                </div>
+                <p className="font-mono font-bold text-emerald-400">{personalDetails.emergencyPhone}</p>
+              </div>
             </div>
-            {openAccordions.conditions ? <ChevronUp className="w-5 h-5 text-[#64748B]" /> : <ChevronDown className="w-5 h-5 text-[#64748B]" />}
-          </button>
-
-          {openAccordions.conditions && (
-            <div className="mt-4 pt-4 border-t border-[#F0FDFA]">
-              <ChronicConditionList conditions={chronicConditions} onRefresh={loadRecord} />
-            </div>
-          )}
-        </Card>
-
-        {/* Accordion 4: Medications */}
-        <Card className="p-4">
-          <button
-            onClick={() => toggleAccordion("medications")}
-            type="button"
-            className="w-full flex items-center justify-between font-heading font-bold text-base text-[#0F172A]"
-          >
-            <div className="flex items-center gap-2">
-              <Pill className="w-5 h-5 text-[#0D9488]" />
-              <span>Medications ({medications.length})</span>
-            </div>
-            {openAccordions.medications ? <ChevronUp className="w-5 h-5 text-[#64748B]" /> : <ChevronDown className="w-5 h-5 text-[#64748B]" />}
-          </button>
-
-          {openAccordions.medications && (
-            <div className="mt-4 pt-4 border-t border-[#F0FDFA]">
-              <MedicationList medications={medications} onRefresh={loadRecord} />
-            </div>
-          )}
-        </Card>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

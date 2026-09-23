@@ -7,68 +7,25 @@ import {
 } from "@/types/profile";
 import { api, USE_MOCK_API } from "./api";
 
-const delay = (ms: number = 300) => new Promise((resolve) => setTimeout(resolve, ms));
-
 let MOCK_PATIENT_RECORD: FullPatientRecord = {
   profile: {
-    profile_id: "prf_778129",
-    patient_name: "Dr. Sarah Jenkins",
-    date_of_birth: "1988-06-14",
-    gender: "Female",
+    profile_id: "",
+    patient_name: "",
+    date_of_birth: "",
+    gender: "Male",
     blood_group: "O+",
-    height_cm: 168,
-    weight_kg: 62,
-    address: "742 Evergreen Terrace, Suite 4B",
-    city: "Kolkata",
-    state: "West Bengal",
-    pincode: "700001",
-    emergency_contact_name: "Robert Jenkins (Husband)",
-    emergency_contact_phone: "+91 98300 12345",
+    height_cm: 0,
+    weight_kg: 0,
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    emergency_contact_name: "",
+    emergency_contact_phone: "",
   },
-  allergies: [
-    {
-      allergy_id: "alg_01",
-      allergy_name: "Penicillin",
-      severity: "Severe",
-      notes: "Triggers anaphylactic reaction and hives. Use Cephalosporins alternative.",
-    },
-    {
-      allergy_id: "alg_02",
-      allergy_name: "Peanuts",
-      severity: "Moderate",
-      notes: "Causes mild swelling and rash. Carry oral antihistamines.",
-    },
-  ],
-  chronicConditions: [
-    {
-      condition_id: "con_01",
-      condition_name: "Type 2 Diabetes Mellitus",
-      diagnosed_year: 2019,
-      notes: "Managed with oral metformin and low-GI dietary care.",
-    },
-    {
-      condition_id: "con_02",
-      condition_name: "Mild Hypertension",
-      diagnosed_year: 2021,
-      notes: "Monitored bi-weekly. Target BP < 130/80 mmHg.",
-    },
-  ],
-  medications: [
-    {
-      medication_id: "med_01",
-      medicine_name: "Metformin Hydrochloride",
-      dosage: "500 mg",
-      frequency: "Twice daily after meals",
-      prescribed_by: "Dr. Aris Thorne (Endocrinology)",
-    },
-    {
-      medication_id: "med_02",
-      medicine_name: "Telmisartan",
-      dosage: "40 mg",
-      frequency: "Once daily in the morning",
-      prescribed_by: "Dr. Elena Vance (Cardiology)",
-    },
-  ],
+  allergies: [],
+  chronicConditions: [],
+  medications: [],
 };
 
 export const profileApi = {
@@ -84,19 +41,19 @@ export const profileApi = {
         const p = profRes.data;
         return {
           profile: {
-            profile_id: p.profile_id || p.profileId || MOCK_PATIENT_RECORD.profile.profile_id,
-            patient_name: p.patient_name || p.patientName || MOCK_PATIENT_RECORD.profile.patient_name,
-            date_of_birth: p.date_of_birth || p.dateOfBirth || MOCK_PATIENT_RECORD.profile.date_of_birth,
-            gender: p.gender || MOCK_PATIENT_RECORD.profile.gender,
-            blood_group: p.blood_group || p.bloodGroup || MOCK_PATIENT_RECORD.profile.blood_group,
-            height_cm: p.height_cm ?? p.heightCm ?? MOCK_PATIENT_RECORD.profile.height_cm,
-            weight_kg: p.weight_kg ?? p.weightKg ?? MOCK_PATIENT_RECORD.profile.weight_kg,
-            address: p.address || MOCK_PATIENT_RECORD.profile.address,
-            city: p.city || MOCK_PATIENT_RECORD.profile.city,
-            state: p.state || MOCK_PATIENT_RECORD.profile.state,
-            pincode: p.pincode || MOCK_PATIENT_RECORD.profile.pincode,
-            emergency_contact_name: p.emergency_contact_name || p.emergencyContactName || MOCK_PATIENT_RECORD.profile.emergency_contact_name,
-            emergency_contact_phone: p.emergency_contact_phone || p.emergencyContactPhone || MOCK_PATIENT_RECORD.profile.emergency_contact_phone,
+            profile_id: p.profile_id || p.profileId || "",
+            patient_name: p.patient_name || p.patientName || "",
+            date_of_birth: p.date_of_birth || p.dateOfBirth || "",
+            gender: p.gender || "Male",
+            blood_group: p.blood_group || p.bloodGroup || "O+",
+            height_cm: p.height_cm ?? p.heightCm ?? 0,
+            weight_kg: p.weight_kg ?? p.weightKg ?? 0,
+            address: p.address || "",
+            city: p.city || "",
+            state: p.state || "",
+            pincode: p.pincode || "",
+            emergency_contact_name: p.emergency_contact_name || p.emergencyContactName || "",
+            emergency_contact_phone: p.emergency_contact_phone || p.emergencyContactPhone || "",
           },
           allergies: (algRes.data || []).map((a: any) => ({
             allergy_id: a.allergy_id || a.allergyId,
@@ -119,11 +76,10 @@ export const profileApi = {
           })),
         };
       } catch (err) {
-        console.warn("[API] Backend profile query failed, using local profile:", err);
+        console.warn("[API] Backend profile query failed, using empty profile:", err);
       }
     }
 
-    await delay(300);
     return JSON.parse(JSON.stringify(MOCK_PATIENT_RECORD));
   },
 
@@ -136,11 +92,10 @@ export const profileApi = {
           return MOCK_PATIENT_RECORD.profile;
         }
       } catch (err) {
-        console.warn("[API] Backend updateProfile failed, updating local profile:", err);
+        console.warn("[API] Backend updateProfile failed:", err);
       }
     }
 
-    await delay(500);
     MOCK_PATIENT_RECORD.profile = {
       ...MOCK_PATIENT_RECORD.profile,
       ...updated,
@@ -164,11 +119,10 @@ export const profileApi = {
           return newA;
         }
       } catch (err) {
-        console.warn("[API] Backend addAllergy failed, using local fallback:", err);
+        console.warn("[API] Backend addAllergy failed:", err);
       }
     }
 
-    await delay(400);
     const newAllergy: Allergy = {
       ...allergy,
       allergy_id: `alg_${Date.now()}`,
@@ -185,7 +139,6 @@ export const profileApi = {
         console.warn("[API] Backend updateAllergy failed:", err);
       }
     }
-    await delay(400);
     MOCK_PATIENT_RECORD.allergies = MOCK_PATIENT_RECORD.allergies.map((a) =>
       a.allergy_id === allergy.allergy_id ? allergy : a
     );
@@ -200,7 +153,6 @@ export const profileApi = {
         console.warn("[API] Backend deleteAllergy failed:", err);
       }
     }
-    await delay(300);
     MOCK_PATIENT_RECORD.allergies = MOCK_PATIENT_RECORD.allergies.filter(
       (a) => a.allergy_id !== allergyId
     );
@@ -228,7 +180,6 @@ export const profileApi = {
       }
     }
 
-    await delay(400);
     const newCondition: ChronicCondition = {
       ...condition,
       condition_id: `con_${Date.now()}`,
@@ -245,7 +196,6 @@ export const profileApi = {
         console.warn("[API] Backend updateCondition failed:", err);
       }
     }
-    await delay(400);
     MOCK_PATIENT_RECORD.chronicConditions = MOCK_PATIENT_RECORD.chronicConditions.map((c) =>
       c.condition_id === condition.condition_id ? condition : c
     );
@@ -260,7 +210,6 @@ export const profileApi = {
         console.warn("[API] Backend deleteCondition failed:", err);
       }
     }
-    await delay(300);
     MOCK_PATIENT_RECORD.chronicConditions = MOCK_PATIENT_RECORD.chronicConditions.filter(
       (c) => c.condition_id !== conditionId
     );
@@ -289,7 +238,6 @@ export const profileApi = {
       }
     }
 
-    await delay(400);
     const newMed: Medication = {
       ...medication,
       medication_id: `med_${Date.now()}`,
@@ -306,7 +254,6 @@ export const profileApi = {
         console.warn("[API] Backend updateMedication failed:", err);
       }
     }
-    await delay(400);
     MOCK_PATIENT_RECORD.medications = MOCK_PATIENT_RECORD.medications.map((m) =>
       m.medication_id === medication.medication_id ? medication : m
     );
@@ -321,7 +268,6 @@ export const profileApi = {
         console.warn("[API] Backend deleteMedication failed:", err);
       }
     }
-    await delay(300);
     MOCK_PATIENT_RECORD.medications = MOCK_PATIENT_RECORD.medications.filter(
       (m) => m.medication_id !== medicationId
     );

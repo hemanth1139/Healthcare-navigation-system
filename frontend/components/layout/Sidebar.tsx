@@ -5,18 +5,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  User,
+  MessageCircle,
+  Activity,
   Stethoscope,
-  UserCheck,
-  Building2,
-  ShieldAlert,
-  FolderUp,
-  Sparkles,
+  Building,
+  FileText,
+  Clock,
+  Folder,
+  HeartPulse,
+  Upload,
   Settings,
   ChevronLeft,
   ChevronRight,
-  HeartPulse,
-  ClipboardList,
+  User,
 } from "lucide-react";
 import { UserMenu } from "./UserMenu";
 import { useLanguage } from "@/context/LanguageContext";
@@ -30,32 +31,33 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Patient Profile", href: "/profile", icon: User },
-  { label: "Symptom Chat", href: "/symptom-chat", icon: Stethoscope, badge: "AI" },
-  { label: "Specialists", href: "/specialists", icon: UserCheck },
-  { label: "Hospitals", href: "/hospitals", icon: Building2 },
-  { label: "Government Schemes", href: "/schemes", icon: ShieldAlert },
-  { label: "Consultation History", href: "/history", icon: ClipboardList },
-  { label: "Scheme Documents", href: "/documents", icon: FolderUp },
-  { label: "Health Tips", href: "/tips", icon: Sparkles },
+  { label: "Symptom Chat", href: "/symptom-chat", icon: MessageCircle, badge: "AI" },
+  { label: "My Predictions", href: "/predictions", icon: Activity },
+  { label: "Specialists", href: "/specialists", icon: Stethoscope },
+  { label: "Hospitals", href: "/hospitals", icon: Building },
+  { label: "Government Schemes", href: "/schemes", icon: FileText, badge: "RAG" },
+  { label: "History", href: "/history", icon: Clock },
+  { label: "Medical Records", href: "/records", icon: Folder },
+  { label: "Health Tips", href: "/health-tips", icon: HeartPulse },
+  { label: "Documents", href: "/documents", icon: Upload },
   { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Patient Profile", href: "/profile", icon: User },
 ];
 
 export const SIDEBAR_NAV_ITEMS: NavItem[] = NAV_ITEMS;
 
-// Grouped sections for a clearer information hierarchy in the sidebar
 const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   {
-    title: "Overview",
-    items: [NAV_ITEMS[0], NAV_ITEMS[1]],
+    title: "Core Portal",
+    items: [NAV_ITEMS[0], NAV_ITEMS[1], NAV_ITEMS[2]],
   },
   {
-    title: "Care",
-    items: [NAV_ITEMS[2], NAV_ITEMS[3], NAV_ITEMS[4], NAV_ITEMS[6]],
+    title: "Clinical & Care",
+    items: [NAV_ITEMS[3], NAV_ITEMS[4], NAV_ITEMS[5], NAV_ITEMS[6]],
   },
   {
-    title: "Support",
-    items: [NAV_ITEMS[5], NAV_ITEMS[7], NAV_ITEMS[8]],
+    title: "Patient Data",
+    items: [NAV_ITEMS[7], NAV_ITEMS[8], NAV_ITEMS[9], NAV_ITEMS[10], NAV_ITEMS[11]],
   },
 ];
 
@@ -66,40 +68,43 @@ export const Sidebar: React.FC = () => {
 
   const getTranslatedLabel = (href: string, defaultLabel: string) => {
     switch (href) {
-      case "/dashboard": return t.dashboard;
-      case "/profile": return t.patientProfile;
-      case "/symptom-chat": return t.symptomChat;
-      case "/history": return t.history;
-      case "/schemes": return t.schemes;
-      case "/documents": return t.documents;
-      case "/hospitals": return t.hospitals;
-      case "/specialists": return t.specialists;
-      case "/tips": return t.tips;
-      case "/settings": return t.settings;
+      case "/dashboard": return t.dashboard || "Dashboard";
+      case "/profile": return t.patientProfile || "Patient Profile";
+      case "/symptom-chat": return t.symptomChat || "Symptom Chat";
+      case "/history": return t.history || "History";
+      case "/schemes": return t.schemes || "Government Schemes";
+      case "/documents": return t.documents || "Documents";
+      case "/hospitals": return t.hospitals || "Hospitals";
+      case "/specialists": return t.specialists || "Specialists";
+      case "/health-tips": return t.tips || "Health Tips";
+      case "/settings": return t.settings || "Settings";
       default: return defaultLabel;
     }
   };
 
   return (
     <aside
-      className={`hidden md:flex flex-col h-screen sticky top-0 bg-[#0B1220] transition-all duration-300 z-30 ${
+      className={`hidden md:flex flex-col h-screen sticky top-0 bg-[#0B132B] dark:bg-[#030712] border-r border-slate-800 transition-all duration-300 z-30 ${
         isCollapsed ? "w-[76px]" : "w-64"
       }`}
     >
       {/* Sidebar Header & Brand Logo */}
-      <div className="h-16 px-4 flex items-center justify-between shrink-0">
+      <div className="h-16 px-4 flex items-center justify-between shrink-0 border-b border-white/5">
         <Link
           href="/dashboard"
           className="flex items-center gap-2.5 overflow-hidden focus-ring rounded-xl p-1"
         >
-          <div className="w-9 h-9 rounded-xl bg-teal-500 text-white flex items-center justify-center shrink-0">
-            <HeartPulse className="w-4.5 h-4.5 stroke-[2.5]" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#0D9488] to-[#14B8A6] text-white flex items-center justify-center shrink-0 shadow-md shadow-teal-500/20">
+            <HeartPulse className="w-5 h-5 stroke-[2.5]" />
           </div>
 
           {!isCollapsed && (
-            <span className="font-heading font-bold text-base text-white leading-tight tracking-tight truncate">
-              MediNav
-            </span>
+            <div className="flex flex-col">
+              <span className="font-heading font-bold text-base text-white leading-tight tracking-tight">
+                HealthNav <span className="text-[#14B8A6]">AI</span>
+              </span>
+              <span className="text-[9px] text-slate-400 font-medium tracking-wider uppercase">Patient Portal</span>
+            </div>
           )}
         </Link>
 
@@ -121,18 +126,18 @@ export const Sidebar: React.FC = () => {
           onClick={() => setIsCollapsed(!isCollapsed)}
           type="button"
           aria-label="Expand sidebar"
-          className="mx-auto mb-2 w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors focus-ring"
+          className="mx-auto my-3 w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors focus-ring"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
       )}
 
       {/* Navigation Items List — grouped sections */}
-      <nav className="flex-1 py-2 px-3 space-y-5 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 py-3 px-3 space-y-5 overflow-y-auto custom-scrollbar">
         {NAV_GROUPS.map((group) => (
           <div key={group.title} className="flex flex-col gap-1">
             {!isCollapsed && (
-              <span className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <span className="px-3 mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 {group.title}
               </span>
             )}
@@ -147,21 +152,21 @@ export const Sidebar: React.FC = () => {
                   key={item.href}
                   href={item.href}
                   title={isCollapsed ? translatedLabel : undefined}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors duration-150 relative ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 relative ${
                     isActive
-                      ? "bg-teal-500/15 text-teal-300 font-semibold"
-                      : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                      ? "bg-[#0D9488]/20 text-[#14B8A6] font-bold shadow-sm"
+                      : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
                   } ${isCollapsed ? "justify-center" : ""}`}
                 >
                   {isActive && !isCollapsed && (
-                    <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-teal-400" />
+                    <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-[#14B8A6]" />
                   )}
-                  <Icon className={`w-[18px] h-[18px] shrink-0 ${isActive ? "text-teal-300" : "text-slate-500"}`} />
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#14B8A6]" : "text-slate-400"}`} />
 
                   {!isCollapsed && <span className="truncate flex-1">{translatedLabel}</span>}
 
                   {!isCollapsed && item.badge && (
-                    <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase rounded-md bg-teal-500 text-[#0B1220]">
+                    <span className="px-1.5 py-0.5 text-[9px] font-extrabold uppercase rounded-md bg-[#0D9488] text-white">
                       {item.badge}
                     </span>
                   )}
@@ -179,3 +184,4 @@ export const Sidebar: React.FC = () => {
     </aside>
   );
 };
+

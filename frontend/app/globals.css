@@ -3,18 +3,40 @@
 
 :root {
   --color-primary: #0D9488;
+  --color-primary-hover: #0F766E;
   --color-primary-light: #F0FDFA;
-  --color-urgent: #EF4444;
+  --color-primary-dark: #115E59;
+  
+  --color-accent: #14B8A6;
+  --color-accent-light: #CCFBF1;
+  
+  --color-emergency: #EF4444;
+  --color-urgent: #F97316;
+  --color-nonurgent: #EAB308;
+  --color-routine: #22C55E;
+
+  --color-bg-soft: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-border: #E2E8F0;
+  
   --color-neutral-dark: #0F172A;
   --color-neutral-mid: #475569;
-  --color-bg-soft: #F8FAFC;
+  --color-neutral-light: #94A3B8;
 }
 
 .dark {
-  --color-bg-soft: #020617;
+  --color-primary: #14B8A6;
+  --color-primary-hover: #2DD4BF;
+  --color-primary-light: #134E4A;
+  --color-primary-dark: #042F2E;
+
+  --color-bg-soft: #030712;
+  --color-surface: #0B132B;
+  --color-border: #1E293B;
+
   --color-neutral-dark: #F8FAFC;
   --color-neutral-mid: #94A3B8;
-  --color-primary-light: #134E4A;
+  --color-neutral-light: #64748B;
 }
 
 body {
@@ -29,58 +51,50 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sora), sans-serif;
 }
 
-/* Custom focus ring for WCAG AA Accessibility */
-.focus-ring {
-  outline: none;
-}
-.focus-ring:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.25), 0 0 0 1px #0D9488;
-}
-
-.focus-ring-urgent:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25), 0 0 0 1px #EF4444;
+/* Glassmorphism utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.6);
 }
 
-/* Custom Card styling helper — flat, minimal surface */
+.dark .glass-panel {
+  background: rgba(11, 19, 43, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(30, 41, 59, 0.6);
+}
+
+/* Clinical Card */
 .card-clinical {
-  background-color: #FFFFFF;
-  border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  border: 1px solid #E2E8F0;
-}
-
-.dark .card-clinical {
-  background-color: #0B1220;
-  border-color: #1E293B;
-  box-shadow: none;
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.03);
+  border: 1px solid var(--color-border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .card-clinical-interactive {
-  background-color: #FFFFFF;
-  border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  border: 1px solid #E2E8F0;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.dark .card-clinical-interactive {
-  background-color: #0B1220;
-  border-color: #1E293B;
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.03);
+  border: 1px solid var(--color-border);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .card-clinical-interactive:hover {
+  transform: translateY(-2px);
   border-color: #0D9488;
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 24px -6px rgba(13, 148, 136, 0.12), 0 4px 12px rgba(15, 23, 42, 0.05);
 }
 
 .dark .card-clinical-interactive:hover {
   border-color: #14B8A6;
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 24px -6px rgba(20, 184, 166, 0.2);
 }
 
-/* Custom Subtle Scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -89,19 +103,45 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+  background-color: #CBD5E1;
   border-radius: 9999px;
 }
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #334155;
+}
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8;
+  background-color: #0D9488;
 }
 
-/* Respect prefers-reduced-motion across all keyframe animations */
-@media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+/* Emergency Flashing Animation */
+@keyframes pulse-red {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
   }
 }
+
+.animate-emergency-pulse {
+  animation: pulse-red 1.8s infinite ease-in-out;
+}
+
+/* Typing indicator animation */
+@keyframes bounce-delay {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.dot-bounce-1 { animation: bounce-delay 1.4s infinite ease-in-out 0s; }
+.dot-bounce-2 { animation: bounce-delay 1.4s infinite ease-in-out 0.2s; }
+.dot-bounce-3 { animation: bounce-delay 1.4s infinite ease-in-out 0.4s; }
+
+/* Focus ring accessibility */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.3), 0 0 0 1px #0D9488;
+}
+

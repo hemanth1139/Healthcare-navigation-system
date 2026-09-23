@@ -6,13 +6,11 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { User as UserIcon, Mail, Phone, Lock, Eye, EyeOff, UserPlus } from "lucide-react";
+import { User as UserIcon, Mail, Phone, Lock, Eye, EyeOff, UserPlus, ArrowRight } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
-import { FormError } from "@/components/ui/FormError";
 
 const phoneRegex = /^(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/;
 
@@ -31,7 +29,7 @@ const registerSchema = z
       .min(1, "Phone number is required")
       .refine(
         (val) => phoneRegex.test(val.replace(/\s+/g, "")),
-        "Please enter a valid phone number (e.g., +1 (555) 000-0000)"
+        "Please enter a valid phone number (e.g., +91 98765 43210)"
       ),
     password: z
       .string()
@@ -40,7 +38,7 @@ const registerSchema = z
       .regex(/.*[0-9].*/, "Password must contain at least 1 number"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
     acceptTerms: z.boolean().refine((val) => val === true, {
-      message: "You must accept the Terms of Service & Privacy Policy to proceed",
+      message: "You must accept the Terms of Service & Privacy Policy",
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -49,6 +47,20 @@ const registerSchema = z
   });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
+
+// Password strength calculation helper
+function getPasswordStrength(password: string): { label: string; color: string; percent: number } {
+  if (!password) return { label: "", color: "bg-slate-200", percent: 0 };
+  let score = 0;
+  if (password.length >= 8) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/[0-9]/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+  if (score <= 1) return { label: "Weak password", color: "bg-rose-500", percent: 25 };
+  if (score === 2 || score === 3) return { label: "Medium strength", color: "bg-amber-500", percent: 65 };
+  return { label: "Strong password", color: "bg-emerald-500", percent: 100 };
+}
 
 export default function RegisterPage() {
   const { register: registerAuth } = useAuth();
@@ -62,14 +74,18 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting, isValid },
+    watch,
+    formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       acceptTerms: false,
     },
   });
+
+  const watchPassword = watch("password", "");
+  const strength = getPasswordStrength(watchPassword);
 
   const onSubmit = async (data: RegisterFormData) => {
     setGeneralError(null);
@@ -80,19 +96,19 @@ export default function RegisterPage() {
         router.push("/dashboard");
       }, 1500);
     } catch (err: any) {
-      setGeneralError(err?.message || "Registration failed. Please check your information.");
+      setGeneralError(err?.message || "Registration failed. Please check your details.");
     }
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {/* Heading */}
-      <div className="flex flex-col gap-1 pt-1">
+      <div>
         <h1 className="font-heading text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-          Create your account
+          Create Account
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Join MediNav to manage your care journey end-to-end.
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Join HealthNav AI for smart symptom triage and scheme verification.
         </p>
       </div>
 
@@ -100,12 +116,12 @@ export default function RegisterPage() {
       {successNotice && (
         <Toast
           type="success"
-          title="Account Created Successfully!"
-          message="Welcome to HealthCare Navigator. Redirecting to your clinical dashboard..."
+          title="Account Created!"
+          message="Welcome to HealthNav AI. Redirecting to patient dashboard..."
         />
       )}
 
-      {/* General Error Banner */}
+      {/* Error Banner */}
       {generalError && (
         <Toast
           type="error"
@@ -121,10 +137,10 @@ export default function RegisterPage() {
         <Input
           label="Full Name"
           type="text"
-          placeholder="Dr. Sarah Jenkins"
+          placeholder="e.g. Rajesh Kumar"
           autoComplete="name"
           required
-          leftIcon={<UserIcon className="w-4 h-4" />}
+          leftIcon={<UserIcon className="w-4 h-4 text-slate-400" />}
           error={errors.fullName?.message}
           {...register("fullName")}
         />
@@ -133,10 +149,10 @@ export default function RegisterPage() {
         <Input
           label="Email Address"
           type="email"
-          placeholder="sarah.jenkins@example.com"
+          placeholder="rajesh@example.com"
           autoComplete="email"
           required
-          leftIcon={<Mail className="w-4 h-4" />}
+          leftIcon={<Mail className="w-4 h-4 text-slate-400" />}
           error={errors.email?.message}
           {...register("email")}
         />
@@ -145,56 +161,69 @@ export default function RegisterPage() {
         <Input
           label="Phone Number"
           type="tel"
-          placeholder="+1 (555) 234-5678"
+          placeholder="+91 98765 43210"
           autoComplete="tel"
           required
-          leftIcon={<Phone className="w-4 h-4" />}
+          leftIcon={<Phone className="w-4 h-4 text-slate-400" />}
           error={errors.phone?.message}
           {...register("phone")}
         />
 
         {/* Password */}
-        <Input
-          label="Password"
-          type={showPassword ? "text" : "password"}
-          placeholder="At least 8 chars & 1 number"
-          autoComplete="new-password"
-          required
-          leftIcon={<Lock className="w-4 h-4" />}
-          rightIcon={
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg focus-ring"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          }
-          error={errors.password?.message}
-          {...register("password")}
-        />
+        <div className="flex flex-col gap-1.5">
+          <Input
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            placeholder="At least 8 chars & 1 number"
+            autoComplete="new-password"
+            required
+            leftIcon={<Lock className="w-4 h-4 text-slate-400" />}
+            rightIcon={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            }
+            error={errors.password?.message}
+            {...register("password")}
+          />
+
+          {/* Password Strength Indicator Bar */}
+          {watchPassword && (
+            <div className="flex flex-col gap-1 mt-1">
+              <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${strength.color} transition-all duration-300`}
+                  style={{ width: `${strength.percent}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                {strength.label}
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* Confirm Password */}
         <Input
           label="Confirm Password"
           type={showConfirmPassword ? "text" : "password"}
-          placeholder="Re-enter your password"
+          placeholder="Re-enter password"
           autoComplete="new-password"
           required
-          leftIcon={<Lock className="w-4 h-4" />}
+          leftIcon={<Lock className="w-4 h-4 text-slate-400" />}
           rightIcon={
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1.5 rounded-lg focus-ring"
-              aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
+              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
             >
-              {showConfirmPassword ? (
-                <EyeOff className="w-4 h-4" />
-              ) : (
-                <Eye className="w-4 h-4" />
-              )}
+              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           }
           error={errors.confirmPassword?.message}
@@ -207,7 +236,7 @@ export default function RegisterPage() {
             <input
               type="checkbox"
               required
-              className="mt-1 w-4 h-4 rounded border-slate-300 text-[#0D9488] focus:ring-teal-500 cursor-pointer"
+              className="mt-1 w-4 h-4 rounded border-slate-300 text-[#0D9488] focus:ring-[#0D9488] cursor-pointer"
               {...register("acceptTerms")}
             />
             <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
@@ -217,37 +246,40 @@ export default function RegisterPage() {
               </Link>{" "}
               and{" "}
               <Link href="/privacy" className="font-semibold text-[#0D9488] hover:underline">
-                HIPAA Privacy Policy
+                Privacy Policy
               </Link>
               .
             </span>
           </label>
           {errors.acceptTerms?.message && (
-            <FormError message={errors.acceptTerms.message} />
+            <span className="text-xs text-rose-500 font-medium">{errors.acceptTerms.message}</span>
           )}
         </div>
 
         {/* Submit Button */}
-        <Button
+        <button
           type="submit"
-          variant="primary"
-          size="lg"
-          fullWidth
-          isLoading={isSubmitting}
-          disabled={!isValid && isSubmitting}
-          className="mt-2 rounded-full"
+          disabled={isSubmitting}
+          className="mt-2 w-full bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold py-3 rounded-xl shadow-md shadow-teal-500/25 transition-all text-sm cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2"
         >
-          <UserPlus className="w-5 h-5 mr-2" />
-          Create Account
-        </Button>
+          {isSubmitting ? (
+            <span>Creating account...</span>
+          ) : (
+            <>
+              <UserPlus className="w-4 h-4" />
+              <span>Register Account</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
       </form>
 
-      {/* Footer link to Login */}
-      <div className="pt-6 mt-2 border-t border-slate-100 dark:border-slate-800 text-center text-sm text-slate-500 dark:text-slate-400">
+      {/* Footer link */}
+      <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-center text-sm text-slate-500 dark:text-slate-400">
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-semibold text-[#0D9488] hover:underline focus-ring rounded-sm px-1 py-0.5"
+          className="font-bold text-[#0D9488] dark:text-[#14B8A6] hover:underline ml-1"
         >
           Sign In
         </Link>
@@ -255,3 +287,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+
