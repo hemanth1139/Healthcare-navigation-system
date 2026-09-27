@@ -20,9 +20,11 @@ import {
   CheckCircle2,
   ChevronRight,
   Sparkles,
+  ClipboardList,
 } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
+import { QuickEligibilityIntakeCard, QuickIntakeData } from "@/components/schemes/QuickEligibilityIntakeCard";
 
 export default function SchemesLandingPage() {
   const [schemes, setSchemes] = useState<GovernmentScheme[]>([]);
@@ -35,6 +37,7 @@ export default function SchemesLandingPage() {
   const [question, setQuestion] = useState("");
   const [queryLoading, setQueryLoading] = useState(false);
   const [eligibilityResult, setEligibilityResult] = useState<MultiDocEligibilityResult | null>(null);
+  const [showIntakeCard, setShowIntakeCard] = useState(false);
 
   // Past queries history
   const [pastQueries, setPastQueries] = useState<SchemeQuery[]>([]);

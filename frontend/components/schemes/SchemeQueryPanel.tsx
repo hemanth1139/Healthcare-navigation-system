@@ -4,7 +4,8 @@ import React, { useState } from "react";
 import { SchemeQuery } from "@/types/scheme";
 import { schemeApi } from "@/lib/schemeApi";
 import { Button } from "@/components/ui/Button";
-import { Sparkles, HelpCircle, ArrowRight } from "lucide-react";
+import { Sparkles, HelpCircle, ArrowRight, ClipboardCheck } from "lucide-react";
+import { QuickEligibilityIntakeCard, QuickIntakeData } from "./QuickEligibilityIntakeCard";
 
 export interface SchemeQueryPanelProps {
   onQueryResult: (result: SchemeQuery) => void;
@@ -13,6 +14,7 @@ export interface SchemeQueryPanelProps {
 }
 
 const SAMPLE_PROMPTS = [
+  "What schemes am I eligible for?",
   "Am I eligible for Ayushman Vaya Vandana if I am 70 years old?",
   "What is the family income limit for PM-JAY?",
   "Does Ayushman Bharat cover cosmetic surgeries?",
@@ -21,24 +23,56 @@ const SAMPLE_PROMPTS = [
 export const SchemeQueryPanel: React.FC<SchemeQueryPanelProps> = ({
   onQueryResult,
   scopedSchemeId,
-  placeholder = "Ask about scheme eligibility or coverage, e.g., 'Am I eligible for Ayushman Bharat at age 70?'",
+  placeholder = "Ask about scheme eligibility or coverage, e.g., 'What schemes am I eligible for?'",
 }) => {
   const [question, setQuestion] = useState("");
   const [isQuerying, setIsQuerying] = useState(false);
+  const [showIntake, setShowIntake] = useState(false);
 
-  const handleQuerySubmit = async (textToQuery?: string) => {
-    const q = textToQuery || question;
-    if (!q.trim() || isQuerying) return;
+  const isOpenEndedQuery = (text: string) => {
+    const lower = text.toLowerCase().trim();
+    return [
+      "what are the schemes am i eligible for",
+      "what schemes am i eligible for",
+      "which schemes am i eligible for",
+      "am i eligible for any schemes",
+      "what schemes can i get",
+      "find schemes for me",
+      "schemes for me",
+      "am i eligible",
+      "what am i eligible for",
+    ].some((kw) => lower.includes(kw));
+  };
+
+  const handleQuerySubmit = async (textToQuery?: string, additionalInfo?: Record<string, any>) => {
+    const q = (textToQuery || question).trim();
+    if (!q || isQuerying) return;
+
+    // If generic question and no intake info provided yet, prompt the user for intake
+    if (isOpenEndedQuery(q) && !additionalInfo) {
+      setShowIntake(true);
+      return;
+    }
 
     setIsQuerying(true);
     try {
-      const { query } = await schemeApi.querySchemeEligibility(q, scopedSchemeId);
+      const { query } = await schemeApi.querySchemeEligibility(q, scopedSchemeId, additionalInfo);
       onQueryResult(query);
     } catch (err) {
       alert("Failed to query scheme eligibility. Please try again.");
     } finally {
       setIsQuerying(false);
     }
+  };
+
+  const handleIntakeSubmit = async (intakeData: QuickIntakeData) => {
+    setShowIntake(false);
+    const q = question.trim() || "What government healthcare schemes am I eligible for?";
+    await handleQuerySubmit(q, {
+      state: intakeData.state,
+      age: intakeData.age,
+      annual_income: intakeData.annual_income,
+    });
   };
 
   return (
@@ -88,6 +122,17 @@ export const SchemeQueryPanel: React.FC<SchemeQueryPanelProps> = ({
           <ArrowRight className="w-4 h-4 ml-1.5" />
         </Button>
       </div>
+
+      {/* Inline Quick Eligibility Intake Card */}
+      {showIntake && (
+        <div className="pt-2">
+          <QuickEligibilityIntakeCard
+            isLoading={isQuerying}
+            onSubmit={handleIntakeSubmit}
+            onCancel={() => setShowIntake(false)}
+          />
+        </div>
+      )}
 
       {/* Sample Prompt Chips */}
       <div className="flex flex-wrap items-center gap-2 pt-1">

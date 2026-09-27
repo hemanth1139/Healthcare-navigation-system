@@ -15,9 +15,15 @@ class Base(DeclarativeBase):
 
 
 # ─── Async Engine ────────────────────────────────────────────────────────────
+db_url = settings.DATABASE_URL
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
+    db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 engine_kwargs = {"echo": settings.DATABASE_ECHO}
 
-if settings.DATABASE_URL.startswith("sqlite"):
+if db_url.startswith("sqlite"):
     # SQLite-specific arguments
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 else:
@@ -27,7 +33,7 @@ else:
     engine_kwargs["max_overflow"] = 20
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    db_url,
     **engine_kwargs
 )
 

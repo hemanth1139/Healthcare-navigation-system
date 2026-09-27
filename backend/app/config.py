@@ -3,6 +3,7 @@ Application Configuration — loaded from .env via Pydantic BaseSettings
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from typing import Literal
 
 
@@ -31,6 +32,20 @@ class Settings(BaseSettings):
     # ─── Database ─────────────────────────────────────────────────────────────
     DATABASE_URL: str = "sqlite+aiosqlite:///./healthcare_db.db"
     DATABASE_ECHO: bool = False
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_db_connection(cls, v: str) -> str:
+        """
+        Normalize PostgreSQL URLs from providers like Render, Heroku, Supabase:
+        Converts 'postgres://' or 'postgresql://' into 'postgresql+asyncpg://'.
+        """
+        if isinstance(v, str):
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif v.startswith("postgresql://") and not v.startswith("postgresql+"):
+                return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
 
 
     # ─── LLM Providers ────────────────────────────────────────────────────────
