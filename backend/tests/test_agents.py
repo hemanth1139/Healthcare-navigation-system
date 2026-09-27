@@ -80,7 +80,7 @@ async def test_conversational_triage_flow():
         # Mock triage ends after 5 messages in history, returning needs_more_info = False
         # The reply text should summarize extracted symptoms and specify predictionId
         assert conclude_data["predictionId"] is not None
-        assert "assess your symptoms" in conclude_data["message"]
+        assert "assessment has been completed" in conclude_data["message"]
 
         # 6. Verify that sending message to concluded conversation returns validation error
         res_blocked = await ac.post(

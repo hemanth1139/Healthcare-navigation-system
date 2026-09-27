@@ -34,11 +34,10 @@ def find_schemes_json() -> str:
 
 
 async def seed():
-    print("[INFO] Re-creating database tables for updated schema...")
+    print("[INFO] Ensuring database tables exist...")
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-    print("[SUCCESS] Database tables created successfully.")
+    print("[SUCCESS] Database tables ready.")
 
     print("[INFO] Loading healthcare_schemes.json...")
     json_path = find_schemes_json()
@@ -116,9 +115,16 @@ async def seed():
                 for _ in chunks
             ]
 
-            print(f"[{idx}/{len(schemes_data)}] Indexing vectors for '{s_name}'...")
             embeddings = await EmbeddingService.get_embeddings(chunks)
-            v_store.add_texts(chunks, embeddings, metadatas)
+            for text, emb, meta in zip(chunks, embeddings, metadatas):
+                v_store.documents.append({
+                    "text": text,
+                    "embedding": emb,
+                    "metadata": meta,
+                })
+
+        v_store.save()
+        print(f"[SUCCESS] Vector store saved with {len(v_store.documents)} chunks.")
 
         # Seed Quick Demo User (sarah@example.com)
         from app.models.user import User

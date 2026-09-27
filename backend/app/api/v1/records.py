@@ -52,3 +52,12 @@ async def get_fhir_format(
 ):
     """Fetch the diagnostic record formatted as an HL7 FHIR resource."""
     return await RecordService.get_fhir_format(db, current_user, record_id)
+
+
+@router.delete("/{record_id}", status_code=204)
+async def delete_record(
+    record_id: UUID, db: DBSession, current_user: CurrentUser
+):
+    """Delete a medical record."""
+    await RecordService.delete_record(db, current_user, record_id)
+    return None

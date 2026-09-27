@@ -56,6 +56,12 @@ class PatientProfile(Base):
     medical_records: Mapped[list["MedicalRecord"]] = relationship(
         "MedicalRecord", back_populates="profile", cascade="all, delete-orphan"
     )
+    uploaded_documents: Mapped[list["UploadedDocument"]] = relationship(
+        "UploadedDocument", back_populates="profile", cascade="all, delete-orphan"
+    )
+    scheme_queries: Mapped[list["SchemeQuery"]] = relationship(
+        "SchemeQuery", back_populates="profile", cascade="all, delete-orphan"
+    )
 
 
 class Allergy(Base):

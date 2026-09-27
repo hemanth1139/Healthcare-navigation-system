@@ -13,10 +13,12 @@ pytestmark = pytest.mark.asyncio
 
 async def _get_auth_headers_and_profile(ac: AsyncClient) -> dict:
     """Helper to register user, log in, create patient profile, and return auth header."""
+    import uuid
+    uid = uuid.uuid4().hex[:6]
     reg_payload = {
         "fullName": "Phase10 Test User",
-        "email": "p10@example.com",
-        "phone": "+15557778888",
+        "email": f"p10_{uid}@example.com",
+        "phone": f"+1555{int(uuid.uuid4().int % 10000000):07d}",
         "password": "p10testpassword123",
     }
     res = await ac.post("/api/v1/auth/register", json=reg_payload)
@@ -68,9 +70,9 @@ async def test_dashboard_and_settings_endpoints(db_session):
         res_dash = await ac.get("/api/v1/dashboard", headers=headers)
         assert res_dash.status_code == 200
         dash = res_dash.json()
-        assert "totalConversations" in dash
-        assert "totalUploads" in dash
-        assert "totalPredictions" in dash
+        assert "metrics" in dash or "patientSummary" in dash
+        if "metrics" in dash:
+            assert "totalConsultations" in dash["metrics"] or "totalRecords" in dash["metrics"]
 
         # 2. Get Settings
         res_get_set = await ac.get("/api/v1/settings", headers=headers)

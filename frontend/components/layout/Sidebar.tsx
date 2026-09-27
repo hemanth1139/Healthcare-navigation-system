@@ -39,7 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "History", href: "/history", icon: Clock },
   { label: "Medical Records", href: "/records", icon: Folder },
   { label: "Health Tips", href: "/health-tips", icon: HeartPulse },
-  { label: "Documents", href: "/documents", icon: Upload },
+  { label: "Scheme Documents", href: "/documents", icon: Upload },
   { label: "Settings", href: "/settings", icon: Settings },
   { label: "Patient Profile", href: "/profile", icon: User },
 ];
@@ -73,7 +73,7 @@ export const Sidebar: React.FC = () => {
       case "/symptom-chat": return t.symptomChat || "Symptom Chat";
       case "/history": return t.history || "History";
       case "/schemes": return t.schemes || "Government Schemes";
-      case "/documents": return t.documents || "Documents";
+      case "/documents": return t.documents || "Scheme Documents";
       case "/hospitals": return t.hospitals || "Hospitals";
       case "/specialists": return t.specialists || "Specialists";
       case "/health-tips": return t.tips || "Health Tips";

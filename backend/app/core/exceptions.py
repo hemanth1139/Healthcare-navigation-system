@@ -45,7 +45,7 @@ class ConflictError(AppError):
 class ValidationError(AppError):
     """Input validation failed beyond Pydantic schema."""
     def __init__(self, message: str, error_code: str = "VALIDATION_ERROR"):
-        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, message=message, error_code=error_code)
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, message=message, error_code=error_code)
 
 
 class ServiceUnavailableError(AppError):

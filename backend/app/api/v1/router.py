@@ -12,6 +12,7 @@ from app.api.v1.predictions import router as predictions_router
 from app.api.v1.hospitals import router as hospitals_router
 from app.api.v1.schemes import router as schemes_router
 from app.api.v1.records import router as records_router
+from app.api.v1.documents import router as documents_router
 from app.api.v1.tips import router as tips_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.history import router as history_router
@@ -38,6 +39,7 @@ api_router.include_router(hospitals_router)
 
 # ─── Phase 7 ─────────────────────────────────────────────────────────────────
 api_router.include_router(schemes_router)
+api_router.include_router(documents_router)
 
 # ─── Phase 8 ─────────────────────────────────────────────────────────────────
 api_router.include_router(records_router)

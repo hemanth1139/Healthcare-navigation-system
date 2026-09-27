@@ -49,5 +49,23 @@ async def get_current_user(
     return user
 
 
+async def get_current_user_optional(
+    db: DBSession,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> User | None:
+    """Extracts User if a valid token is provided; returns None if unauthenticated."""
+    if not credentials or not credentials.credentials:
+        return None
+    try:
+        user_id = verify_access_token(credentials.credentials)
+        if not user_id:
+            return None
+        result = await db.execute(select(User).where(User.user_id == UUID(user_id)))
+        return result.scalar_one_or_none()
+    except Exception:
+        return None
+
+
 # ─── Type Aliases ─────────────────────────────────────────────────────────────
 CurrentUser = Annotated[User, Depends(get_current_user)]
+

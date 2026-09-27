@@ -16,7 +16,7 @@ from app.agents.tips_agent import HealthTipsAgent, DEFAULT_TIPS
 
 class TipsService:
     @staticmethod
-    async def get_daily_tips(db: AsyncSession, user: User) -> List[Dict[str, str]]:
+    async def get_daily_tips(db: AsyncSession, user: User) -> List[Dict[str, Any]]:
         """
         Retrieves custom daily health tips based on patient demographics.
         """

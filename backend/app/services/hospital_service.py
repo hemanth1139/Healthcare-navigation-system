@@ -25,10 +25,15 @@ class HospitalService:
         """
         # 1. Fetch hospitals from Google Maps Wrapper
         hospitals_raw = GoogleMapsService.get_nearby_hospitals(
-            payload.latitude,
-            payload.longitude,
-            payload.specialist,
-            payload.max_distance_km
+            lat=payload.latitude,
+            lng=payload.longitude,
+            location_query=payload.location_query,
+            search_query=payload.search,
+            specialist=payload.specialist,
+            specialty=payload.specialty,
+            hospital_type=payload.hospital_type,
+            max_distance=payload.max_distance_km,
+            sort_by=payload.sort_by
         )
 
         results = []
@@ -51,7 +56,11 @@ class HospitalService:
                     longitude=h.get("longitude"),
                     phone=h.get("phone"),
                     website=h.get("website"),
-                    rating=h.get("rating")
+                    google_maps_url=h.get("google_maps_url"),
+                    rating=h.get("rating"),
+                    hospital_type=h.get("hospital_type", "Private"),
+                    specialties=h.get("specialties", "General Medicine"),
+                    has_emergency_room=h.get("has_emergency_room", True)
                 )
                 db.add(cached_hosp)
                 await db.flush()

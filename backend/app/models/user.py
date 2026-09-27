@@ -22,6 +22,8 @@ class User(Base):
     phone: Mapped[str | None] = mapped_column(String(15), unique=True, nullable=True)
     role: Mapped[str] = mapped_column(String(20), default="PATIENT", nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Google OAuth subject / account link
+    google_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True, index=True)
     # Stores hashed refresh token for rotation validation
     refresh_token_hash: Mapped[str | None] = mapped_column(nullable=True)
     # Stores password-reset token hash (short-lived)

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { SchemeQuery } from "@/types/scheme";
-import { schemeApi } from "@/lib/mockSchemeData";
+import { schemeApi } from "@/lib/schemeApi";
 import { Button } from "@/components/ui/Button";
 import { Sparkles, HelpCircle, ArrowRight } from "lucide-react";
 

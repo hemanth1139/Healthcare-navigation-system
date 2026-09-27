@@ -15,7 +15,7 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 4000,
+  timeout: 30000,
 });
 
 // Request Interceptor: Attach Bearer Authorization token
@@ -36,8 +36,12 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // If 401 Unauthorized and request hasn't been retried yet
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    const isAuthEndpoint = originalRequest?.url?.includes("/auth/login") ||
+                           originalRequest?.url?.includes("/auth/register") ||
+                           originalRequest?.url?.includes("/auth/refresh");
+
+    // If 401 Unauthorized on non-auth endpoint and request hasn't been retried yet
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
       const refreshToken = getRefreshToken();
 
@@ -45,7 +49,7 @@ api.interceptors.response.use(
         try {
           // Attempt token refresh call
           const refreshRes = await authApi.refreshToken(refreshToken);
-          setAccessToken(refreshRes.tokens.accessToken);
+          saveAuthTokens(refreshRes.tokens);
           
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${refreshRes.tokens.accessToken}`;
@@ -54,9 +58,6 @@ api.interceptors.response.use(
         } catch (refreshErr) {
           // Refresh failed: session expired or invalid
           clearAuthSession();
-          if (typeof window !== "undefined") {
-            window.location.href = "/login?expired=true";
-          }
           return Promise.reject(refreshErr);
         }
       } else {
@@ -105,6 +106,22 @@ export const authApi = {
     const { data } = await api.post<AuthResponse>("/auth/login", payload);
     saveAuthTokens(data.tokens);
     return data;
+  },
+
+  loginWithGoogle: async (credential: string): Promise<AuthResponse> => {
+    const { data } = await api.post<AuthResponse>("/auth/google", { credential });
+    saveAuthTokens(data.tokens);
+    return data;
+  },
+
+  logout: async (): Promise<void> => {
+    try {
+      await api.post("/auth/logout");
+    } catch {
+      // Ignore network error on logout
+    } finally {
+      clearAuthSession();
+    }
   },
 
   register: async (payload: {
@@ -187,7 +204,7 @@ export const authApi = {
     }
 
     const { data } = await api.post<AuthResponse>("/auth/refresh", { refreshToken });
-    setAccessToken(data.tokens.accessToken);
+    saveAuthTokens(data.tokens);
     return data;
   },
 

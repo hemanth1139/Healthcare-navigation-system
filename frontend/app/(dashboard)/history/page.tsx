@@ -43,32 +43,36 @@ export default function HistoryPage() {
         if (!isMounted) return;
         if (Array.isArray(data)) {
           const items: HistoryItem[] = data.map((item: any) => {
-            const dateStr = item.predictedAt
-              ? new Date(item.predictedAt).toLocaleDateString("en-US", {
+            const rawDate = item.predictedAt || item.startedAt;
+            const dateStr = rawDate
+              ? new Date(rawDate).toLocaleString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
                   hour: "2-digit",
                   minute: "2-digit",
+                  hour12: true,
                 })
               : "Recent";
-            const score = item.confidenceScore || 0;
-            const severity = score > 0.8 ? "Urgent" : score > 0.5 ? "Moderate" : "Routine";
+
+            const severity = item.severity || (item.confidenceScore > 0.8 ? "Urgent" : item.confidenceScore > 0.5 ? "Moderate" : "Routine");
             const severityBadge =
-              severity === "Urgent"
+              severity === "Emergency"
+                ? "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                : severity === "Urgent"
                 ? "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30"
                 : severity === "Moderate"
                 ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
                 : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
 
             return {
-              id: item.predictionId || item.conversationId,
+              id: item.conversationId || item.predictionId,
               date: dateStr,
               symptom: item.predictedDisease || "Symptom Assessment",
               severity,
               severityBadge,
               predictedDisease: item.predictedDisease || "Assessment Pending",
-              specialist: "Clinical Specialist",
+              specialist: item.specialist || "General Physician",
             };
           });
           setTimelineItems(items);

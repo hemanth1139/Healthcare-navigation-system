@@ -6,7 +6,6 @@ import { useLanguage } from "@/context/LanguageContext";
 declare global {
   interface Window {
     googleTranslateElementInit?: () => void;
-    google?: any;
   }
 }
 
@@ -30,12 +29,13 @@ export const GoogleTranslate: React.FC = () => {
     // Load Google Translate script
     if (!document.getElementById("google-translate-script")) {
       window.googleTranslateElementInit = () => {
-        if (window.google && window.google.translate) {
-          new window.google.translate.TranslateElement(
+        const winAny = window as any;
+        if (winAny.google && winAny.google.translate) {
+          new winAny.google.translate.TranslateElement(
             {
               pageLanguage: "en",
               includedLanguages: "en,ta",
-              layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
+              layout: winAny.google.translate.TranslateElement.InlineLayout.SIMPLE,
               autoDisplay: false,
             },
             "google_translate_element"

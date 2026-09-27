@@ -32,11 +32,11 @@ export const RecordPreview: React.FC<RecordPreviewProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isImage = record.file_type.startsWith("image/");
-  const formattedDate = new Date(record.upload_date).toLocaleString("en-US", {
+  const isImage = (record.file_type || "").startsWith("image/") || (record.file_name || "").match(/\.(png|jpe?g|webp|gif)$/i) !== null;
+  const formattedDate = record.upload_date ? new Date(record.upload_date).toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
-  });
+  }) : "Recent";
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return "1.2 MB";

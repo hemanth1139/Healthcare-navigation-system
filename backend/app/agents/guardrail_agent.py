@@ -37,7 +37,7 @@ class GuardrailAgent:
 
         # 2. If Gemini API Key is configured, perform LLM evaluation
         if settings.GOOGLE_API_KEY:
-            from langchain_google_genai import ChatGoogleGenerativeAI
+            from app.core.llm import invoke_gemini
             from langchain_core.messages import SystemMessage, HumanMessage
             
             SYSTEM_PROMPT = """You are a Healthcare Guardrail System.
@@ -52,17 +52,11 @@ You MUST respond strictly in the following JSON format:
 }
 """
             try:
-                llm = ChatGoogleGenerativeAI(
-                    model="gemini-2.5-flash",
-                    temperature=0.1,
-                    google_api_key=settings.GOOGLE_API_KEY
-                )
-                response = await llm.ainvoke([
+                res_text = await invoke_gemini([
                     SystemMessage(content=SYSTEM_PROMPT),
                     HumanMessage(content=text)
-                ])
+                ], temperature=0.1)
                 
-                res_text = response.content.strip()
                 if "```json" in res_text:
                     res_text = res_text.split("```json")[1].split("```")[0].strip()
                 elif "```" in res_text:

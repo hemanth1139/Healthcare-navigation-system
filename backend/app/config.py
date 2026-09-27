@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY: str = ""
     PRIMARY_LLM_PROVIDER: str = "gemini"
 
+    # ─── Google OAuth 2.0 ─────────────────────────────────────────────────────
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
     # ─── Google Maps ──────────────────────────────────────────────────────────
     GOOGLE_MAPS_API_KEY: str = ""
 

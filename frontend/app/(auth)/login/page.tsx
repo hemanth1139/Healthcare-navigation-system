@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, ArrowRight, Loader2 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { Toast } from "@/components/ui/Toast";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const loginSchema = z.object({
   email: z
@@ -24,8 +26,11 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const { login } = useAuth();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/dashboard";
+
   const [showPassword, setShowPassword] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
@@ -38,13 +43,13 @@ export default function LoginPage() {
     mode: "onBlur",
     defaultValues: {
       rememberMe: true,
-    }
+    },
   });
 
   const onSubmit = async (data: LoginFormData) => {
     setGeneralError(null);
     try {
-      await login(data);
+      await login(data, redirectUrl);
     } catch (err: any) {
       setGeneralError(
         err?.message || "Incorrect email address or password. Please check your credentials."
@@ -76,34 +81,39 @@ export default function LoginPage() {
         </div>
       )}
 
-      {/* Social Google Login */}
-      <button
-        type="button"
-        onClick={() => {
-          setGeneralError("Google OAuth sign-in is not configured. Please use email and password.");
-        }}
-        className="w-full mb-6 py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200 text-sm font-semibold flex items-center justify-center gap-3 transition-all shadow-sm"
-      >
-        <svg className="w-4 h-4" viewBox="0 0 24 24">
-          <path
-            fill="#4285F4"
-            d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-          />
-          <path
-            fill="#34A853"
-            d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.15C3.26 21.3 7.31 24 12 24z"
-          />
-          <path
-            fill="#FBBC05"
-            d="M5.28 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.61H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.39l3.99-3.15z"
-          />
-          <path
-            fill="#EA4335"
-            d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.61l3.99 3.15c.95-2.85 3.6-4.96 6.72-4.96z"
-          />
-        </svg>
-        <span>Continue with Google</span>
-      </button>
+      {/* Quick Demo Login Credentials Card */}
+      <div className="mb-5 p-3.5 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#0D9488] dark:text-[#14B8A6] block">
+            Pre-configured Demo Account
+          </span>
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+            Email: <strong className="text-slate-800 dark:text-slate-200 font-mono">sarah@example.com</strong> &bull; Password: <strong className="text-slate-800 dark:text-slate-200 font-mono">password123</strong>
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={async () => {
+            setGeneralError(null);
+            try {
+              await login({ email: "sarah@example.com", password: "password123" }, redirectUrl);
+            } catch (err: any) {
+              setGeneralError(err?.message || "Failed to sign in with demo credentials.");
+            }
+          }}
+          className="px-3.5 py-1.5 rounded-lg bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs font-semibold shadow-sm transition-all whitespace-nowrap text-center cursor-pointer"
+        >
+          1-Click Sign In
+        </button>
+      </div>
+
+      {/* Social Google Login Button */}
+      <div className="mb-6">
+        <GoogleSignInButton
+          redirectUrl={redirectUrl}
+          onError={(msg) => setGeneralError(msg)}
+        />
+      </div>
 
       <div className="relative flex items-center justify-center mb-6">
         <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
@@ -174,7 +184,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+              className="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -219,7 +229,7 @@ export default function LoginPage() {
       <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 text-center text-sm text-slate-500 dark:text-slate-400">
         Don&apos;t have an account?{" "}
         <Link
-          href="/register"
+          href={`/register${redirectUrl && redirectUrl !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
           className="font-bold text-[#0D9488] dark:text-[#14B8A6] hover:underline ml-1"
         >
           Create account
@@ -229,3 +239,17 @@ export default function LoginPage() {
   );
 }
 
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center p-12 gap-3 min-h-[300px]">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0D9488]" />
+          <span className="text-xs text-slate-500">Loading sign-in...</span>
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
+  );
+}

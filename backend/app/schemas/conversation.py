@@ -4,7 +4,7 @@ Conversation Pydantic schemas — request/response shapes matching the frontend 
 
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from uuid import UUID
 
 # ─── Language & Quick Replies ────────────────────────────────────────────────
@@ -39,7 +39,6 @@ class MessageCreateRequest(BaseModel):
 class MessageOut(BaseModel):
     message_id: str = Field(..., alias="messageId")
     conversation_id: str = Field(..., alias="conversationId")
-    # Frontend uses: "user" | "agent" | "system"
     sender: str
     message: str
     translated_message: Optional[str] = Field(None, alias="translatedMessage")
@@ -48,12 +47,23 @@ class MessageOut(BaseModel):
     followUpQuestion: Optional[FollowUpQuestion] = None
     isEmergencyAlert: Optional[bool] = Field(False, alias="isEmergencyAlert")
     predictionId: Optional[str] = Field(None, alias="predictionId")
+    completed: Optional[bool] = Field(False, alias="completed")
+    symptomsIdentified: Optional[List[str]] = Field(None, alias="symptomsIdentified")
+    predictionReport: Optional[Dict[str, Any]] = Field(None, alias="predictionReport")
 
     model_config = {"populate_by_name": True, "from_attributes": True}
 
     @classmethod
-    def from_orm(cls, message, follow_up: Optional[FollowUpQuestion] = None, prediction_id: Optional[str] = None, is_emergency: bool = False) -> "MessageOut":
-        # Map assistant -> agent to match frontend's MessageSender type ("user" | "agent" | "system")
+    def from_orm(
+        cls,
+        message,
+        follow_up: Optional[FollowUpQuestion] = None,
+        prediction_id: Optional[str] = None,
+        is_emergency: bool = False,
+        completed: bool = False,
+        symptoms_identified: Optional[List[str]] = None,
+        prediction_report: Optional[Dict[str, Any]] = None,
+    ) -> "MessageOut":
         sender = "agent" if message.sender == "assistant" else message.sender
         return cls(
             messageId=str(message.message_id),
@@ -65,7 +75,10 @@ class MessageOut(BaseModel):
             inputType=message.conversation.input_type if hasattr(message, "conversation") else "text",
             followUpQuestion=follow_up,
             isEmergencyAlert=is_emergency,
-            predictionId=prediction_id
+            predictionId=prediction_id,
+            completed=completed,
+            symptomsIdentified=symptoms_identified,
+            predictionReport=prediction_report,
         )
 
 
@@ -88,11 +101,12 @@ class ConversationOut(BaseModel):
     status: str
     hasEmergencyAlert: Optional[bool] = Field(False, alias="hasEmergencyAlert")
     lastMessageText: Optional[str] = Field(None, alias="lastMessageText")
+    predictionId: Optional[str] = Field(None, alias="predictionId")
 
     model_config = {"populate_by_name": True, "from_attributes": True}
 
     @classmethod
-    def from_orm(cls, conv, has_emergency: bool = False, last_msg: Optional[str] = None) -> "ConversationOut":
+    def from_orm(cls, conv, has_emergency: bool = False, last_msg: Optional[str] = None, prediction_id: Optional[str] = None) -> "ConversationOut":
         return cls(
             conversationId=str(conv.conversation_id),
             profileId=str(conv.profile_id),
@@ -102,5 +116,6 @@ class ConversationOut(BaseModel):
             endedAt=conv.ended_at.isoformat() if conv.ended_at else None,
             status=conv.status,
             hasEmergencyAlert=has_emergency,
-            lastMessageText=last_msg
+            lastMessageText=last_msg,
+            predictionId=prediction_id,
         )

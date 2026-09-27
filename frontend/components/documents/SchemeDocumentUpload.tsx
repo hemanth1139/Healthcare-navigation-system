@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { SchemeDocument, DocumentType, DocumentProcessingStatus } from "@/types/document";
+import { SchemeDocument, DOCUMENT_CATEGORIES, DocumentCategory } from "@/types/document";
 import { Card } from "@/components/ui/Card";
 import {
   UploadCloud,
@@ -17,104 +17,31 @@ import {
   FolderUp,
 } from "lucide-react";
 
-// Document list (empty by default, populated upon user upload)
-const MOCK_DOCUMENTS: SchemeDocument[] = [];
+export type DocumentType = DocumentCategory;
 
-const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
-  { value: "income_certificate", label: "Income Certificate" },
-  { value: "caste_certificate", label: "Caste/Category Certificate" },
-  { value: "aadhaar_card", label: "Aadhaar Card" },
-  { value: "ration_card", label: "Ration Card" },
-  { value: "disability_certificate", label: "Disability Certificate" },
-  { value: "birth_certificate", label: "Birth Certificate" },
-  { value: "other", label: "Other Document" },
-];
-
-const STATUS_CONFIG: Record<
-  DocumentProcessingStatus,
-  { icon: React.ReactNode; label: string; color: string; bg: string }
-> = {
-  pending: {
-    icon: <Clock className="w-3.5 h-3.5" />,
-    label: "Pending",
-    color: "text-slate-600",
-    bg: "bg-slate-100",
-  },
-  processing: {
-    icon: <RefreshCw className="w-3.5 h-3.5 animate-spin" />,
-    label: "Processing",
-    color: "text-teal-700",
-    bg: "bg-teal-50",
-  },
-  verified: {
-    icon: <CheckCircle2 className="w-3.5 h-3.5" />,
-    label: "Verified",
-    color: "text-emerald-700",
-    bg: "bg-emerald-50",
-  },
-  rejected: {
-    icon: <XCircle className="w-3.5 h-3.5" />,
-    label: "Rejected",
-    color: "text-red-700",
-    bg: "bg-red-50",
-  },
-  requires_reupload: {
-    icon: <AlertTriangle className="w-3.5 h-3.5" />,
-    label: "Re-upload Required",
-    color: "text-amber-700",
-    bg: "bg-amber-50",
-  },
-};
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+export interface SchemeDocumentUploadProps {
+  documents?: SchemeDocument[];
+  onUpload?: (file: File, category: DocumentCategory) => void;
+  onDelete?: (documentId: string) => void;
+  onView?: (doc: SchemeDocument) => void;
+  onDownload?: (doc: SchemeDocument) => void;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-export const SchemeDocumentUpload: React.FC = () => {
-  const [documents, setDocuments] = useState<SchemeDocument[]>(MOCK_DOCUMENTS);
-  const [selectedType, setSelectedType] = useState<DocumentType>("income_certificate");
+export const SchemeDocumentUpload: React.FC<SchemeDocumentUploadProps> = ({
+  documents = [],
+  onUpload,
+  onDelete,
+  onView,
+  onDownload,
+}) => {
+  const [selectedCategory, setSelectedCategory] = useState<DocumentCategory>("INCOME_CERTIFICATE");
   const [isDragging, setIsDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (file: File) => {
-    // Simulate upload progress
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev === null || prev >= 100) {
-          clearInterval(interval);
-          // Add to documents list
-          const typeLabel =
-            DOCUMENT_TYPE_OPTIONS.find((t) => t.value === selectedType)?.label || "Document";
-          const newDoc: SchemeDocument = {
-            document_id: `doc_${Date.now()}`,
-            profile_id: "user_001",
-            document_type: selectedType,
-            document_type_label: typeLabel,
-            file_name: file.name,
-            file_size_bytes: file.size,
-            mime_type: file.type,
-            processing_status: "pending",
-            uploaded_at: new Date().toISOString(),
-          };
-          setDocuments((prev) => [newDoc, ...prev]);
-          setUploadProgress(null);
-          return null;
-        }
-        return prev + 20;
-      });
-    }, 200);
+    if (onUpload) {
+      onUpload(file, selectedCategory);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -124,20 +51,16 @@ export const SchemeDocumentUpload: React.FC = () => {
     if (file) handleFileSelect(file);
   };
 
-  const handleDelete = (id: string) => {
-    setDocuments((prev) => prev.filter((d) => d.document_id !== id));
-  };
-
   return (
     <div className="flex flex-col gap-6">
       {/* Upload Zone */}
       <Card className="p-5 flex flex-col gap-4">
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-[#0D9488] text-white flex items-center justify-center">
             <FolderUp className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-heading font-bold text-sm text-slate-900">
+            <h3 className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">
               Upload Eligibility Documents
             </h3>
             <p className="text-[11px] text-slate-500">
@@ -148,15 +71,15 @@ export const SchemeDocumentUpload: React.FC = () => {
 
         {/* Document Type Selector */}
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-            Document Type
+          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+            Document Category
           </label>
           <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value as DocumentType)}
-            className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-400"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value as DocumentCategory)}
+            className="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-400"
           >
-            {DOCUMENT_TYPE_OPTIONS.map((opt) => (
+            {DOCUMENT_CATEGORIES.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -172,17 +95,17 @@ export const SchemeDocumentUpload: React.FC = () => {
           onClick={() => fileInputRef.current?.click()}
           className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
             isDragging
-              ? "border-teal-500 bg-teal-50"
-              : "border-slate-200 hover:border-teal-300 hover:bg-teal-50/30"
+              ? "border-teal-500 bg-teal-50/40"
+              : "border-slate-200 dark:border-slate-800 hover:border-teal-300 hover:bg-teal-50/20"
           }`}
         >
           <UploadCloud
-            className={`w-10 h-10 ${isDragging ? "text-teal-600" : "text-slate-300"}`}
+            className={`w-10 h-10 ${isDragging ? "text-[#0D9488]" : "text-slate-300"}`}
           />
           <div className="text-center">
-            <p className="text-sm font-semibold text-slate-700">
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
               Drop your file here, or{" "}
-              <span className="text-teal-600 underline">browse</span>
+              <span className="text-[#0D9488] underline">browse</span>
             </p>
             <p className="text-xs text-slate-400 mt-0.5">
               Supports PDF, JPG, PNG (max 10 MB)
@@ -191,7 +114,7 @@ export const SchemeDocumentUpload: React.FC = () => {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -199,94 +122,78 @@ export const SchemeDocumentUpload: React.FC = () => {
             }}
           />
         </div>
-
-        {/* Upload Progress */}
-        {uploadProgress !== null && (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between text-xs text-slate-600">
-              <span>Uploading...</span>
-              <span>{uploadProgress}%</span>
-            </div>
-            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-teal-500 rounded-full transition-all duration-200"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
-          </div>
-        )}
       </Card>
 
       {/* Uploaded Documents List */}
       {documents.length === 0 ? (
         <Card className="p-8 text-center flex flex-col items-center justify-center gap-2">
           <FileText className="w-8 h-8 text-slate-300" />
-          <h4 className="font-heading font-semibold text-sm text-slate-700">No Documents Uploaded Yet</h4>
+          <h4 className="font-heading font-semibold text-sm text-slate-700 dark:text-slate-300">No Documents Uploaded Yet</h4>
           <p className="text-xs text-slate-400 max-w-sm">
-            Upload your income certificate, Aadhaar card, or ration card above to verify eligibility for government healthcare schemes.
+            Upload your income certificate, Aadhaar card, or eligibility card above to verify eligibility for government healthcare schemes.
           </p>
         </Card>
       ) : (
         <Card className="p-5 flex flex-col gap-3">
-          <h3 className="font-heading font-bold text-sm text-slate-900">
+          <h3 className="font-heading font-bold text-sm text-slate-900 dark:text-slate-100">
             Uploaded Documents ({documents.length})
           </h3>
           <div className="flex flex-col gap-2">
-            {documents.map((doc) => {
-              const statusCfg = STATUS_CONFIG[doc.processing_status];
-              return (
-                <div
-                  key={doc.document_id}
-                  className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl p-3 bg-slate-50/60 hover:bg-white transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4 text-teal-500" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-900 truncate">
-                        {doc.file_name}
-                      </p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">
-                        {doc.document_type_label} • {formatFileSize(doc.file_size_bytes)} •{" "}
-                        {formatDate(doc.uploaded_at)}
-                      </p>
-                    </div>
+            {documents.map((doc) => (
+              <div
+                key={doc.document_id}
+                className="flex items-center justify-between gap-3 border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50/60 dark:bg-slate-900 hover:bg-white dark:hover:bg-slate-850 transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-100 dark:border-teal-900 flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4 text-[#0D9488]" />
                   </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      {doc.file_name}
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      {doc.category.replace(/_/g, " ")} • {new Date(doc.upload_date).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* Status Badge */}
-                    <span
-                      className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${statusCfg.bg} ${statusCfg.color}`}
-                    >
-                      {statusCfg.icon}
-                      {statusCfg.label}
-                    </span>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">
+                    <CheckCircle2 className="w-3 h-3" />
+                    {doc.processing_status}
+                  </span>
 
-                    {/* Actions */}
+                  {onView && (
                     <button
                       title="View document"
+                      onClick={() => onView(doc)}
                       className="p-1.5 rounded-lg hover:bg-teal-50 text-slate-400 hover:text-teal-600 transition-colors"
                     >
                       <Eye className="w-3.5 h-3.5" />
                     </button>
+                  )}
+                  {onDownload && (
                     <button
                       title="Download document"
+                      onClick={() => onDownload(doc)}
                       className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
                     >
                       <Download className="w-3.5 h-3.5" />
                     </button>
+                  )}
+                  {onDelete && (
                     <button
                       title="Delete document"
-                      onClick={() => handleDelete(doc.document_id)}
+                      onClick={() => onDelete(doc.document_id)}
                       className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
-                  </div>
+                  )}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </Card>
       )}

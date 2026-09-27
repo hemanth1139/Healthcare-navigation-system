@@ -42,8 +42,7 @@ async def run_severity_agent(disease_name: str, confidence_score: float) -> Dict
             "explanation": f"Condition ({disease_name}) requires routine monitoring by a primary care physician."
         }
 
-    # Lazy import to avoid loading Google SDK if not needed
-    from langchain_google_genai import ChatGoogleGenerativeAI
+    from app.core.llm import invoke_gemini
     from langchain_core.messages import SystemMessage, HumanMessage
 
     SYSTEM_PROMPT = """You are an expert Medical Triage Officer.
@@ -64,18 +63,11 @@ You MUST respond strictly in the following JSON format:
 }
 """
     try:
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            temperature=0.1,
-            google_api_key=settings.GOOGLE_API_KEY,
-        )
-        
-        response = await llm.ainvoke([
+        res_text = await invoke_gemini([
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=f"Predicted Disease: {disease_name}\nConfidence Score: {confidence_score:.2f}")
-        ])
+        ], temperature=0.1)
         
-        res_text = response.content.strip()
         if "```json" in res_text:
             res_text = res_text.split("```json")[1].split("```")[0].strip()
         elif "```" in res_text:

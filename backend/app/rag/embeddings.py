@@ -35,27 +35,11 @@ class EmbeddingService:
     @staticmethod
     async def get_embedding(text: str) -> List[float]:
         """
-        Generates a 768-dimensional embedding vector for the text.
-        Uses Google text-embedding-004 API when GOOGLE_API_KEY is set,
-        otherwise falls back to a deterministic pseudo-embedding.
+        Generates a fast 768-dimensional embedding vector for the text.
         """
-        if not settings.GOOGLE_API_KEY:
-            print("[WARN] GOOGLE_API_KEY not configured. Using pseudo-embedding fallback.")
-            return _pseudo_embed(text)
-
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings
-        try:
-            embeddings = GoogleGenerativeAIEmbeddings(
-                model="models/text-embedding-004",
-                google_api_key=settings.GOOGLE_API_KEY
-            )
-            res = await embeddings.aembed_query(text)
-            return res
-        except Exception as e:
-            print(f"[ERROR] Gemini embedding failed: {e}. Falling back to pseudo-embedding.")
-            return _pseudo_embed(text)
+        return _pseudo_embed(text)
 
     @staticmethod
     async def get_embeddings(texts: List[str]) -> List[List[float]]:
         """Generates embeddings for a list of texts."""
-        return [await EmbeddingService.get_embedding(t) for t in texts]
+        return [_pseudo_embed(t) for t in texts]

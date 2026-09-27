@@ -1,7 +1,6 @@
-'use me';
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sun, 
   Moon, 
@@ -15,10 +14,21 @@ import {
   Check,
   Type,
   AlertTriangle,
-  X
+  X,
+  User,
+  ShieldCheck,
+  Loader2,
+  Mail,
+  Phone,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { api } from '@/lib/api';
 
 export default function SettingsPage() {
+  const { user, logout } = useAuth();
+  const { language, setLanguage } = useLanguage();
+
   // Appearance State
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark');
   const [fontSize, setFontSize] = useState<'small' | 'default' | 'large'>('default');
@@ -27,87 +37,176 @@ export default function SettingsPage() {
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [pushNotifs, setPushNotifs] = useState(true);
 
-  // Language State
-  const [language, setLanguage] = useState('en');
-
   // Modal States
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Password Form
+  // Password Form State
   const [currPass, setCurrPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
+  const [changingPass, setChangingPass] = useState(false);
+  const [passError, setPassError] = useState<string | null>(null);
+
+  // Account deletion state
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check initial theme from DOM
+    if (typeof window !== 'undefined') {
+      if (document.documentElement.classList.contains('dark')) {
+        setTheme('dark');
+      } else {
+        setTheme('light');
+      }
+    }
+  }, []);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPass !== confirmPass) {
-      alert('New passwords do not match');
+    setPassError(null);
+
+    if (newPass.length < 8) {
+      setPassError('New password must be at least 8 characters long.');
       return;
     }
-    setShowPasswordModal(false);
-    setCurrPass('');
-    setNewPass('');
-    setConfirmPass('');
-    triggerToast('Password updated successfully!');
+
+    if (newPass !== confirmPass) {
+      setPassError('New passwords do not match.');
+      return;
+    }
+
+    setChangingPass(true);
+    try {
+      await api.post('/auth/change-password', {
+        currentPassword: currPass,
+        newPassword: newPass,
+      });
+
+      setShowPasswordModal(false);
+      setCurrPass('');
+      setNewPass('');
+      setConfirmPass('');
+      triggerToast('Password updated successfully!');
+    } catch (err: any) {
+      console.error('[Settings] Failed to change password:', err);
+      setPassError(err?.response?.data?.detail || 'Failed to update password. Please check your current password.');
+    } finally {
+      setChangingPass(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    setDeleteError(null);
+    try {
+      await api.delete('/auth/account');
+      setShowDeleteModal(false);
+      triggerToast('Account permanently deleted.');
+      setTimeout(() => {
+        logout();
+        window.location.href = '/login';
+      }, 1000);
+    } catch (err: any) {
+      console.error('[Settings] Failed to delete account:', err);
+      setDeleteError(err?.response?.data?.detail || 'Failed to delete account.');
+      setDeletingAccount(false);
+    }
   };
 
   const toggleDarkModeTheme = (newTheme: 'light' | 'dark' | 'system') => {
     setTheme(newTheme);
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else if (newTheme === 'light') {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     } else {
+      localStorage.removeItem('theme');
       if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
         document.documentElement.classList.add('dark');
       } else {
         document.documentElement.classList.remove('dark');
       }
     }
+    triggerToast(`Theme switched to ${newTheme}`);
   };
 
   return (
-    <div className="space-y-8 pb-12 max-w-4xl">
+    <div className="space-y-8 pb-16 max-w-4xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
-          Account & App Settings
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 flex items-center gap-2.5">
+          <User className="w-7 h-7 text-[#0D9488]" />
+          <span>Account & System Settings</span>
         </h1>
-        <p className="mt-1 text-sm sm:text-base text-slate-600 dark:text-slate-400">
-          Manage your interface preferences, notification alerts, language options, and security settings.
+        <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          Manage your patient account security, credentials, interface preferences, and language adaptations.
         </p>
       </div>
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 text-xs font-semibold animate-bounce">
-          <Check className="w-4 h-4" />
+        <div className="fixed bottom-6 right-6 z-50 bg-[#0D9488] text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-semibold animate-in fade-in slide-in-from-bottom-2">
+          <ShieldCheck className="w-4 h-4" />
           {toastMessage}
         </div>
       )}
 
+      {/* SECTION 0: ACCOUNT SUMMARY */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm space-y-4">
+        <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-[#0D9488] flex items-center justify-center">
+            <User className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Authenticated Account Profile</h2>
+            <p className="text-xs text-slate-500">Verified patient identity & session credentials</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 space-y-1">
+            <span className="text-slate-400 uppercase font-bold text-[10px]">Patient Name</span>
+            <p className="font-bold text-slate-900 dark:text-white text-sm">{user?.fullName || 'Sarah Johnson'}</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 space-y-1">
+            <span className="text-slate-400 uppercase font-bold text-[10px]">Email Address</span>
+            <p className="font-medium text-slate-800 dark:text-slate-200 truncate">{user?.email || 'sarah@example.com'}</p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 space-y-1">
+            <span className="text-slate-400 uppercase font-bold text-[10px]">Account Security</span>
+            <div className="flex items-center gap-1.5 text-emerald-600 font-bold mt-0.5">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Active & Verified</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* SECTION 1: APPEARANCE */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm space-y-6">
         <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+          <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-[#0D9488] flex items-center justify-center">
             <Sun className="w-5 h-5" />
           </div>
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Appearance & Theme</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Customize how HealthNav AI looks on your device</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Customize how HealthNav AI displays on your current device</p>
           </div>
         </div>
 
         {/* Theme Selectors */}
         <div className="space-y-3">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Color Theme</label>
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Color Theme</label>
           <div className="grid grid-cols-3 gap-3">
             {[
               { id: 'light', label: 'Light', icon: Sun },
@@ -120,9 +219,9 @@ export default function SettingsPage() {
                 <button
                   key={t.id}
                   onClick={() => toggleDarkModeTheme(t.id as any)}
-                  className={`flex flex-col items-center justify-center p-4 rounded-xl border text-xs font-semibold transition-all gap-2 ${
+                  className={`flex flex-col items-center justify-center p-4 rounded-xl border text-xs font-semibold transition-all gap-2 cursor-pointer ${
                     isSelected
-                      ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/20'
+                      ? 'border-[#0D9488] bg-teal-50/50 dark:bg-teal-950/30 text-[#0D9488] dark:text-[#14B8A6] ring-2 ring-teal-500/20'
                       : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
@@ -134,28 +233,31 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Font Size Slider */}
+        {/* Font Size Adjustment */}
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               <Type className="w-4 h-4 text-slate-400" />
-              Font Size Adjustment
+              Font Size Accessibility
             </label>
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 capitalize">{fontSize}</span>
+            <span className="text-xs font-bold text-[#0D9488] capitalize">{fontSize}</span>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             {[
-              { id: 'small', label: 'Small (14px)' },
-              { id: 'default', label: 'Default (16px)' },
-              { id: 'large', label: 'Large (18px)' }
+              { id: 'small', label: 'Compact (14px)' },
+              { id: 'default', label: 'Standard (16px)' },
+              { id: 'large', label: 'Accessible (18px)' }
             ].map((f) => (
               <button
                 key={f.id}
-                onClick={() => setFontSize(f.id as any)}
-                className={`py-2 px-3 rounded-lg text-xs font-medium border transition-colors ${
+                onClick={() => {
+                  setFontSize(f.id as any);
+                  triggerToast(`Font scale adjusted to ${f.id}`);
+                }}
+                className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-colors cursor-pointer ${
                   fontSize === f.id
-                    ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold'
+                    ? 'border-[#0D9488] bg-teal-50 dark:bg-teal-950/40 text-[#0D9488] dark:text-[#14B8A6]'
                     : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
@@ -169,12 +271,12 @@ export default function SettingsPage() {
       {/* SECTION 2: NOTIFICATIONS */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm space-y-6">
         <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+          <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-[#0D9488] flex items-center justify-center">
             <Bell className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Notification Preferences</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Control how you receive symptom updates and scheme eligibility alerts</p>
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Notification Alerts</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Manage communication channels for triage follow-ups and scheme updates</p>
           </div>
         </div>
 
@@ -182,13 +284,16 @@ export default function SettingsPage() {
           {/* Email Notifications */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Email Notifications</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Receive consultation summaries and scheme updates via email</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Email Consultation Summaries</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Receive copies of AI triage assessments and scheme verification checklists</p>
             </div>
             <button
-              onClick={() => setEmailNotifs(!emailNotifs)}
-              className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${
-                emailNotifs ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+              onClick={() => {
+                setEmailNotifs(!emailNotifs);
+                triggerToast(`Email alerts ${!emailNotifs ? 'enabled' : 'disabled'}`);
+              }}
+              className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                emailNotifs ? 'bg-[#0D9488]' : 'bg-slate-300 dark:bg-slate-700'
               }`}
             >
               <div
@@ -202,13 +307,16 @@ export default function SettingsPage() {
           {/* Push Notifications */}
           <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Push Notifications</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Instant alerts for doctor recommendations and hospital bookings</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Doctor Referral Reminders</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Follow-up notifications for suggested specialist consults</p>
             </div>
             <button
-              onClick={() => setPushNotifs(!pushNotifs)}
-              className={`w-12 h-6 rounded-full transition-colors relative p-0.5 ${
-                pushNotifs ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+              onClick={() => {
+                setPushNotifs(!pushNotifs);
+                triggerToast(`Reminders ${!pushNotifs ? 'enabled' : 'disabled'}`);
+              }}
+              className={`w-12 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                pushNotifs ? 'bg-[#0D9488]' : 'bg-slate-300 dark:bg-slate-700'
               }`}
             >
               <div
@@ -228,11 +336,11 @@ export default function SettingsPage() {
                   Always Active
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Critical medical warnings (e.g. suspected cardiac event) cannot be disabled</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Critical medical warnings (e.g. cardiac symptoms) cannot be muted</p>
             </div>
             <button
               disabled
-              className="w-12 h-6 rounded-full bg-emerald-600 opacity-60 cursor-not-allowed relative p-0.5"
+              className="w-12 h-6 rounded-full bg-[#0D9488] opacity-60 cursor-not-allowed relative p-0.5"
             >
               <div className="w-5 h-5 rounded-full bg-white translate-x-6" />
             </button>
@@ -243,57 +351,54 @@ export default function SettingsPage() {
       {/* SECTION 3: LANGUAGE */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm space-y-6">
         <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+          <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-[#0D9488] flex items-center justify-center">
             <Globe className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Language & Regional Adaptation</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Choose your preferred Indian language for AI symptom triage & scheme descriptions</p>
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Regional Language Adaptation</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Select language for AI symptom conversations and scheme descriptions</p>
           </div>
         </div>
 
         <div className="max-w-xs space-y-2">
-          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Select Interface Language</label>
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Active Language</label>
           <select
             value={language}
             onChange={(e) => {
-              setLanguage(e.target.value);
-              triggerToast('Language preference saved!');
+              setLanguage(e.target.value as any);
+              triggerToast('Language updated successfully.');
             }}
-            className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs font-medium focus:ring-2 focus:ring-[#0D9488]"
           >
             <option value="en">English (India)</option>
-            <option value="hi">हिंदी (Hindi)</option>
             <option value="ta">தமிழ் (Tamil)</option>
+            <option value="hi">हिंदी (Hindi)</option>
             <option value="te">తెలుగు (Telugu)</option>
             <option value="kn">ಕನ್ನಡ (Kannada)</option>
-            <option value="bn">বাংলা (Bengali)</option>
-            <option value="mr">मराठी (Marathi)</option>
-            <option value="gu">ગુજરાતી (Gujarati)</option>
           </select>
         </div>
       </div>
 
-      {/* SECTION 4: SECURITY & ACCOUNT */}
+      {/* SECTION 4: SECURITY & ACCOUNT ACTIONS */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm space-y-6">
         <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+          <div className="w-9 h-9 rounded-xl bg-teal-500/10 text-[#0D9488] flex items-center justify-center">
             <Lock className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Security & Account Management</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Manage password and account deletion options</p>
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Security Credentials & Account Management</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Change account password or permanently delete patient account</p>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Password Security</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Update your account password periodically to protect your medical data</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Account Password</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Update your password to safeguard protected health information (PHI)</p>
           </div>
           <button
             onClick={() => setShowPasswordModal(true)}
-            className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 text-xs font-semibold transition-colors"
+            className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100 text-xs font-semibold transition-colors cursor-pointer"
           >
             Change Password
           </button>
@@ -302,36 +407,16 @@ export default function SettingsPage() {
         {/* Delete Account */}
         <div className="pt-4 border-t border-rose-100 dark:border-rose-950/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">Delete Account & Clear Medical History</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Permanently erase all symptom records, uploaded documents, and saved predictions</p>
+            <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">Permanently Delete Account</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Erases all consultation histories, symptom triages, and uploaded diagnostic files</p>
           </div>
           <button
             onClick={() => setShowDeleteModal(true)}
-            className="px-4 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 text-xs font-semibold transition-colors flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
             Delete Account
           </button>
-        </div>
-      </div>
-
-      {/* SECTION 5: ABOUT */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-7 shadow-sm space-y-4">
-        <div className="flex items-center gap-3">
-          <Info className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">About HealthNav AI</h2>
-        </div>
-        <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div>
-            <span className="font-semibold text-slate-700 dark:text-slate-300">Version:</span> 2.4.0 (Clinical Engine v1.8)
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="#" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Privacy Policy</a>
-            <span>•</span>
-            <a href="#" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Terms of Service</a>
-            <span>•</span>
-            <a href="#" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">Medical Disclaimer</a>
-          </div>
         </div>
       </div>
 
@@ -340,15 +425,27 @@ export default function SettingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <form onSubmit={handlePasswordSubmit} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Change Password</h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-[#0D9488]" />
+                <span>Change Password</span>
+              </h3>
               <button
                 type="button"
-                onClick={() => setShowPasswordModal(false)}
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPassError(null);
+                }}
                 className="p-1 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {passError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-600">
+                {passError}
+              </div>
+            )}
 
             <div className="space-y-3">
               <div>
@@ -358,17 +455,18 @@ export default function SettingsPage() {
                   required
                   value={currPass}
                   onChange={(e) => setCurrPass(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500"
+                  className="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-[#0D9488]"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">New Password</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">New Password (min 8 chars)</label>
                 <input
                   type="password"
                   required
+                  minLength={8}
                   value={newPass}
                   onChange={(e) => setNewPass(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500"
+                  className="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-[#0D9488]"
                 />
               </div>
               <div>
@@ -376,9 +474,10 @@ export default function SettingsPage() {
                 <input
                   type="password"
                   required
+                  minLength={8}
                   value={confirmPass}
                   onChange={(e) => setConfirmPass(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-emerald-500"
+                  className="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs focus:ring-2 focus:ring-[#0D9488]"
                 />
               </div>
             </div>
@@ -386,16 +485,21 @@ export default function SettingsPage() {
             <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => setShowPasswordModal(false)}
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPassError(null);
+                }}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm"
+                disabled={changingPass}
+                className="px-4 py-2 rounded-xl bg-[#0D9488] hover:bg-[#0F766E] text-white text-xs font-semibold shadow-sm flex items-center gap-1.5"
               >
-                Update Password
+                {changingPass ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                <span>Update Password</span>
               </button>
             </div>
           </form>
@@ -412,9 +516,14 @@ export default function SettingsPage() {
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Permanently Delete Account?</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                This action is irreversible. All your predictions, medical records, and verification certificates will be deleted.
+                This action is irreversible. All your clinical histories, diagnostic files, and assessment records will be wiped from the system.
               </p>
             </div>
+
+            {deleteError && (
+              <p className="text-xs text-rose-600 font-semibold">{deleteError}</p>
+            )}
+
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
                 onClick={() => setShowDeleteModal(false)}
@@ -423,14 +532,12 @@ export default function SettingsPage() {
                 Keep Account
               </button>
               <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  alert('Account deleted.');
-                  window.location.href = '/login';
-                }}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm"
+                onClick={handleDeleteAccount}
+                disabled={deletingAccount}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5"
               >
-                Confirm Delete
+                {deletingAccount ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                <span>Confirm Delete</span>
               </button>
             </div>
           </div>

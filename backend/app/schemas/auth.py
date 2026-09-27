@@ -23,6 +23,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class GoogleLoginRequest(BaseModel):
+    credential: str = Field(..., description="Google OAuth 2.0 ID Token or JWT credential from Google Identity Services")
+
+
+
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
 
@@ -42,6 +47,13 @@ class RefreshTokenRequest(BaseModel):
 
 class VerifyEmailRequest(BaseModel):
     token: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(..., alias="currentPassword")
+    new_password: str = Field(..., min_length=8, max_length=100, alias="newPassword")
+
+    model_config = {"populate_by_name": True}
 
 
 # ─── Response Schemas ─────────────────────────────────────────────────────────

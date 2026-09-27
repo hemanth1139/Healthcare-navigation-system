@@ -76,5 +76,7 @@ next-env.d.ts
 # SQLite & Uploaded Media
 *.db
 *.sqlite3
-backend/app/uploads/*.mp3
+backend/app/uploads/*
+!backend/app/uploads/.gitkeep
+
 

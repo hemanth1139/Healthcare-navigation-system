@@ -8,8 +8,9 @@ from uuid import UUID
 
 from app.dependencies import DBSession, CurrentUser
 from app.schemas.auth import (
-    RegisterRequest, LoginRequest, AuthResponse, MessageResponse, UserOut,
+    RegisterRequest, LoginRequest, GoogleLoginRequest, AuthResponse, MessageResponse, UserOut,
     ForgotPasswordRequest, ResetPasswordRequest, RefreshTokenRequest, VerifyEmailRequest,
+    ChangePasswordRequest,
 )
 from app.services.auth_service import AuthService
 from app.models.audit import ActivityLog
@@ -43,6 +44,19 @@ async def login(payload: LoginRequest, db: DBSession, request: Request):
         user_id=UUID(response.user.id),
         activity_type="LOGIN",
         description="User logged in",
+        ip_address=_get_ip(request),
+    ))
+    return response
+
+
+@router.post("/google", response_model=AuthResponse)
+async def login_with_google(payload: GoogleLoginRequest, db: DBSession, request: Request):
+    """Authenticate with Google OAuth 2.0 Identity Token / credential."""
+    response = await AuthService.login_with_google(db, payload.credential)
+    db.add(ActivityLog(
+        user_id=UUID(response.user.id),
+        activity_type="GOOGLE_LOGIN",
+        description="User authenticated with Google OAuth",
         ip_address=_get_ip(request),
     ))
     return response
@@ -89,3 +103,15 @@ async def get_current_user_profile(current_user: CurrentUser):
 async def verify_email(payload: VerifyEmailRequest, db: DBSession):
     """Verify user email address via token."""
     return await AuthService.verify_email(db, payload.token)
+
+
+@router.post("/change-password", response_model=MessageResponse)
+async def change_password(payload: ChangePasswordRequest, db: DBSession, current_user: CurrentUser):
+    """Update password for authenticated user after verifying current password."""
+    return await AuthService.change_password(db, current_user, payload)
+
+
+@router.delete("/account", response_model=MessageResponse)
+async def delete_account(db: DBSession, current_user: CurrentUser):
+    """Permanently delete authenticated user and all associated clinical records."""
+    return await AuthService.delete_account(db, current_user)

@@ -1,16 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { User as UserIcon, Mail, Phone, Lock, Eye, EyeOff, UserPlus, ArrowRight } from "lucide-react";
+import { User as UserIcon, Mail, Phone, Lock, Eye, EyeOff, UserPlus, ArrowRight, Loader2 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/Input";
 import { Toast } from "@/components/ui/Toast";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const phoneRegex = /^(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/;
 
@@ -62,9 +63,11 @@ function getPasswordStrength(password: string): { label: string; color: string; 
   return { label: "Strong password", color: "bg-emerald-500", percent: 100 };
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
   const { register: registerAuth } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/dashboard";
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -93,7 +96,7 @@ export default function RegisterPage() {
       await registerAuth(data);
       setSuccessNotice(true);
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push(redirectUrl && redirectUrl.startsWith("/") ? redirectUrl : "/dashboard");
       }, 1500);
     } catch (err: any) {
       setGeneralError(err?.message || "Registration failed. Please check your details.");
@@ -130,6 +133,21 @@ export default function RegisterPage() {
           onClose={() => setGeneralError(null)}
         />
       )}
+
+      {/* Google Sign-In Button */}
+      <div>
+        <GoogleSignInButton
+          redirectUrl={redirectUrl}
+          onError={(msg) => setGeneralError(msg)}
+        />
+      </div>
+
+      <div className="relative flex items-center justify-center my-1">
+        <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
+        <span className="bg-slate-50 dark:bg-[#030712] px-3 text-xs text-slate-400 font-medium uppercase absolute">
+          Or register with email
+        </span>
+      </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
@@ -182,7 +200,7 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 cursor-pointer"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -192,7 +210,6 @@ export default function RegisterPage() {
             {...register("password")}
           />
 
-          {/* Password Strength Indicator Bar */}
           {watchPassword && (
             <div className="flex flex-col gap-1 mt-1">
               <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -212,7 +229,7 @@ export default function RegisterPage() {
         <Input
           label="Confirm Password"
           type={showConfirmPassword ? "text" : "password"}
-          placeholder="Re-enter password"
+          placeholder="Re-enter your password"
           autoComplete="new-password"
           required
           leftIcon={<Lock className="w-4 h-4 text-slate-400" />}
@@ -220,7 +237,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1"
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 cursor-pointer"
               aria-label={showConfirmPassword ? "Hide password" : "Show password"}
             >
               {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -230,28 +247,27 @@ export default function RegisterPage() {
           {...register("confirmPassword")}
         />
 
-        {/* Terms & Conditions Checkbox */}
-        <div className="flex flex-col gap-1 mt-1">
-          <label className="flex items-start gap-2.5 cursor-pointer text-sm text-slate-900 dark:text-slate-100">
+        {/* Accept Terms */}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-start gap-2.5">
             <input
+              id="acceptTerms"
               type="checkbox"
-              required
-              className="mt-1 w-4 h-4 rounded border-slate-300 text-[#0D9488] focus:ring-[#0D9488] cursor-pointer"
+              className="mt-1 w-4 h-4 rounded text-[#0D9488] focus:ring-[#0D9488] border-slate-300 dark:border-slate-700 cursor-pointer"
               {...register("acceptTerms")}
             />
-            <span className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              I agree to the{" "}
-              <Link href="/privacy" className="font-semibold text-[#0D9488] hover:underline">
+            <label htmlFor="acceptTerms" className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed cursor-pointer select-none">
+              I accept the{" "}
+              <Link href="/privacy" className="text-[#0D9488] dark:text-[#14B8A6] font-semibold hover:underline">
                 Terms of Service
               </Link>{" "}
               and{" "}
-              <Link href="/privacy" className="font-semibold text-[#0D9488] hover:underline">
+              <Link href="/privacy" className="text-[#0D9488] dark:text-[#14B8A6] font-semibold hover:underline">
                 Privacy Policy
               </Link>
-              .
-            </span>
-          </label>
-          {errors.acceptTerms?.message && (
+            </label>
+          </div>
+          {errors.acceptTerms && (
             <span className="text-xs text-rose-500 font-medium">{errors.acceptTerms.message}</span>
           )}
         </div>
@@ -260,14 +276,14 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="mt-2 w-full bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold py-3 rounded-xl shadow-md shadow-teal-500/25 transition-all text-sm cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2"
+          className="mt-2 w-full bg-[#0D9488] hover:bg-[#0F766E] active:bg-[#115E59] text-white font-semibold py-3 rounded-xl shadow-md shadow-teal-500/25 transition-all text-sm cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2"
         >
           {isSubmitting ? (
             <span>Creating account...</span>
           ) : (
             <>
               <UserPlus className="w-4 h-4" />
-              <span>Register Account</span>
+              <span>Create Account</span>
               <ArrowRight className="w-4 h-4" />
             </>
           )}
@@ -275,16 +291,30 @@ export default function RegisterPage() {
       </form>
 
       {/* Footer link */}
-      <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-center text-sm text-slate-500 dark:text-slate-400">
+      <div className="mt-2 pt-5 border-t border-slate-200 dark:border-slate-800 text-center text-sm text-slate-500 dark:text-slate-400">
         Already have an account?{" "}
         <Link
-          href="/login"
+          href={`/login${redirectUrl && redirectUrl !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
           className="font-bold text-[#0D9488] dark:text-[#14B8A6] hover:underline ml-1"
         >
-          Sign In
+          Sign in
         </Link>
       </div>
     </div>
   );
 }
 
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center p-12 gap-3 min-h-[300px]">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0D9488]" />
+          <span className="text-xs text-slate-500">Loading registration...</span>
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
+  );
+}

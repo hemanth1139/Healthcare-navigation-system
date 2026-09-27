@@ -2,9 +2,11 @@
 Profile service — CRUD for patient profile, allergies, conditions, medications.
 """
 
+from datetime import date
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.models.profile import PatientProfile, Allergy, ChronicCondition, Medication
 from app.models.user import User
@@ -196,3 +198,89 @@ class ProfileService:
         if not med:
             raise NotFoundError("Medication")
         await db.delete(med)
+
+    # ─── Context Aggregator ───────────────────────────────────────────────────
+
+    @staticmethod
+    async def get_patient_context(db: AsyncSession, user_id: UUID) -> dict:
+        """
+        Module 3 Context Aggregator.
+        Eagerly loads profile, allergies, chronic conditions, and active medications
+        in a single database query to format context for LLM & RAG engines.
+        """
+        stmt = (
+            select(PatientProfile)
+            .options(
+                selectinload(PatientProfile.allergies),
+                selectinload(PatientProfile.chronic_conditions),
+                selectinload(PatientProfile.medications),
+                selectinload(PatientProfile.medical_records),
+                selectinload(PatientProfile.user),
+            )
+            .where(PatientProfile.user_id == user_id)
+        )
+        result = await db.execute(stmt)
+        profile = result.scalar_one_or_none()
+        if not profile:
+            return {"context_summary": "Patient demographic data not populated."}
+
+        age = None
+        if profile.date_of_birth:
+            today = date.today()
+            dob = profile.date_of_birth
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+        bmi = None
+        if profile.height_cm and profile.weight_kg and profile.height_cm > 0:
+            height_m = float(profile.height_cm) / 100.0
+            bmi = round(float(profile.weight_kg) / (height_m ** 2), 1)
+
+        allergies = [a.allergy_name for a in (profile.allergies or [])]
+        chronic_conditions = [c.condition_name for c in (profile.chronic_conditions or [])]
+        medications = [f"{m.medicine_name} ({m.dosage or 'N/A'})" for m in (profile.medications or [])]
+        records = profile.medical_records or []
+
+        summary_parts = []
+        if profile.user and profile.user.full_name:
+            summary_parts.append(f"Name: {profile.user.full_name}")
+        if age is not None:
+            summary_parts.append(f"Age: {age}")
+        if profile.gender:
+            summary_parts.append(f"Gender: {profile.gender}")
+        if profile.blood_group:
+            summary_parts.append(f"Blood Group: {profile.blood_group}")
+        if profile.state:
+            summary_parts.append(f"State: {profile.state}")
+        if bmi is not None:
+            summary_parts.append(f"BMI: {bmi}")
+        if chronic_conditions:
+            summary_parts.append(f"Chronic Conditions: {', '.join(chronic_conditions)}")
+        if medications:
+            summary_parts.append(f"Active Medications: {', '.join(medications)}")
+        if allergies:
+            summary_parts.append(f"Known Allergies: {', '.join(allergies)}")
+        if records:
+            doc_snippets = []
+            for r in records[:4]:
+                content_snip = (r.fhir_resource or "").replace("\n", " ").strip()
+                if len(content_snip) > 120:
+                    content_snip = content_snip[:120] + "..."
+                doc_snippets.append(f"[{r.category or 'Document'}: {r.file_name} - {content_snip}]")
+            summary_parts.append(f"Uploaded Medical Documents: {' | '.join(doc_snippets)}")
+
+        context_summary = " | ".join(summary_parts) if summary_parts else "No background clinical history."
+
+        return {
+            "user_id": str(user_id),
+            "age": age,
+            "gender": profile.gender,
+            "state": profile.state,
+            "blood_group": profile.blood_group,
+            "bmi": bmi,
+            "allergies": allergies,
+            "chronic_conditions": chronic_conditions,
+            "medications": medications,
+            "uploaded_documents_count": len(records),
+            "context_summary": context_summary,
+        }
+

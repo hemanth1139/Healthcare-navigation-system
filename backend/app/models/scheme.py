@@ -42,6 +42,9 @@ class SchemeQuery(Base):
     query_id: Mapped[uuid.UUID] = mapped_column(
         UUID, primary_key=True, default=uuid.uuid4
     )
+    profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID, ForeignKey("patient_profiles.profile_id", ondelete="CASCADE"), nullable=True
+    )
     conversation_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID, ForeignKey("conversations.conversation_id", ondelete="CASCADE"), nullable=True
     )
@@ -57,6 +60,7 @@ class SchemeQuery(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
+    profile: Mapped["PatientProfile | None"] = relationship("PatientProfile", back_populates="scheme_queries")
     conversation: Mapped["Conversation | None"] = relationship("Conversation", back_populates="scheme_queries")
     scheme: Mapped["GovernmentScheme | None"] = relationship("GovernmentScheme", back_populates="queries")
 

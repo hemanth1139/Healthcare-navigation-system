@@ -1,6 +1,6 @@
 """
-LangGraph Workflow Orchestrator.
-Defines the state and nodes for conversational symptom triage.
+LangGraph Workflow Orchestrator for Conversational Symptom Triage.
+Manages triage state, patient context passing, and follow-up generation.
 """
 
 from typing import TypedDict, List, Dict, Any, Optional
@@ -12,8 +12,10 @@ from app.agents.triage_agent import run_triage_agent
 # ─── Graph State Definition ──────────────────────────────────────────────────
 
 class AgentState(TypedDict):
-    # History of messages: List of {"sender": "user"|"agent", "content": "..."}
+    # History of messages: List of {"sender": "user"|"assistant", "content": "..."}
     messages: List[Dict[str, str]]
+    # Patient background context summary
+    patient_context: str
     # Output variables
     needs_more_info: bool
     is_emergency: bool
@@ -27,7 +29,10 @@ class AgentState(TypedDict):
 
 async def triage_node(state: AgentState) -> Dict[str, Any]:
     """Triage node execution — evaluates symptom details and asks follow-ups."""
-    result = await run_triage_agent(state["messages"])
+    result = await run_triage_agent(
+        messages=state["messages"],
+        patient_context_summary=state.get("patient_context", "")
+    )
     return {
         "needs_more_info": result["needs_more_info"],
         "is_emergency": result["is_emergency"],
@@ -39,33 +44,29 @@ async def triage_node(state: AgentState) -> Dict[str, Any]:
 
 # ─── Graph Compilation ────────────────────────────────────────────────────────
 
-# Define graph builder
 workflow = StateGraph(AgentState)
-
-# Add node
 workflow.add_node("triage", triage_node)
-
-# Add edges
 workflow.add_edge(START, "triage")
 workflow.add_edge("triage", END)
 
-# Compile graph
 triage_graph = workflow.compile()
 
 
 # ─── Entry Point Helper ──────────────────────────────────────────────────────
 
-async def execute_triage(messages: List[Dict[str, str]]) -> Dict[str, Any]:
+async def execute_triage(
+    messages: List[Dict[str, str]],
+    patient_context: str = ""
+) -> Dict[str, Any]:
     """Helper function to execute the triage LangGraph workflow."""
-    initial_state = {
+    initial_state: AgentState = {
         "messages": messages,
+        "patient_context": patient_context,
         "needs_more_info": True,
         "is_emergency": False,
         "symptoms": [],
         "question": None,
         "options": None,
     }
-    
-    # Run graph asynchronously
     final_state = await triage_graph.ainvoke(initial_state)
     return final_state

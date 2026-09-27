@@ -11,7 +11,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (credentials: LoginPayload) => Promise<void>;
+  login: (credentials: LoginPayload, redirectUrl?: string) => Promise<void>;
+  loginWithGoogle: (credential: string, redirectUrl?: string) => Promise<void>;
   register: (data: RegisterPayload) => Promise<void>;
   logout: () => void;
   clearError: () => void;
@@ -30,14 +31,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initAuth = async () => {
       const refreshToken = getRefreshToken();
-      if (refreshToken || getAccessToken()) {
+      if (refreshToken) {
         try {
-          const res = await authApi.refreshToken(refreshToken || "demo_token");
+          const res = await authApi.refreshToken(refreshToken);
           setUser(res.user);
-        } catch (err) {
+        } catch {
           clearAuthSession();
           setUser(null);
         }
+      } else {
+        clearAuthSession();
+        setUser(null);
       }
       setIsLoading(false);
     };
@@ -45,36 +49,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initAuth();
   }, []);
 
-  const login = async (credentials: LoginPayload) => {
-    // Do NOT set global isLoading — that triggers the full-page spinner
+  const login = async (credentials: LoginPayload, redirectUrl?: string) => {
     setError(null);
     try {
       const res = await authApi.login(credentials);
       setUser(res.user);
-      router.push("/dashboard");
+      router.push(redirectUrl && redirectUrl.startsWith("/") ? redirectUrl : "/dashboard");
     } catch (err: any) {
       const message =
-        err?.response?.data?.message || err?.message || "Login failed. Please check your credentials.";
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Login failed. Please check your credentials.";
+      setError(message);
+      throw new Error(message);
+    }
+  };
+
+  const loginWithGoogle = async (credential: string, redirectUrl?: string) => {
+    setError(null);
+    try {
+      const res = await authApi.loginWithGoogle(credential);
+      setUser(res.user);
+      router.push(redirectUrl && redirectUrl.startsWith("/") ? redirectUrl : "/dashboard");
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Google authentication failed. Please try again.";
       setError(message);
       throw new Error(message);
     }
   };
 
   const register = async (data: RegisterPayload) => {
-    // Do NOT set global isLoading — that triggers the full-page spinner
     setError(null);
     try {
       const res = await authApi.register(data);
       setUser(res.user);
     } catch (err: any) {
       const message =
-        err?.response?.data?.message || err?.message || "Registration failed. Please try again.";
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Registration failed. Please try again.";
       setError(message);
       throw new Error(message);
     }
   };
 
   const logout = () => {
+    authApi.logout();
     clearAuthSession();
     setUser(null);
     setError(null);
@@ -93,6 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         error,
         login,
+        loginWithGoogle,
         register,
         logout,
         clearError,

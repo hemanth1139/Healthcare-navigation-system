@@ -4,7 +4,7 @@ import React from "react";
 import { HospitalWithDistance } from "@/types/hospital";
 import { HospitalCard } from "./HospitalCard";
 import { Button } from "@/components/ui/Button";
-import { MapPinOff, Maximize2 } from "lucide-react";
+import { MapPinOff, Maximize2, MapPin, RotateCcw } from "lucide-react";
 
 export interface HospitalListProps {
   hospitals: HospitalWithDistance[];
@@ -12,6 +12,8 @@ export interface HospitalListProps {
   onSelectHospital: (hospital: HospitalWithDistance) => void;
   onOpenDetail: (hospital: HospitalWithDistance) => void;
   onExpandDistance?: () => void;
+  onChangeLocation?: () => void;
+  onClearFilters?: () => void;
 }
 
 export const HospitalList: React.FC<HospitalListProps> = ({
@@ -20,32 +22,52 @@ export const HospitalList: React.FC<HospitalListProps> = ({
   onSelectHospital,
   onOpenDetail,
   onExpandDistance,
+  onChangeLocation,
+  onClearFilters,
 }) => {
   if (hospitals.length === 0) {
     return (
-      <div className="bg-white border-2 border-dashed border-[#F0FDFA] rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center">
-          <MapPinOff className="w-6 h-6" />
+      <div className="bg-white border-2 border-dashed border-slate-200 rounded-3xl p-8 sm:p-10 text-center flex flex-col items-center justify-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-[#F0FDFA] text-[#0D9488] flex items-center justify-center shadow-xs">
+          <MapPinOff className="w-7 h-7" />
         </div>
-        <h3 className="font-heading font-bold text-base text-[#0F172A]">
-          No hospitals found within this search range
-        </h3>
-        <p className="text-xs text-[#64748B] max-w-sm">
-          Try expanding your distance radius filter or clearing the specialty filter to see nearby medical facilities.
-        </p>
+        <div className="flex flex-col gap-1.5 max-w-md">
+          <h3 className="font-heading font-bold text-lg text-[#0F172A]">
+            No healthcare facilities found
+          </h3>
+          <p className="text-xs sm:text-sm text-[#64748B]">
+            No verified hospitals match your current location, department, or distance criteria. Try expanding the search radius or adjusting your filters.
+          </p>
+        </div>
 
-        {onExpandDistance && (
-          <Button onClick={onExpandDistance} variant="secondary" size="md" className="mt-2">
-            <Maximize2 className="w-4 h-4 mr-1.5" />
-            Expand Radius to 25 km
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+          {onExpandDistance && (
+            <Button onClick={onExpandDistance} variant="primary" size="md" className="rounded-xl font-bold">
+              <Maximize2 className="w-4 h-4 mr-1.5" />
+              <span>Increase Radius to 50 km</span>
+            </Button>
+          )}
+
+          {onChangeLocation && (
+            <Button onClick={onChangeLocation} variant="secondary" size="md" className="rounded-xl font-bold">
+              <MapPin className="w-4 h-4 mr-1.5 text-[#0D9488]" />
+              <span>Change Location</span>
+            </Button>
+          )}
+
+          {onClearFilters && (
+            <Button onClick={onClearFilters} variant="secondary" size="md" className="rounded-xl font-bold">
+              <RotateCcw className="w-4 h-4 mr-1.5" />
+              <span>Clear Filters</span>
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3.5">
       {hospitals.map((hosp) => (
         <HospitalCard
           key={hosp.hospital_id}

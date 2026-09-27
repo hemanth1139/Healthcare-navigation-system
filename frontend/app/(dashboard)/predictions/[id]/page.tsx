@@ -12,6 +12,7 @@ import {
   Tag,
   ChevronRight,
   ArrowLeft,
+  ShieldAlert,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Spinner } from "@/components/ui/Spinner";
@@ -21,7 +22,13 @@ interface PredictionReport {
   predicted_disease: string;
   confidence_score: number;
   prediction_model?: string;
-  differential?: Array<{ disease: string; confidence: number }>;
+  differential?: Array<{
+    disease_name?: string;
+    disease?: string;
+    confidence_score?: number;
+    confidence?: number;
+    urgency_tier?: string;
+  }>;
   triggered_rules?: string[];
   severity?: {
     severity?: string;
@@ -33,6 +40,8 @@ interface PredictionReport {
     specialist?: string;
     reason?: string;
   };
+  primary_symptom?: string;
+  associated_symptoms?: string[];
   symptoms_used?: string[];
   predicted_at?: string;
 }
@@ -101,7 +110,7 @@ export default function PredictionResultPage({ params }: { params: { id: string 
     );
   }
 
-  const confidencePct = Math.round((report.confidence_score || 0) * 100);
+  const confidencePct = Math.round((report.confidence_score || 0.5) * 100);
   const isEmergency = Boolean(report.severity?.emergency_flag);
   const formattedDate = report.predicted_at
     ? new Date(report.predicted_at).toLocaleDateString("en-US", {
@@ -132,7 +141,7 @@ export default function PredictionResultPage({ params }: { params: { id: string 
             <span className="text-xs text-slate-400">{formattedDate}</span>
           </div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-            Clinical Prediction & Diagnostic Report
+            Clinical Assessment & Navigation Report
           </h1>
         </div>
 
@@ -141,7 +150,7 @@ export default function PredictionResultPage({ params }: { params: { id: string 
           className="px-5 py-2.5 rounded-xl bg-[#0D9488] hover:bg-[#0F766E] text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 w-fit"
         >
           <Building2 className="w-4 h-4" />
-          <span>Find Nearby Specialists</span>
+          <span>Find Nearby Hospitals</span>
         </Link>
       </div>
 
@@ -165,14 +174,14 @@ export default function PredictionResultPage({ params }: { params: { id: string 
         </div>
       )}
 
-      {/* SECTION 1 — Primary Prediction */}
+      {/* SECTION 1 — Clinical Assessment Summary */}
       <div className="card-clinical p-6 sm:p-8 bg-gradient-to-br from-white via-slate-50 to-teal-500/5 dark:from-slate-900 dark:to-slate-950 flex flex-col md:flex-row items-center justify-between gap-8 border-2 border-teal-500/20">
         <div className="flex flex-col gap-3 max-w-xl text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-2">
             <span className="px-3 py-1 rounded-full bg-[#0D9488]/10 text-[#0D9488] dark:text-[#14B8A6] text-xs font-bold uppercase tracking-wider">
-              Primary Prediction
+              Clinical Assessment
             </span>
-            <span className="text-xs text-slate-400">{report.prediction_model || "Rule-Based Clinical Engine"}</span>
+            <span className="text-xs text-slate-400">{report.prediction_model || "Clinical Decision Rule Engine v2.5"}</span>
           </div>
 
           <h2 className="font-heading text-3xl font-extrabold text-slate-900 dark:text-white leading-tight">
@@ -180,12 +189,12 @@ export default function PredictionResultPage({ params }: { params: { id: string 
           </h2>
 
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-            {report.severity?.explanation || "Clinical evaluation based on patient symptoms and medical knowledge rules."}
+            {report.severity?.explanation || "Clinical evaluation based on reported symptoms and clinical rule engine."}
           </p>
 
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2">
-            <span className="px-3 py-1 rounded-full bg-teal-500/10 text-[#0D9488] dark:text-[#14B8A6] text-xs font-bold border border-teal-500/20">
-              Urgency: {report.severity?.urgency_level || "Routine"}
+            <span className="px-3.5 py-1 rounded-full bg-teal-500/10 text-[#0D9488] dark:text-[#14B8A6] text-xs font-bold border border-teal-500/20">
+              Urgency Level: {report.severity?.urgency_level || "Routine"}
             </span>
           </div>
         </div>
@@ -221,22 +230,82 @@ export default function PredictionResultPage({ params }: { params: { id: string 
         </div>
       </div>
 
-      {/* SECTION 2 — Severity Scale Assessment Bar */}
+      {/* SECTION 2 — Structured Patient Symptoms Breakdown */}
+      <div className="card-clinical p-6 flex flex-col gap-4">
+        <h3 className="font-heading text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <Tag className="w-5 h-5 text-[#0D9488]" />
+          <span>Reported Symptoms Breakdown</span>
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Primary Symptom */}
+          <div className="p-4 rounded-2xl bg-teal-500/5 border border-teal-500/20">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 block mb-1">
+              Primary Symptom
+            </span>
+            <span className="text-sm font-bold text-slate-900 dark:text-white">
+              {report.primary_symptom || (report.symptoms_used && report.symptoms_used[0]) || "General Inquiry"}
+            </span>
+          </div>
+
+          {/* Associated Symptoms */}
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+              Associated Symptoms
+            </span>
+            {report.associated_symptoms && report.associated_symptoms.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {report.associated_symptoms.map((sym, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2.5 py-0.5 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium"
+                  >
+                    • {sym}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs text-slate-400">None reported</span>
+            )}
+          </div>
+        </div>
+
+        {/* All Extracted Clinical Symptoms Chips */}
+        {report.symptoms_used && report.symptoms_used.length > 0 && (
+          <div className="mt-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
+              All Extracted Clinical Symptoms:
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {report.symptoms_used.map((sym, idx) => (
+                <span
+                  key={idx}
+                  className="px-3 py-1.5 rounded-xl bg-teal-500/10 text-[#0D9488] dark:text-[#14B8A6] font-bold text-xs border border-teal-500/20"
+                >
+                  #{sym}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SECTION 3 — Severity Scale Assessment Bar */}
       <div className="card-clinical p-6 flex flex-col gap-6">
         <h3 className="font-heading text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <Activity className="w-5 h-5 text-[#0D9488]" />
-          <span>Severity Scale</span>
+          <span>Severity & Urgency Classification</span>
         </h3>
 
         {/* Horizontal 4-Segment Scale Bar */}
         <div className="grid grid-cols-4 gap-2">
           {[
             { label: "Routine", color: "bg-emerald-500", key: "routine" },
-            { label: "Non-Urgent", color: "bg-amber-500", key: "non-urgent" },
+            { label: "Non-Urgent", color: "bg-amber-500", key: "non_urgent" },
             { label: "Urgent", color: "bg-orange-500", key: "urgent" },
             { label: "Emergency", color: "bg-rose-500", key: "emergency" },
           ].map((seg, idx) => {
-            const isActive = severityNorm.includes(seg.key);
+            const isActive = severityNorm.includes(seg.key) || (seg.key === "non_urgent" && severityNorm.includes("non-urgent"));
             return (
               <div key={idx} className="flex flex-col gap-2">
                 <div
@@ -255,7 +324,7 @@ export default function PredictionResultPage({ params }: { params: { id: string 
         {/* Triggered Rules List */}
         {report.triggered_rules && report.triggered_rules.length > 0 && (
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Triggered Clinical Rules:</span>
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Triggered Clinical Indicators:</span>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-400">
               {report.triggered_rules.map((rule, idx) => (
                 <li key={idx} className="flex items-center gap-2">
@@ -267,12 +336,12 @@ export default function PredictionResultPage({ params }: { params: { id: string 
         )}
       </div>
 
-      {/* SECTION 3 — Differential Diagnosis Table */}
+      {/* SECTION 4 — Differential Diagnoses Table */}
       {report.differential && report.differential.length > 0 && (
         <div className="card-clinical p-6 flex flex-col gap-4">
           <h3 className="font-heading text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#0D9488]" />
-            <span>Differential Diagnoses</span>
+            <span>Differential Condition Mappings</span>
           </h3>
 
           <div className="overflow-x-auto">
@@ -285,13 +354,15 @@ export default function PredictionResultPage({ params }: { params: { id: string 
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
                 {report.differential.map((d, i) => {
-                  const confVal = Math.round(d.confidence > 1 ? d.confidence : d.confidence * 100);
+                  const diseaseName = d.disease_name || d.disease || "Condition";
+                  const rawScore = d.confidence_score ?? d.confidence ?? 0.5;
+                  const confVal = Math.round(rawScore > 1 ? rawScore : rawScore * 100);
                   const isTop = i === 0;
                   return (
                     <tr key={i} className={isTop ? "bg-teal-500/5 font-bold" : "hover:bg-slate-50 dark:hover:bg-slate-900/50"}>
                       <td className="py-3.5 px-4 text-slate-900 dark:text-slate-100 flex items-center gap-2">
                         {isTop && <span className="w-2 h-2 rounded-full bg-[#0D9488]" />}
-                        {d.disease}
+                        {diseaseName}
                       </td>
                       <td className="py-3.5 px-4 w-48">
                         <div className="flex items-center gap-2">
@@ -310,7 +381,7 @@ export default function PredictionResultPage({ params }: { params: { id: string 
         </div>
       )}
 
-      {/* SECTION 4 — Specialist Recommendation Card */}
+      {/* SECTION 5 — Specialist Recommendation Card */}
       {report.specialist && (
         <div className="card-clinical p-6 bg-gradient-to-r from-teal-500/10 via-slate-50 to-slate-50 dark:from-teal-950/30 dark:to-slate-900 flex flex-col sm:flex-row items-center justify-between gap-6 border-2 border-teal-500/20">
           <div className="flex items-center gap-4">
@@ -325,7 +396,7 @@ export default function PredictionResultPage({ params }: { params: { id: string 
                 {report.specialist.specialist || "General Physician"}
               </h4>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                {report.specialist.reason || "Evaluation with a specialist is advised for definitive diagnosis."}
+                {report.specialist.reason || "Outpatient clinical consultation advised."}
               </p>
             </div>
           </div>
@@ -337,26 +408,6 @@ export default function PredictionResultPage({ params }: { params: { id: string 
             <span>Find Nearby Hospitals</span>
             <ChevronRight className="w-4 h-4" />
           </Link>
-        </div>
-      )}
-
-      {/* SECTION 5 — Extracted Symptoms Chips */}
-      {report.symptoms_used && report.symptoms_used.length > 0 && (
-        <div className="card-clinical p-6 flex flex-col gap-3">
-          <h3 className="font-heading text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Tag className="w-4 h-4 text-[#0D9488]" />
-            <span>Extracted Clinical Symptoms</span>
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {report.symptoms_used.map((sym, idx) => (
-              <span
-                key={idx}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-mono text-xs border border-slate-200 dark:border-slate-800"
-              >
-                #{sym.replace(/_/g, " ")}
-              </span>
-            ))}
-          </div>
         </div>
       )}
     </div>

@@ -23,11 +23,13 @@ class Hospital(Base):
     state: Mapped[str | None] = mapped_column(String(100), nullable=True)
     latitude: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
     longitude: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
-    phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     website: Mapped[str | None] = mapped_column(Text, nullable=True)
     google_maps_url: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # Google Places rating
     rating: Mapped[float | None] = mapped_column(Numeric(3, 1), nullable=True)
+    hospital_type: Mapped[str | None] = mapped_column(String(50), nullable=True, default="Private")
+    specialties: Mapped[str | None] = mapped_column(Text, nullable=True, default="General Medicine")
+    has_emergency_room: Mapped[bool] = mapped_column(default=True)
 
     recommendations: Mapped[list["HospitalRecommendation"]] = relationship(
         "HospitalRecommendation", back_populates="hospital"

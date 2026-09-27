@@ -14,6 +14,7 @@ from app.models.prediction import (
 from app.models.hospital import Hospital, HospitalRecommendation
 from app.models.scheme import GovernmentScheme, SchemeQuery
 from app.models.record import MedicalRecord
+from app.models.document import UploadedDocument
 from app.models.audit import GuardrailLog, ActivityLog
 
 __all__ = [
@@ -33,6 +34,7 @@ __all__ = [
     "GovernmentScheme",
     "SchemeQuery",
     "MedicalRecord",
+    "UploadedDocument",
     "GuardrailLog",
     "ActivityLog",
 ]

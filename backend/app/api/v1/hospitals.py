@@ -38,5 +38,10 @@ async def get_hospital_by_id(
         "longitude": float(hosp.longitude) if hosp.longitude else None,
         "phone": hosp.phone,
         "website": hosp.website,
+        "google_maps_url": hosp.google_maps_url,
         "rating": float(hosp.rating) if hosp.rating else None,
+        "hospital_type": hosp.hospital_type,
+        "specialties": [s.strip() for s in hosp.specialties.split(",")] if hosp.specialties else [],
+        "has_emergency_room": hosp.has_emergency_room,
     }
+
