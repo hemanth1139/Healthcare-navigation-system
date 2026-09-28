@@ -110,7 +110,7 @@ class RecordService:
             cloudinary_public_id=public_id,
             category=record_type or "Medical Report",
             is_pii_redacted=True,
-            fhir_resource=summary_text
+            fhir_resource=scrubbed_text
         )
         db.add(rec)
         await db.commit()

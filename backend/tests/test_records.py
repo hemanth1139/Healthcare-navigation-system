@@ -9,16 +9,23 @@ from app.main import app
 pytestmark = pytest.mark.asyncio
 
 
+import uuid
+
 async def _get_auth_headers_and_profile(ac: AsyncClient) -> dict:
     """Helper to register user, log in, create patient profile, and return auth header."""
+    rand = uuid.uuid4().hex[:6]
     reg_payload = {
         "fullName": "Record Verification User",
-        "email": "records@example.com",
-        "phone": "+15555556666",
+        "email": f"records_{rand}@example.com",
+        "phone": f"+1555{rand[:7]}",
         "password": "recordtestpassword123",
     }
     res = await ac.post("/api/v1/auth/register", json=reg_payload)
-    token = res.json()["tokens"]["accessToken"]
+    if res.status_code == 201:
+        token = res.json()["tokens"]["accessToken"]
+    else:
+        res_log = await ac.post("/api/v1/auth/login", json={"email": reg_payload["email"], "password": "recordtestpassword123"})
+        token = res_log.json()["tokens"]["accessToken"]
     headers = {"Authorization": f"Bearer {token}"}
     
     # Create profile

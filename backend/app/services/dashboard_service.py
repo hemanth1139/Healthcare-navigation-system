@@ -248,7 +248,7 @@ class DashboardService:
 
         # Total active government schemes
         tot_schemes_res = await db.execute(select(func.count(GovernmentScheme.scheme_id)))
-        active_schemes_count = tot_schemes_res.scalar() or 40
+        active_schemes_count = int(tot_schemes_res.scalar() or 0)
 
         # Total schemes checked
         tot_sq_res = await db.execute(

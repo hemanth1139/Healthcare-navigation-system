@@ -178,59 +178,151 @@ def _classify_query_type(query_text: str, scoped_scheme_id: Optional[str] = None
     return "PERSONAL_ELIGIBILITY"
 
 
+# ─── Comprehensive 20 Supported Schemes Map ───────────────────────────────────
+ALL_SCHEMES_MAP = {
+    # Central Government Schemes (11)
+    "scheme_C01": {
+        "id": "scheme_C01",
+        "name": "Ayushman Bharat – Pradhan Mantri Jan Arogya Yojana (AB-PMJAY)",
+        "url": "https://pmjay.gov.in/",
+        "aliases": ["pm-jay", "pmjay", "ab-pmjay", "ab pmjay", "ayushman bharat", "jan arogya", "pm jay"]
+    },
+    "scheme_C02": {
+        "id": "scheme_C02",
+        "name": "Ayushman Vay Vandana Card (PM-JAY for 70+)",
+        "url": "https://pmjay.gov.in/",
+        "aliases": ["vay vandana", "vaya vandana", "vayavandana", "vayvandana", "70+", "70 plus", "70 or above", "70 years", "senior citizen card", "pmjay 70", "pm-jay 70", "ayushman 70"]
+    },
+    "scheme_C03": {
+        "id": "scheme_C03",
+        "name": "Central Government Health Scheme (CGHS)",
+        "url": "https://cghs.nic.in/",
+        "aliases": ["cghs", "central government health scheme", "central employee health"]
+    },
+    "scheme_C04": {
+        "id": "scheme_C04",
+        "name": "Employees' State Insurance Scheme (ESIS)",
+        "url": "https://www.esic.gov.in/",
+        "aliases": ["esic", "esi scheme", "employees state insurance", "esi hospital"]
+    },
+    "scheme_C05": {
+        "id": "scheme_C05",
+        "name": "Pradhan Mantri Swasthya Suraksha Yojana (PMSSY)",
+        "url": "https://pmssy.mohfw.gov.in/",
+        "aliases": ["pmssy", "swasthya suraksha", "aiims scheme", "tertiary healthcare expansion"]
+    },
+    "scheme_C06": {
+        "id": "scheme_C06",
+        "name": "Rashtriya Arogya Nidhi (RAN)",
+        "url": "https://mohfw.gov.in/",
+        "aliases": ["rashtriya arogya nidhi", "ran", "rare disease fund", "revolving fund financial assistance"]
+    },
+    "scheme_C07": {
+        "id": "scheme_C07",
+        "name": "Janani Suraksha Yojana (JSY)",
+        "url": "https://nhm.gov.in/",
+        "aliases": ["janani suraksha", "jsy", "institutional delivery cash", "maternal health cash"]
+    },
+    "scheme_C08": {
+        "id": "scheme_C08",
+        "name": "Janani Shishu Suraksha Karyakram (JSSK)",
+        "url": "https://nhm.gov.in/",
+        "aliases": ["janani shishu", "jssk", "zero out of pocket delivery", "sick infant care"]
+    },
+    "scheme_C09": {
+        "id": "scheme_C09",
+        "name": "Rashtriya Bal Swasthya Karyakram (RBSK)",
+        "url": "https://rbsk.gov.in/",
+        "aliases": ["rashtriya bal swasthya", "rbsk", "child health screening", "birth defect screening", "4ds screening"]
+    },
+    "scheme_C10": {
+        "id": "scheme_C10",
+        "name": "National Tuberculosis Elimination Program (NTEP)",
+        "url": "https://tbcindia.gov.in/",
+        "aliases": ["tuberculosis", "tb elimination", "ntep", "nikshay", "tb patient nutritional", "nikshay poshan"]
+    },
+    "scheme_C11": {
+        "id": "scheme_C11",
+        "name": "National Programme for Prevention and Control of Cancer, Diabetes, CVD and Stroke (NPCDCS)",
+        "url": "https://main.mohfw.gov.in/",
+        "aliases": ["npcdcs", "cancer diabetes cvd stroke", "ncd screening", "lifestyle disease control"]
+    },
+
+    # Tamil Nadu State Schemes (9)
+    "scheme_TN01": {
+        "id": "scheme_TN01",
+        "name": "Chief Minister Comprehensive Health Insurance Scheme (TN CMCHIS)",
+        "url": "https://cmchistn.com/",
+        "aliases": ["cmchis", "tn cmchis", "chief minister comprehensive", "tamil nadu scheme", "tamilnadu insurance", "kalaignar", "maruthuva kaapeedu", "tn insurance"]
+    },
+    "scheme_TN02": {
+        "id": "scheme_TN02",
+        "name": "Innuyir Kaappom – Nammai Kaakkum 48 (NK48)",
+        "url": "https://cmchistn.com/",
+        "aliases": ["innuyir kaappom", "innuyir", "nammai kaakkum", "nk48", "nk-48", "emergency trauma 48", "accident emergency care tn"]
+    },
+    "scheme_TN03": {
+        "id": "scheme_TN03",
+        "name": "Makkalai Thedi Maruthuvam (MTM)",
+        "url": "https://tnhealth.tn.gov.in/",
+        "aliases": ["makkalai thedi maruthuvam", "makkalai thedi", "mtm", "doorstep healthcare tn", "home delivery medicines tn"]
+    },
+    "scheme_TN04": {
+        "id": "scheme_TN04",
+        "name": "Dr. Muthulakshmi Reddy Maternity Benefit Scheme (MRMBS)",
+        "url": "https://picme.tn.gov.in/",
+        "aliases": ["muthulakshmi reddy", "muthulakshmi", "mrmbs", "maternity benefit scheme tn", "picme", "tamil nadu pregnancy assistance"]
+    },
+    "scheme_TN05": {
+        "id": "scheme_TN05",
+        "name": "Kannoli Thittam (Free Spectacles and Cataract Care)",
+        "url": "https://tnhealth.tn.gov.in/",
+        "aliases": ["kannoli thittam", "kannoli", "free spectacles tn", "cataract surgery tn", "eye screening tn"]
+    },
+    "scheme_TN06": {
+        "id": "scheme_TN06",
+        "name": "Menstrual Hygiene Scheme (Free Sanitary Napkins)",
+        "url": "https://tnhealth.tn.gov.in/",
+        "aliases": ["menstrual hygiene tn", "sanitary napkins tn", "free pads tn", "adolescent girls hygiene tn"]
+    },
+    "scheme_TN07": {
+        "id": "scheme_TN07",
+        "name": "Elderly Health Care and Geriatric Outreach (Tamil Nadu)",
+        "url": "https://tnhealth.tn.gov.in/",
+        "aliases": ["elderly health care tn", "geriatric clinic tn", "senior citizen tn", "elderly care tamil nadu", "geriatric outreach"]
+    },
+    "scheme_TN08": {
+        "id": "scheme_TN08",
+        "name": "Free Dialysis Services at District Hospitals (Tamil Nadu)",
+        "url": "https://tnhealth.tn.gov.in/",
+        "aliases": ["free dialysis tn", "dialysis district hospitals", "kidney failure scheme tn", "renal care tn"]
+    },
+    "scheme_TN09": {
+        "id": "scheme_TN09",
+        "name": "Transgender Health Insurance and Welfare Coverage (Tamil Nadu)",
+        "url": "https://tnhealth.tn.gov.in/",
+        "aliases": ["transgender health insurance", "transgender welfare tn", "gender affirmation tn", "thirunangai scheme"]
+    }
+}
+
+
 def resolve_scheme_context(
     query_text: str,
     scoped_scheme_id: Optional[str] = None,
     vector_store: Optional[VectorStore] = None
 ) -> Tuple[str, str, str]:
     """
-    Deterministically resolves and locks (scheme_id, scheme_name, official_url).
+    Deterministically resolves and locks (scheme_id, scheme_name, official_url) across all 20 supported schemes.
     1. If scoped_scheme_id is provided, match that exact scheme from known schemes / vectorstore.
     2. Otherwise, scan query_text for explicit scheme names, acronyms, or keywords.
-    3. If still unresolved, default to national central scheme.
+    3. If query mentions an unsupported state scheme, flag it without silently switching to PM-JAY.
     """
     q_low = (query_text or "").lower()
 
-    known_schemes = {
-        "scheme_C02": {
-            "id": "scheme_C02",
-            "name": "Ayushman Vay Vandana Card (PM-JAY for 70+)",
-            "url": "https://pmjay.gov.in/",
-            "aliases": [
-                "vay vandana", "vaya vandana", "vayavandana", "vayvandana",
-                "70+", "70 plus", "70 or above", "70 years", "senior citizen card",
-                "pmjay 70", "pm-jay 70", "ayushman 70", "senior citizen"
-            ]
-        },
-        "scheme_TN01": {
-            "id": "scheme_TN01",
-            "name": "Chief Minister Comprehensive Health Insurance Scheme (TN CMCHIS)",
-            "url": "https://cmchistn.com/",
-            "aliases": [
-                "cmchis", "tn cmchis", "chief minister comprehensive", "tamil nadu scheme",
-                "tamilnadu insurance", "kalaignar", "maruthuva kaapeedu"
-            ]
-        },
-        "scheme_C01": {
-            "id": "scheme_C01",
-            "name": "Ayushman Bharat PM-JAY",
-            "url": "https://pmjay.gov.in/",
-            "aliases": [
-                "pm-jay", "pmjay", "ab-pmjay", "ab pmjay", "ayushman bharat", "jan arogya"
-            ]
-        },
-        "scheme_C03": {
-            "id": "scheme_C03",
-            "name": "Central Government Health Scheme (CGHS)",
-            "url": "https://cghs.nic.in/",
-            "aliases": ["cghs", "central government health scheme"]
-        }
-    }
-
-    # 1. If explicit scoped_scheme_id is provided, look up exact metadata
+    # 1. Scoped Scheme ID lookup
     if scoped_scheme_id:
-        if scoped_scheme_id in known_schemes:
-            s = known_schemes[scoped_scheme_id]
+        if scoped_scheme_id in ALL_SCHEMES_MAP:
+            s = ALL_SCHEMES_MAP[scoped_scheme_id]
             return s["id"], s["name"], s["url"]
         if vector_store:
             for doc in vector_store.documents:
@@ -239,30 +331,452 @@ def resolve_scheme_context(
                     return meta.get("scheme_id"), meta.get("scheme_name", "Government Healthcare Scheme"), meta.get("official_url", "https://pmjay.gov.in")
         return scoped_scheme_id, "Government Healthcare Scheme", "https://pmjay.gov.in"
 
-    # 2. Match in query text (prioritize specific sub-schemes like Vay Vandana over generic PM-JAY)
-    for alias in known_schemes["scheme_C02"]["aliases"]:
-        if alias in q_low:
-            s = known_schemes["scheme_C02"]
-            return s["id"], s["name"], s["url"]
+    # 2. Check for unsupported state schemes
+    unsupported_state_keywords = [
+        "karunya", "arogya karnataka", "aarogyasri", "swasthya sathi", "mahatma jyotiba phule",
+        "bhamashah", "chiranjeevi", "mukhyamantri amrutum", "yeshasvini"
+    ]
+    if any(kw in q_low for kw in unsupported_state_keywords):
+        return "SCHEME_NOT_SUPPORTED", "Unsupported State Healthcare Scheme", "https://pmjay.gov.in"
 
-    for alias in known_schemes["scheme_TN01"]["aliases"]:
-        if alias in q_low:
-            s = known_schemes["scheme_TN01"]
-            return s["id"], s["name"], s["url"]
+    # 3. Match in query text against all 20 schemes (order by longest specific alias first)
+    # Check specific sub-schemes / state schemes before generic PM-JAY
+    priority_order = [
+        "scheme_C02", "scheme_TN02", "scheme_TN03", "scheme_TN04", "scheme_TN05",
+        "scheme_TN06", "scheme_TN07", "scheme_TN08", "scheme_TN09", "scheme_C03",
+        "scheme_C04", "scheme_C05", "scheme_C06", "scheme_C07", "scheme_C08",
+        "scheme_C09", "scheme_C10", "scheme_C11", "scheme_TN01", "scheme_C01"
+    ]
 
-    for alias in known_schemes["scheme_C01"]["aliases"]:
-        if alias in q_low:
-            s = known_schemes["scheme_C01"]
-            return s["id"], s["name"], s["url"]
+    for s_id in priority_order:
+        scheme_info = ALL_SCHEMES_MAP[s_id]
+        for alias in scheme_info["aliases"]:
+            if alias in q_low:
+                return scheme_info["id"], scheme_info["name"], scheme_info["url"]
 
-    for alias in known_schemes["scheme_C03"]["aliases"]:
-        if alias in q_low:
-            s = known_schemes["scheme_C03"]
-            return s["id"], s["name"], s["url"]
-
-    # 3. Default fallback
-    default_s = known_schemes["scheme_C01"]
+    # 4. Default fallback: Ayushman Bharat PM-JAY
+    default_s = ALL_SCHEMES_MAP["scheme_C01"]
     return default_s["id"], default_s["name"], default_s["url"]
+
+
+def _evaluate_scheme_criteria(
+    scheme: Dict[str, Any],
+    effective_state: Optional[str],
+    effective_age: Optional[int],
+    effective_income: Optional[float],
+    evidence_sources: Optional[List[Dict[str, Any]]] = None,
+    state_source: str = "OFFICIAL_RULE",
+    age_source: str = "OFFICIAL_RULE",
+    income_source: str = "OFFICIAL_RULE",
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Dynamically evaluates official criteria for a given scheme against patient attributes.
+    Returns (criteria_list, structured_missing_questions).
+    """
+    s_id = scheme.get("scheme_id", "")
+    s_name = scheme.get("scheme_name", "")
+    is_tn = "scheme_TN" in s_id or "Tamil Nadu" in scheme.get("state", "") or scheme.get("category") == "State Government"
+    evidence = (evidence_sources or [])[:1]
+
+    criteria = []
+    missing_questions = []
+
+    # ── 1. Residency Criterion ───────────────────────────────────────────────
+    if is_tn:
+        if effective_state is not None:
+            tn_pass = (effective_state == "Tamil Nadu")
+            criteria.append({
+                "criterion_id": "cr_residency",
+                "criterion_name": "State Residency & Family Card",
+                "criterion_result": "PASS" if tn_pass else "FAIL",
+                "required": True,
+                "patient_value": effective_state,
+                "required_value": "Resident of Tamil Nadu with Family Ration Card",
+                "explanation": f"Resident of {effective_state}. {'Eligible for Tamil Nadu state health cover.' if tn_pass else 'TN state schemes are strictly for Tamil Nadu residents.'}",
+                "source": state_source,
+                "field_key": "state",
+                "question_prompt": "What is your State of residence?",
+                "input_type": "MCQ",
+                "options": ["Tamil Nadu", "Other State/UT"],
+                "supporting_evidence": evidence,
+                "is_missing_info": False,
+            })
+        else:
+            criteria.append({
+                "criterion_id": "cr_residency",
+                "criterion_name": "State Residency & Family Card",
+                "criterion_result": "UNKNOWN",
+                "required": True,
+                "patient_value": None,
+                "required_value": "Resident of Tamil Nadu with Family Ration Card",
+                "explanation": "State residency verification is mandatory for Tamil Nadu state health schemes.",
+                "source": "UNKNOWN",
+                "field_key": "state",
+                "question_prompt": "What is your State of residence?",
+                "input_type": "MCQ",
+                "options": ["Tamil Nadu", "Other State/UT"],
+                "supporting_evidence": evidence,
+                "is_missing_info": True,
+            })
+            missing_questions.append({
+                "criterion_id": "cr_residency",
+                "field_key": "state",
+                "label": "State of Residence",
+                "question": "What is your State of residence?",
+                "input_type": "MCQ",
+                "options": ["Tamil Nadu", "Other State/UT"],
+                "status": "UNKNOWN",
+                "patient_value": None,
+                "source": "UNKNOWN"
+            })
+    else:
+        criteria.append({
+            "criterion_id": "cr_residency",
+            "criterion_name": "Residency & Citizenship",
+            "criterion_result": "PASS",
+            "required": True,
+            "patient_value": effective_state or "Indian Citizen / Resident",
+            "required_value": "Indian Citizen / Resident with Aadhaar",
+            "explanation": "Universal Pan-India coverage with Aadhaar authentication.",
+            "source": state_source if effective_state else "OFFICIAL_RULE",
+            "field_key": "state",
+            "supporting_evidence": evidence,
+            "is_missing_info": False,
+        })
+
+    # ── 2. Age Criterion ─────────────────────────────────────────────────────
+    if s_id == "scheme_C02":  # Ayushman Vay Vandana (70+ only)
+        if effective_age is not None:
+            age_pass = (effective_age >= 70)
+            criteria.append({
+                "criterion_id": "cr_age_limit",
+                "criterion_name": "Age Group (70+ Senior Citizens)",
+                "criterion_result": "PASS" if age_pass else "FAIL",
+                "required": True,
+                "patient_value": f"{effective_age} years old",
+                "required_value": "70 years and above",
+                "explanation": f"Patient age is {effective_age}. {'Satisfies 70+ requirement.' if age_pass else 'Ayushman Vay Vandana requires age 70 or above.'}",
+                "source": age_source,
+                "field_key": "age",
+                "question_prompt": "What is your current age?",
+                "input_type": "NUMBER",
+                "options": [],
+                "supporting_evidence": evidence,
+                "is_missing_info": False,
+            })
+        else:
+            criteria.append({
+                "criterion_id": "cr_age_limit",
+                "criterion_name": "Age Group (70+ Senior Citizens)",
+                "criterion_result": "UNKNOWN",
+                "required": True,
+                "patient_value": None,
+                "required_value": "70 years and above",
+                "explanation": "Age verification is mandatory for Ayushman Vay Vandana (70+).",
+                "source": "UNKNOWN",
+                "field_key": "age",
+                "question_prompt": "What is your current age?",
+                "input_type": "NUMBER",
+                "options": [],
+                "supporting_evidence": evidence,
+                "is_missing_info": True,
+            })
+            missing_questions.append({
+                "criterion_id": "cr_age_limit",
+                "field_key": "age",
+                "label": "Current Age",
+                "question": "What is your current age?",
+                "input_type": "NUMBER",
+                "options": [],
+                "status": "UNKNOWN",
+                "patient_value": None,
+                "source": "UNKNOWN"
+            })
+    elif s_id == "scheme_TN07":  # Elderly Care TN (60+)
+        if effective_age is not None:
+            age_pass = (effective_age >= 60)
+            criteria.append({
+                "criterion_id": "cr_age_limit",
+                "criterion_name": "Senior Citizen Age (60+)",
+                "criterion_result": "PASS" if age_pass else "FAIL",
+                "required": True,
+                "patient_value": f"{effective_age} years old",
+                "required_value": "60 years and above",
+                "explanation": f"Patient age is {effective_age}. {'Satisfies senior citizen age.' if age_pass else 'Requires age 60 or above.'}",
+                "source": age_source,
+                "field_key": "age",
+                "question_prompt": "What is your current age?",
+                "input_type": "NUMBER",
+                "options": [],
+                "supporting_evidence": evidence,
+                "is_missing_info": False,
+            })
+        else:
+            criteria.append({
+                "criterion_id": "cr_age_limit",
+                "criterion_name": "Senior Citizen Age (60+)",
+                "criterion_result": "UNKNOWN",
+                "required": True,
+                "patient_value": None,
+                "required_value": "60 years and above",
+                "explanation": "Age verification is mandatory for Elderly Healthcare outreach.",
+                "source": "UNKNOWN",
+                "field_key": "age",
+                "question_prompt": "What is your current age?",
+                "input_type": "NUMBER",
+                "options": [],
+                "supporting_evidence": evidence,
+                "is_missing_info": True,
+            })
+            missing_questions.append({
+                "criterion_id": "cr_age_limit",
+                "field_key": "age",
+                "label": "Current Age",
+                "question": "What is your current age?",
+                "input_type": "NUMBER",
+                "options": [],
+                "status": "UNKNOWN",
+                "patient_value": None,
+                "source": "UNKNOWN"
+            })
+    elif s_id == "scheme_C09":  # RBSK (0-18 Children)
+        if effective_age is not None:
+            age_pass = (effective_age <= 18)
+            criteria.append({
+                "criterion_id": "cr_age_limit",
+                "criterion_name": "Child Age Group (0–18 years)",
+                "criterion_result": "PASS" if age_pass else "FAIL",
+                "required": True,
+                "patient_value": f"{effective_age} years old",
+                "required_value": "0 to 18 years",
+                "explanation": f"Patient age is {effective_age}. {'Eligible child cohort.' if age_pass else 'RBSK is dedicated to children and adolescents up to 18 years.'}",
+                "source": age_source,
+                "field_key": "age",
+                "supporting_evidence": evidence,
+                "is_missing_info": False,
+            })
+        else:
+            criteria.append({
+                "criterion_id": "cr_age_limit",
+                "criterion_name": "Child Age Group (0–18 years)",
+                "criterion_result": "PASS",
+                "required": False,
+                "patient_value": None,
+                "required_value": "0 to 18 years",
+                "explanation": "Child screening program for age 0-18.",
+                "source": "OFFICIAL_RULE",
+                "field_key": "age",
+                "supporting_evidence": evidence,
+                "is_missing_info": False,
+            })
+    else:
+        criteria.append({
+            "criterion_id": "cr_age_limit",
+            "criterion_name": "Age Group",
+            "criterion_result": "PASS",
+            "required": True,
+            "patient_value": f"{effective_age} years old" if effective_age is not None else "All Ages",
+            "required_value": "All Ages Eligible",
+            "explanation": "Universal age coverage for eligible family members.",
+            "source": age_source if effective_age is not None else "OFFICIAL_RULE",
+            "field_key": "age",
+            "supporting_evidence": evidence,
+            "is_missing_info": False,
+        })
+
+    # ── 3. Income / Socio-Economic Criterion ─────────────────────────────────
+    if s_id in ["scheme_C02", "scheme_TN02", "scheme_TN03", "scheme_TN05", "scheme_TN06", "scheme_TN07", "scheme_TN08", "scheme_C05", "scheme_C07", "scheme_C08", "scheme_C10", "scheme_C11"]:
+        # Universal schemes with no income ceiling
+        criteria.append({
+            "criterion_id": "cr_income_doc",
+            "criterion_name": "Income / Socio-Economic Category",
+            "criterion_result": "NOT_REQUIRED",
+            "required": False,
+            "patient_value": None,
+            "required_value": "No income ceiling (Universal public health scheme)",
+            "explanation": f"{s_name} is a universal public health scheme with no family income ceiling.",
+            "source": "OFFICIAL_RULE",
+            "field_key": "annual_income",
+            "supporting_evidence": evidence,
+            "is_missing_info": False,
+        })
+    elif s_id == "scheme_TN01":  # TN CMCHIS: Income ceiling <= 1.2 Lakh
+        if effective_income is not None:
+            inc_pass = (effective_income <= 120000.0)
+            criteria.append({
+                "criterion_id": "cr_income_doc",
+                "criterion_name": "Income / Socio-Economic Category",
+                "criterion_result": "PASS" if inc_pass else "FAIL",
+                "required": True,
+                "patient_value": f"₹{int(effective_income):,} / year" if effective_income > 50000 else "BPL / Ration Card",
+                "required_value": "Annual income ≤ ₹1,20,000 / year",
+                "explanation": f"Annual family income of ₹{int(effective_income):,} is {'within' if inc_pass else 'exceeds'} the ₹1,20,000 ceiling.",
+                "source": income_source,
+                "field_key": "annual_income",
+                "question_prompt": "What is your approximate annual household income?",
+                "input_type": "MCQ",
+                "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
+                "supporting_evidence": evidence,
+                "is_missing_info": False,
+            })
+        else:
+            criteria.append({
+                "criterion_id": "cr_income_doc",
+                "criterion_name": "Income / Socio-Economic Category",
+                "criterion_result": "UNKNOWN",
+                "required": True,
+                "patient_value": None,
+                "required_value": "Annual income ≤ ₹1,20,000 / year",
+                "explanation": "Income verification required via official ration card or VAO certificate.",
+                "source": "UNKNOWN",
+                "field_key": "annual_income",
+                "question_prompt": "What is your approximate annual household income?",
+                "input_type": "MCQ",
+                "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
+                "supporting_evidence": evidence,
+                "is_missing_info": True,
+            })
+            missing_questions.append({
+                "criterion_id": "cr_income_doc",
+                "field_key": "annual_income",
+                "label": "Annual Household Income",
+                "question": "What is your approximate annual household income?",
+                "input_type": "MCQ",
+                "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
+                "status": "UNKNOWN",
+                "patient_value": None,
+                "source": "UNKNOWN"
+            })
+    elif s_id == "scheme_C06":  # RAN: BPL Category only
+        if effective_income is not None:
+            inc_pass = (effective_income <= 120000.0)
+            criteria.append({
+                "criterion_id": "cr_income_doc",
+                "criterion_name": "Income Limit (BPL Category)",
+                "criterion_result": "PASS" if inc_pass else "FAIL",
+                "required": True,
+                "patient_value": f"₹{int(effective_income):,} / year",
+                "required_value": "BPL Category (≤ ₹1,20,000 / year)",
+                "explanation": f"Income is {'within' if inc_pass else 'exceeds'} BPL threshold.",
+                "source": income_source,
+                "field_key": "annual_income",
+                "supporting_evidence": evidence,
+                "is_missing_info": False,
+            })
+        else:
+            criteria.append({
+                "criterion_id": "cr_income_doc",
+                "criterion_name": "Income Limit (BPL Category)",
+                "criterion_result": "UNKNOWN",
+                "required": True,
+                "patient_value": None,
+                "required_value": "BPL Category (≤ ₹1,20,000 / year)",
+                "explanation": "BPL documentation is mandatory for financial assistance under RAN.",
+                "source": "UNKNOWN",
+                "field_key": "annual_income",
+                "supporting_evidence": evidence,
+                "is_missing_info": True,
+            })
+            missing_questions.append({
+                "criterion_id": "cr_income_doc",
+                "field_key": "annual_income",
+                "label": "Annual Household Income",
+                "question": "What is your approximate annual household income?",
+                "input_type": "MCQ",
+                "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
+                "status": "UNKNOWN",
+                "patient_value": None,
+                "source": "UNKNOWN"
+            })
+    elif s_id == "scheme_C01":  # PM-JAY: SECC 2011 / Deprivation limit ~5 Lakh
+        if effective_income is not None:
+            inc_pass = (effective_income <= 500000.0)
+            criteria.append({
+                "criterion_id": "cr_income_doc",
+                "criterion_name": "Socio-Economic / Deprivation Category",
+                "criterion_result": "PASS" if inc_pass else "FAIL",
+                "required": True,
+                "patient_value": f"₹{int(effective_income):,} / year" if effective_income > 50000 else "BPL / SECC Listing",
+                "required_value": "SECC 2011 / BPL / Low Income Category",
+                "explanation": f"Income of ₹{int(effective_income):,} {'aligns with' if inc_pass else 'exceeds'} PM-JAY target criteria.",
+                "source": income_source,
+                "field_key": "annual_income",
+                "question_prompt": "Do you hold a BPL Ration Card, or are you listed in the SECC 2011 database?",
+                "input_type": "MCQ",
+                "options": ["Yes, BPL Ration Card / Low Income", "Listed in SECC 2011 Beneficiary List", "Above poverty line / Not BPL", "Not sure / Need to check"],
+                "supporting_evidence": evidence,
+                "is_missing_info": False,
+            })
+        else:
+            criteria.append({
+                "criterion_id": "cr_income_doc",
+                "criterion_name": "Socio-Economic / Deprivation Category",
+                "criterion_result": "UNKNOWN",
+                "required": True,
+                "patient_value": None,
+                "required_value": "SECC 2011 / BPL / Low Income Category",
+                "explanation": "Socio-economic verification required via official SECC listing or Ration Card.",
+                "source": "UNKNOWN",
+                "field_key": "annual_income",
+                "question_prompt": "Do you hold a BPL Ration Card, or are you listed in the SECC 2011 database?",
+                "input_type": "MCQ",
+                "options": ["Yes, BPL Ration Card / Low Income", "Listed in SECC 2011 Beneficiary List", "Above poverty line / Not BPL", "Not sure / Need to check"],
+                "supporting_evidence": evidence,
+                "is_missing_info": True,
+            })
+            missing_questions.append({
+                "criterion_id": "cr_income_doc",
+                "field_key": "annual_income",
+                "label": "Annual Household Income",
+                "question": "Do you hold a BPL Ration Card, or are you listed in the SECC 2011 database?",
+                "input_type": "MCQ",
+                "options": ["Yes, BPL Ration Card / Low Income", "Listed in SECC 2011 Beneficiary List", "Above poverty line / Not BPL", "Not sure / Need to check"],
+                "status": "UNKNOWN",
+                "patient_value": None,
+                "source": "UNKNOWN"
+            })
+    else:
+        if effective_income is not None:
+            criteria.append({
+                "criterion_id": "cr_income_doc",
+                "criterion_name": "Income / Benefit Category",
+                "criterion_result": "PASS",
+                "required": True,
+                "patient_value": f"₹{int(effective_income):,} / year",
+                "required_value": "General / Targeted Healthcare Beneficiary",
+                "explanation": "Income parameters verified against scheme guidelines.",
+                "source": income_source,
+                "field_key": "annual_income",
+                "supporting_evidence": evidence,
+                "is_missing_info": False,
+            })
+        else:
+            criteria.append({
+                "criterion_id": "cr_income_doc",
+                "criterion_name": "Income / Benefit Category",
+                "criterion_result": "UNKNOWN",
+                "required": True,
+                "patient_value": None,
+                "required_value": "General / Targeted Healthcare Beneficiary",
+                "explanation": "Income parameters required for complete assessment.",
+                "source": "UNKNOWN",
+                "field_key": "annual_income",
+                "supporting_evidence": evidence,
+                "is_missing_info": True,
+            })
+            missing_questions.append({
+                "criterion_id": "cr_income_doc",
+                "field_key": "annual_income",
+                "label": "Annual Household Income",
+                "question": "What is your approximate annual household income?",
+                "input_type": "MCQ",
+                "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
+                "status": "UNKNOWN",
+                "patient_value": None,
+                "source": "UNKNOWN"
+            })
+
+    return criteria, missing_questions
 
 
 class RAGPipeline:
@@ -289,14 +803,14 @@ class RAGPipeline:
 
         # ─── WORKFLOW 0: MULTI-SCHEME ELIGIBILITY QUERY ───────────────────────
         if query_type == "MULTI_SCHEME_ELIGIBILITY_QUERY":
-            # 1. Extract demographic intake values
+            # 1. Extract demographic intake values (priority: additional_info -> patient_context -> query_text)
             p_state_raw = (patient_context.get("state") if patient_context else "")
             provided_state_raw = additional_info.get("state") if additional_info else None
-            effective_state = _parse_state_val(provided_state_raw) or _parse_state_val(p_state_raw)
+            effective_state = _parse_state_val(provided_state_raw) or _parse_state_val(p_state_raw) or _parse_state_val(query_text)
 
             p_age_raw = patient_context.get("age") if patient_context else None
             provided_age_raw = additional_info.get("age") if additional_info else None
-            effective_age = _parse_age_val(provided_age_raw) or _parse_age_val(p_age_raw)
+            effective_age = _parse_age_val(provided_age_raw) or _parse_age_val(p_age_raw) or _parse_age_val(query_text)
 
             provided_income_raw = None
             if additional_info:
@@ -306,6 +820,8 @@ class RAGPipeline:
                         break
             if not provided_income_raw and patient_context and patient_context.get("annual_income"):
                 provided_income_raw = patient_context.get("annual_income")
+            if not provided_income_raw and any(term in q_lower for term in ["my income", "income is", "i earn", "family income", "earning", "lakh", "salary"]):
+                provided_income_raw = query_text
 
             effective_income = _parse_income_val(provided_income_raw)
 
@@ -385,7 +901,7 @@ class RAGPipeline:
                     }
                 }
 
-            # 2. All 3 demographics provided -> Evaluate ALL 20 supported schemes individually
+            # 2. All 3 demographics provided -> Evaluate ALL supported schemes dynamically
             all_schemes = _load_all_schemes()
             evaluated_schemes = []
 
@@ -395,159 +911,16 @@ class RAGPipeline:
                 s_url = s.get("official_url", "https://pmjay.gov.in")
                 is_tn = "scheme_TN" in s_id or s.get("category") == "State Government" or "Tamil Nadu" in s.get("state", "")
 
-                s_criteria = []
-
-                # Criterion 1: Residency
-                if is_tn:
-                    tn_pass = (effective_state == "Tamil Nadu")
-                    s_criteria.append({
-                        "criterion_id": "cr_residency",
-                        "criterion_name": "State Residency & Family Card",
-                        "criterion_result": "PASS" if tn_pass else "FAIL",
-                        "required": True,
-                        "patient_value": effective_state,
-                        "required_value": "Resident of Tamil Nadu with Family Ration Card",
-                        "explanation": f"Resident of {effective_state}. {'Eligible for Tamil Nadu state health cover.' if tn_pass else 'TN state schemes are strictly for Tamil Nadu residents.'}",
-                        "source": "OFFICIAL_RULE",
-                        "field_key": "state",
-                        "supporting_evidence": [],
-                        "is_missing_info": False,
-                    })
-                else:
-                    s_criteria.append({
-                        "criterion_id": "cr_residency",
-                        "criterion_name": "Residency & Citizenship",
-                        "criterion_result": "PASS",
-                        "required": True,
-                        "patient_value": effective_state or "Indian Citizen / Resident",
-                        "required_value": "Indian Citizen / Resident with Aadhaar",
-                        "explanation": "Universal Pan-India coverage with Aadhaar authentication.",
-                        "source": "OFFICIAL_RULE",
-                        "field_key": "state",
-                        "supporting_evidence": [],
-                        "is_missing_info": False,
-                    })
-
-                # Criterion 2: Age
-                if s_id == "scheme_C02":  # Ayushman Vay Vandana 70+
-                    age_pass = (effective_age >= 70)
-                    s_criteria.append({
-                        "criterion_id": "cr_age_limit",
-                        "criterion_name": "Age Group (70+ Senior Citizens)",
-                        "criterion_result": "PASS" if age_pass else "FAIL",
-                        "required": True,
-                        "patient_value": f"{effective_age} years old",
-                        "required_value": "70 years and above",
-                        "explanation": f"Patient age is {effective_age}. {'Satisfies 70+ requirement.' if age_pass else 'Requires age 70 or above.'}",
-                        "source": "OFFICIAL_RULE",
-                        "field_key": "age",
-                        "supporting_evidence": [],
-                        "is_missing_info": False,
-                    })
-                elif s_id == "scheme_TN07":  # Elderly scheme (60+)
-                    age_pass = (effective_age >= 60)
-                    s_criteria.append({
-                        "criterion_id": "cr_age_limit",
-                        "criterion_name": "Senior Citizen Age (60+)",
-                        "criterion_result": "PASS" if age_pass else "FAIL",
-                        "required": True,
-                        "patient_value": f"{effective_age} years old",
-                        "required_value": "60 years and above",
-                        "explanation": f"Patient age is {effective_age}. {'Satisfies senior citizen age.' if age_pass else 'Requires age 60 or above.'}",
-                        "source": "OFFICIAL_RULE",
-                        "field_key": "age",
-                        "supporting_evidence": [],
-                        "is_missing_info": False,
-                    })
-                else:
-                    s_criteria.append({
-                        "criterion_id": "cr_age_limit",
-                        "criterion_name": "Age Group",
-                        "criterion_result": "PASS",
-                        "required": True,
-                        "patient_value": f"{effective_age} years old",
-                        "required_value": "All Ages Eligible",
-                        "explanation": "Universal age coverage for eligible family members.",
-                        "source": "OFFICIAL_RULE",
-                        "field_key": "age",
-                        "supporting_evidence": [],
-                        "is_missing_info": False,
-                    })
-
-                # Criterion 3: Income / Socio-Economic Category
-                if s_id == "scheme_TN01":  # TN CMCHIS: <= 1.2 Lakh
-                    inc_pass = (effective_income <= 120000.0)
-                    s_criteria.append({
-                        "criterion_id": "cr_income_doc",
-                        "criterion_name": "Income / Socio-Economic Category",
-                        "criterion_result": "PASS" if inc_pass else "FAIL",
-                        "required": True,
-                        "patient_value": f"₹{int(effective_income):,} / year" if effective_income > 50000 else "BPL / Ration Card",
-                        "required_value": "Annual income ≤ ₹1,20,000 / year",
-                        "explanation": f"Annual family income of ₹{int(effective_income):,} is {'within' if inc_pass else 'exceeds'} the ₹1,20,000 ceiling.",
-                        "source": "OFFICIAL_RULE",
-                        "field_key": "annual_income",
-                        "supporting_evidence": [],
-                        "is_missing_info": False,
-                    })
-                elif s_id == "scheme_C01":  # AB-PMJAY
-                    inc_pass = (effective_income <= 500000.0)
-                    s_criteria.append({
-                        "criterion_id": "cr_income_doc",
-                        "criterion_name": "Socio-Economic / Deprivation Category",
-                        "criterion_result": "PASS" if inc_pass else "FAIL",
-                        "required": True,
-                        "patient_value": f"₹{int(effective_income):,} / year" if effective_income > 50000 else "BPL / SECC Listing",
-                        "required_value": "SECC 2011 / BPL / Low Income Category",
-                        "explanation": f"Income of ₹{int(effective_income):,} aligns with PM-JAY target criteria.",
-                        "source": "OFFICIAL_RULE",
-                        "field_key": "annual_income",
-                        "supporting_evidence": [],
-                        "is_missing_info": False,
-                    })
-                elif s_id in ["scheme_C02", "scheme_TN05", "scheme_TN06"]:
-                    s_criteria.append({
-                        "criterion_id": "cr_income_doc",
-                        "criterion_name": "Income / Socio-Economic Category",
-                        "criterion_result": "NOT_REQUIRED",
-                        "required": False,
-                        "patient_value": None,
-                        "required_value": "No income ceiling (Universal)",
-                        "explanation": "Universal scheme with no income ceiling.",
-                        "source": "OFFICIAL_RULE",
-                        "field_key": "annual_income",
-                        "supporting_evidence": [],
-                        "is_missing_info": False,
-                    })
-                elif s_id == "scheme_C06":  # RAN (BPL only)
-                    inc_pass = (effective_income <= 120000.0)
-                    s_criteria.append({
-                        "criterion_id": "cr_income_doc",
-                        "criterion_name": "Income Limit (BPL Category)",
-                        "criterion_result": "PASS" if inc_pass else "FAIL",
-                        "required": True,
-                        "patient_value": f"₹{int(effective_income):,} / year",
-                        "required_value": "BPL Category (≤ ₹1,20,000 / year)",
-                        "explanation": f"Income is {'within' if inc_pass else 'exceeds'} BPL threshold.",
-                        "source": "OFFICIAL_RULE",
-                        "field_key": "annual_income",
-                        "supporting_evidence": [],
-                        "is_missing_info": False,
-                    })
-                else:
-                    s_criteria.append({
-                        "criterion_id": "cr_income_doc",
-                        "criterion_name": "Income / Benefit Category",
-                        "criterion_result": "PASS",
-                        "required": True,
-                        "patient_value": f"₹{int(effective_income):,} / year",
-                        "required_value": "General / Targeted Healthcare Beneficiary",
-                        "explanation": "Income parameters verified.",
-                        "source": "OFFICIAL_RULE",
-                        "field_key": "annual_income",
-                        "supporting_evidence": [],
-                        "is_missing_info": False,
-                    })
+                s_criteria, _ = _evaluate_scheme_criteria(
+                    scheme=s,
+                    effective_state=effective_state,
+                    effective_age=effective_age,
+                    effective_income=effective_income,
+                    evidence_sources=[],
+                    state_source="USER_PROVIDED_DURING_INTAKE",
+                    age_source="USER_PROVIDED_DURING_INTAKE",
+                    income_source="USER_PROVIDED_DURING_INTAKE"
+                )
 
                 # Compute Criteria Match % for this scheme (Excludes NOT_REQUIRED)
                 applicable = [c for c in s_criteria if c.get("required", True) and c["criterion_result"] != "NOT_REQUIRED"]
@@ -582,11 +955,15 @@ class RAGPipeline:
             top_scheme = evaluated_schemes[0] if evaluated_schemes else None
             top_scheme_id = top_scheme["scheme_id"] if top_scheme else "scheme_TN01"
 
+            total_schemes_count = len(all_schemes)
+            tn_schemes_count = sum(1 for s in all_schemes if "TN" in s.get("scheme_id", "") or "Tamil Nadu" in s.get("state", ""))
+            central_schemes_count = total_schemes_count - tn_schemes_count
+
             eligible_names = [f"**{s['scheme_name']}** ({s['match_percentage']}% Match)" for s in eligible_schemes[:5]]
             summary_text = (
                 f"Based on your demographic details (State: {effective_state}, Age: {effective_age}, "
-                f"Income: ₹{int(effective_income):,}/year), we evaluated all 20 supported healthcare schemes "
-                f"(9 Tamil Nadu + 11 Central Government). You qualify for {len(eligible_schemes)} scheme(s): {', '.join(eligible_names)}."
+                f"Income: ₹{int(effective_income):,}/year), we evaluated all {total_schemes_count} supported healthcare schemes "
+                f"({tn_schemes_count} Tamil Nadu + {central_schemes_count} Central Government). You qualify for {len(eligible_schemes)} scheme(s): {', '.join(eligible_names)}."
             )
 
             # Build retrieved chunks for top matched schemes
@@ -891,249 +1268,25 @@ class RAGPipeline:
             "USER_PROVIDED_DURING_INTERVIEW" if provided_income_raw is not None else "UNKNOWN"
         )
 
-        is_70_plus_scheme = "70" in top_scheme_name or "Vay Vandana" in top_scheme_name or "vaya" in q_lower or top_scheme_id == "scheme_C02"
-        is_tn_scheme = "scheme_TN" in top_scheme_id or "Tamil Nadu" in top_scheme_name or "CMCHIS" in top_scheme_name
+        # Lookup resolved scheme data
+        all_schemes = _load_all_schemes()
+        target_scheme = next((s for s in all_schemes if s.get("scheme_id") == top_scheme_id), {
+            "scheme_id": top_scheme_id,
+            "scheme_name": top_scheme_name,
+            "official_url": top_scheme_url,
+            "state": "Tamil Nadu" if "TN" in str(top_scheme_id) else "Central / All India"
+        })
 
-        criteria = []
-        structured_missing_questions: List[Dict[str, Any]] = []
-
-        # 1. Scheme-Specific Age Criterion
-        if is_70_plus_scheme:
-            if effective_age is not None:
-                age_pass = effective_age >= 70
-                criteria.append({
-                    "criterion_id": "cr_age_limit",
-                    "criterion_name": "Age Group (70+ Senior Citizens)",
-                    "criterion_result": "PASS" if age_pass else "FAIL",
-                    "required": True,
-                    "patient_value": f"{effective_age} years old",
-                    "required_value": "70 years and above",
-                    "explanation": f"Applicant age of {effective_age} {'satisfies' if age_pass else 'does not satisfy'} the mandatory 70+ age threshold for Ayushman Vay Vandana Card.",
-                    "source": age_source,
-                    "field_key": "age",
-                    "question_prompt": "What is your current age?",
-                    "input_type": "NUMBER",
-                    "options": [],
-                    "supporting_evidence": evidence_sources[:1],
-                    "is_missing_info": False,
-                })
-            else:
-                criteria.append({
-                    "criterion_id": "cr_age_limit",
-                    "criterion_name": "Age Group (70+ Senior Citizens)",
-                    "criterion_result": "UNKNOWN",
-                    "required": True,
-                    "patient_value": None,
-                    "required_value": "70 years and above",
-                    "explanation": "Age verification is mandatory for Ayushman Vay Vandana Card.",
-                    "source": "UNKNOWN",
-                    "field_key": "age",
-                    "question_prompt": "What is your current age?",
-                    "input_type": "NUMBER",
-                    "options": [],
-                    "supporting_evidence": evidence_sources[:1],
-                    "is_missing_info": True,
-                })
-                structured_missing_questions.append({
-                    "criterion_id": "cr_age_limit",
-                    "field_key": "age",
-                    "label": "Current Age",
-                    "question": "What is your current age?",
-                    "input_type": "NUMBER",
-                    "options": [],
-                    "status": "UNKNOWN",
-                    "patient_value": None,
-                    "source": "UNKNOWN"
-                })
-
-            # Income is NOT_REQUIRED for 70+ Universal Scheme
-            criteria.append({
-                "criterion_id": "cr_income_doc",
-                "criterion_name": "Income / Socio-Economic Category",
-                "criterion_result": "NOT_REQUIRED",
-                "required": False,
-                "patient_value": None,
-                "required_value": "No income ceiling for Senior Citizens aged 70+",
-                "explanation": "Ayushman Vay Vandana is universal for all citizens aged 70+ regardless of family income or economic status.",
-                "source": "OFFICIAL_RULE",
-                "field_key": "annual_income",
-                "supporting_evidence": evidence_sources[:1],
-                "is_missing_info": False,
-            })
-
-            # Residency for Pan-India central 70+ scheme
-            criteria.append({
-                "criterion_id": "cr_residency",
-                "criterion_name": "Residency & Citizenship",
-                "criterion_result": "PASS",
-                "required": True,
-                "patient_value": effective_state or "Indian Citizen / Resident",
-                "required_value": "Indian Citizen / Resident with Aadhaar",
-                "explanation": "Universal pan-India coverage across all states with Aadhaar authentication.",
-                "source": state_source if effective_state else "OFFICIAL_RULE",
-                "field_key": "state",
-                "supporting_evidence": evidence_sources[:1],
-                "is_missing_info": False,
-            })
-
-        elif is_tn_scheme:
-            # TN CMCHIS: State residency and Income are required
-            if effective_state is not None:
-                state_pass = effective_state == "Tamil Nadu"
-                criteria.append({
-                    "criterion_id": "cr_residency",
-                    "criterion_name": "Residency & Citizenship",
-                    "criterion_result": "PASS" if state_pass else "FAIL",
-                    "required": True,
-                    "patient_value": effective_state,
-                    "required_value": "Resident of Tamil Nadu with valid Family Ration Card",
-                    "explanation": f"Applicant resides in {effective_state}. {'Eligible for TN CMCHIS state cover.' if state_pass else 'TN CMCHIS is strictly limited to residents of Tamil Nadu.'}",
-                    "source": state_source,
-                    "field_key": "state",
-                    "question_prompt": "What is your current state/UT of residence?",
-                    "input_type": "MCQ",
-                    "options": ["Tamil Nadu", "Other State/UT"],
-                    "supporting_evidence": evidence_sources[:1],
-                    "is_missing_info": False,
-                })
-            else:
-                criteria.append({
-                    "criterion_id": "cr_residency",
-                    "criterion_name": "Residency & Citizenship",
-                    "criterion_result": "UNKNOWN",
-                    "required": True,
-                    "patient_value": None,
-                    "required_value": "Resident of Tamil Nadu with valid Family Ration Card",
-                    "explanation": "State residency is required to access state-funded CMCHIS benefits.",
-                    "source": "UNKNOWN",
-                    "field_key": "state",
-                    "question_prompt": "What is your current state/UT of residence?",
-                    "input_type": "MCQ",
-                    "options": ["Tamil Nadu", "Other State/UT"],
-                    "supporting_evidence": evidence_sources[:1],
-                    "is_missing_info": True,
-                })
-                structured_missing_questions.append({
-                    "criterion_id": "cr_residency",
-                    "field_key": "state",
-                    "label": "State / UT of Residence",
-                    "question": "What is your current state/UT of residence?",
-                    "input_type": "MCQ",
-                    "options": ["Tamil Nadu", "Other State/UT"],
-                    "status": "UNKNOWN",
-                    "patient_value": None,
-                    "source": "UNKNOWN"
-                })
-
-            income_limit = 120000.0  # ₹1.2 Lakh / annum
-            if effective_income is not None:
-                inc_pass = effective_income <= income_limit
-                criteria.append({
-                    "criterion_id": "cr_income_doc",
-                    "criterion_name": "Income / Socio-Economic Category",
-                    "criterion_result": "PASS" if inc_pass else "FAIL",
-                    "required": True,
-                    "patient_value": f"₹{int(effective_income):,} / year" if effective_income > 50000 else "BPL / Low Income Category",
-                    "required_value": "Annual family income ≤ ₹1,20,000 / annum (or VAO certificate)",
-                    "explanation": f"Annual income of ₹{int(effective_income):,} is {'within' if inc_pass else 'exceeds'} the scheme ceiling of ₹1,20,000 / annum.",
-                    "source": income_source,
-                    "field_key": "annual_income",
-                    "question_prompt": "What is your approximate annual household income?",
-                    "input_type": "MCQ",
-                    "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
-                    "supporting_evidence": evidence_sources[:1],
-                    "is_missing_info": False,
-                })
-            else:
-                criteria.append({
-                    "criterion_id": "cr_income_doc",
-                    "criterion_name": "Income / Socio-Economic Category",
-                    "criterion_result": "UNKNOWN",
-                    "required": True,
-                    "patient_value": None,
-                    "required_value": "Annual family income ≤ ₹1,20,000 / annum (or VAO certificate)",
-                    "explanation": "Income verification required via official ration card or VAO certificate.",
-                    "source": "UNKNOWN",
-                    "field_key": "annual_income",
-                    "question_prompt": "What is your approximate annual household income?",
-                    "input_type": "MCQ",
-                    "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
-                    "supporting_evidence": evidence_sources[:1],
-                    "is_missing_info": True,
-                })
-                structured_missing_questions.append({
-                    "criterion_id": "cr_income_doc",
-                    "field_key": "annual_income",
-                    "label": "Annual Household Income",
-                    "question": "What is your approximate annual household income?",
-                    "input_type": "MCQ",
-                    "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
-                    "status": "UNKNOWN",
-                    "patient_value": None,
-                    "source": "UNKNOWN"
-                })
-
-        else:
-            # Standard Central Scheme (e.g. SECC PM-JAY)
-            criteria.append({
-                "criterion_id": "cr_residency",
-                "criterion_name": "Residency & Citizenship",
-                "criterion_result": "PASS",
-                "required": True,
-                "patient_value": effective_state or "Indian Resident / Citizen",
-                "required_value": "Indian Citizen / Resident with Aadhaar",
-                "explanation": "Eligible for Central Government coverage across India with Aadhaar.",
-                "source": state_source if effective_state else "OFFICIAL_RULE",
-                "field_key": "state",
-                "supporting_evidence": evidence_sources[:1],
-                "is_missing_info": False,
-            })
-
-            if effective_income is not None:
-                criteria.append({
-                    "criterion_id": "cr_income_doc",
-                    "criterion_name": "Income / Socio-Economic Category",
-                    "criterion_result": "PASS",
-                    "required": True,
-                    "patient_value": f"₹{int(effective_income):,} / year" if effective_income > 50000 else "BPL / SECC Listing",
-                    "required_value": "SECC 2011 Deprivation / BPL Category",
-                    "explanation": "Self-declared income aligns with socio-economic eligibility criteria.",
-                    "source": income_source,
-                    "field_key": "annual_income",
-                    "question_prompt": "Do you hold a BPL Ration Card, or are you listed in the SECC 2011 database?",
-                    "input_type": "MCQ",
-                    "options": ["Yes, BPL Ration Card / Low Income", "Listed in SECC 2011 Beneficiary List", "Above poverty line / Not BPL", "Not sure / Need to check"],
-                    "supporting_evidence": evidence_sources[:1],
-                    "is_missing_info": False,
-                })
-            else:
-                criteria.append({
-                    "criterion_id": "cr_income_doc",
-                    "criterion_name": "Income / Socio-Economic Category",
-                    "criterion_result": "UNKNOWN",
-                    "required": True,
-                    "patient_value": None,
-                    "required_value": "SECC 2011 Deprivation / BPL Category",
-                    "explanation": "Socio-economic verification required via official SECC listing or Ration Card.",
-                    "source": "UNKNOWN",
-                    "field_key": "annual_income",
-                    "question_prompt": "Do you hold a BPL Ration Card, or are you listed in the SECC 2011 database?",
-                    "input_type": "MCQ",
-                    "options": ["Yes, BPL Ration Card / Low Income", "Listed in SECC 2011 Beneficiary List", "Above poverty line / Not BPL", "Not sure / Need to check"],
-                    "supporting_evidence": evidence_sources[:1],
-                    "is_missing_info": True,
-                })
-                structured_missing_questions.append({
-                    "criterion_id": "cr_income_doc",
-                    "field_key": "annual_income",
-                    "label": "Socio-Economic & Deprivation Category",
-                    "question": "Do you hold a BPL Ration Card, or are you listed in the SECC 2011 database?",
-                    "input_type": "MCQ",
-                    "options": ["Yes, BPL Ration Card / Low Income", "Listed in SECC 2011 Beneficiary List", "Above poverty line / Not BPL", "Not sure / Need to check"],
-                    "status": "UNKNOWN",
-                    "patient_value": None,
-                    "source": "UNKNOWN"
-                })
+        criteria, structured_missing_questions = _evaluate_scheme_criteria(
+            scheme=target_scheme,
+            effective_state=effective_state,
+            effective_age=effective_age,
+            effective_income=effective_income,
+            evidence_sources=evidence_sources,
+            state_source=state_source,
+            age_source=age_source,
+            income_source=income_source,
+        )
 
         # 2. Compute Deterministic Criteria Match Percentage (Excludes NOT_REQUIRED)
         applicable_criteria = [c for c in criteria if c.get("required", True) and c["criterion_result"] != "NOT_REQUIRED"]

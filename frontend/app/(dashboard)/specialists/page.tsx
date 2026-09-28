@@ -111,11 +111,11 @@ export default function SpecialistsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
           <h1 className="font-heading text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
-            <Stethoscope className="w-7 h-7 text-[#0D9488]" />
-            <span>Medical Specialists Directory</span>
+            <Building className="w-7 h-7 text-[#0D9488]" />
+            <span>Find Hospitals by Specialty</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Discover matched specialist departments near you based on your clinical assessment.
+            Discover verified hospital facilities with specialized medical departments across Tamil Nadu.
           </p>
         </div>
 
@@ -124,7 +124,7 @@ export default function SpecialistsPage() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search specialty or symptom (e.g. Heart, Fever)..."
+            placeholder="Search specialty department (e.g. Cardiology, ENT)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full text-xs text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-[#0D9488]"
@@ -151,7 +151,7 @@ export default function SpecialistsPage() {
                     {cat.name}
                   </h3>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                    {cat.hospitalCount} Hospitals
+                    {cat.hospitalCount} Facilities
                   </span>
                 </div>
 
@@ -175,7 +175,7 @@ export default function SpecialistsPage() {
                 href={`/hospitals?specialty=${encodeURIComponent(cat.name)}`}
                 className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-[#0D9488] hover:text-white dark:bg-slate-800 dark:hover:bg-[#0D9488] text-slate-800 dark:text-slate-200 text-xs font-bold text-center transition-all flex items-center justify-center gap-1.5"
               >
-                <span>Find {cat.name} Hospitals</span>
+                <span>Find {cat.name} Facilities</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

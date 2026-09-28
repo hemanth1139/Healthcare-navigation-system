@@ -203,14 +203,23 @@ async def test_knee_pain_single_turn_flow(client: AsyncClient):
     - Urgency: ROUTINE or NON_URGENT
     - Specialist: Orthopedic Specialist / General Physician (not ENT)
     """
+    import uuid
+    rand = uuid.uuid4().hex[:6]
     reg_res = await client.post("/api/v1/auth/register", json={
-        "email": "knee_patient@example.com",
+        "email": f"knee_patient_{rand}@example.com",
         "password": "Password123!",
         "fullName": "Knee Patient",
-        "phone": "9876543218"
+        "phone": f"98765{rand[:5]}"
     })
-    tokens = reg_res.json()["tokens"]
+    tokens = reg_res.json().get("tokens", {})
     token = tokens.get("accessToken") or tokens.get("access_token")
+    if not token:
+        login_res = await client.post("/api/v1/auth/login", json={
+            "email": f"knee_patient_{rand}@example.com",
+            "password": "Password123!"
+        })
+        tokens = login_res.json()["tokens"]
+        token = tokens.get("accessToken") or tokens.get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
 
     conv_res = await client.post("/api/v1/conversations", json={"language": "en", "input_type": "text"}, headers=headers)
@@ -242,11 +251,13 @@ async def test_conversation_isolation_between_sessions(client: AsyncClient):
     Session B reports Knee Pain.
     Verify both sessions maintain isolated independent symptom profiles.
     """
+    import uuid
+    rand = uuid.uuid4().hex[:6]
     reg_res = await client.post("/api/v1/auth/register", json={
-        "email": "iso_patient@example.com",
+        "email": f"iso_patient_{rand}@example.com",
         "password": "Password123!",
         "fullName": "Iso Patient",
-        "phone": "9876543217"
+        "phone": f"98765{rand[:5]}"
     })
     tokens = reg_res.json()["tokens"]
     token = tokens.get("accessToken") or tokens.get("access_token")

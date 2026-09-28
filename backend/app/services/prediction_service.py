@@ -106,12 +106,17 @@ class RuleBasedPredictionService:
         })
 
         if disease_pred:
-            # Update existing prediction
-            disease_pred.predicted_disease = prediction_result["predicted_disease"]
-            disease_pred.confidence_score = prediction_result["confidence_score"]
-            disease_pred.differential_diagnoses = differential_json
-            disease_pred.prediction_model = prediction_result["prediction_model"]
-            disease_pred.symptom_vector = symptom_vector_json
+            # Safe Update: Preserve existing valid values if new extraction is incomplete
+            if prediction_result.get("predicted_disease"):
+                disease_pred.predicted_disease = prediction_result["predicted_disease"]
+            if prediction_result.get("confidence_score") is not None and prediction_result["confidence_score"] > 0:
+                disease_pred.confidence_score = prediction_result["confidence_score"]
+            if prediction_result.get("differential"):
+                disease_pred.differential_diagnoses = differential_json
+            if prediction_result.get("prediction_model"):
+                disease_pred.prediction_model = prediction_result["prediction_model"]
+            if canonical_list:
+                disease_pred.symptom_vector = symptom_vector_json
 
             # Check existing severity
             sev_res = await db.execute(
@@ -119,17 +124,21 @@ class RuleBasedPredictionService:
             )
             severity = sev_res.scalar_one_or_none()
             if severity:
-                severity.severity = prediction_result["severity"]
-                severity.urgency_level = prediction_result["urgency_level"]
-                severity.emergency_flag = prediction_result["emergency_flag"]
-                severity.explanation = prediction_result["explanation"]
+                if prediction_result.get("severity"):
+                    severity.severity = prediction_result["severity"]
+                if prediction_result.get("urgency_level"):
+                    severity.urgency_level = prediction_result["urgency_level"]
+                if "emergency_flag" in prediction_result:
+                    severity.emergency_flag = prediction_result["emergency_flag"]
+                if prediction_result.get("explanation"):
+                    severity.explanation = prediction_result["explanation"]
             else:
                 severity = SeverityAssessment(
                     prediction_id=disease_pred.prediction_id,
-                    severity=prediction_result["severity"],
-                    urgency_level=prediction_result["urgency_level"],
-                    emergency_flag=prediction_result["emergency_flag"],
-                    explanation=prediction_result["explanation"],
+                    severity=prediction_result.get("severity", "routine"),
+                    urgency_level=prediction_result.get("urgency_level", "Routine Assessment"),
+                    emergency_flag=prediction_result.get("emergency_flag", False),
+                    explanation=prediction_result.get("explanation", ""),
                 )
                 db.add(severity)
 
@@ -139,13 +148,15 @@ class RuleBasedPredictionService:
             )
             specialist = spec_res.scalar_one_or_none()
             if specialist:
-                specialist.specialist = prediction_result["specialist"]
-                specialist.reason = prediction_result["explanation"]
+                if prediction_result.get("specialist"):
+                    specialist.specialist = prediction_result["specialist"]
+                if prediction_result.get("explanation"):
+                    specialist.reason = prediction_result["explanation"]
             else:
                 specialist = SpecialistRecommendation(
                     prediction_id=disease_pred.prediction_id,
-                    specialist=prediction_result["specialist"],
-                    reason=prediction_result["explanation"],
+                    specialist=prediction_result.get("specialist", "General Physician"),
+                    reason=prediction_result.get("explanation", ""),
                 )
                 db.add(specialist)
         else:

@@ -4,8 +4,9 @@ Exposes endpoints to trigger and retrieve rule-based disease predictions.
 """
 
 from uuid import UUID
-from fastapi import APIRouter
-from typing import Optional
+from typing import Optional, List
+from fastapi import APIRouter, Body
+from pydantic import BaseModel, Field
 
 from app.dependencies import DBSession, CurrentUser
 from app.services.prediction_service import RuleBasedPredictionService
@@ -14,39 +15,24 @@ from app.core.exceptions import NotFoundError
 router = APIRouter(prefix="/predictions", tags=["Disease Prediction"])
 
 
+class PredictionRunPayload(BaseModel):
+    symptoms: Optional[List[str]] = Field(default=None, description="Optional list of explicit symptom strings")
+
+
 @router.post("/{conversation_id}")
-async def trigger_prediction(
-    conversation_id: UUID,
-    db: DBSession,
-    current_user: CurrentUser,
-):
-    """
-    Trigger rule-based disease prediction for a completed triage conversation.
-    Pass the list of extracted symptoms in the request body.
-    """
-    from pydantic import BaseModel
-    from typing import List
-
-    # Re-fetch symptoms from the conversation's last triage state
-    # Symptoms come from the triage agent output stored in the conversation
-    # For now allow caller to pass symptoms via query or we pull from conversation
-    raise NotFoundError("Use POST /predictions/{conversation_id}/run with symptoms body")
-
-
 @router.post("/{conversation_id}/run")
 async def run_prediction(
     conversation_id: UUID,
     db: DBSession,
     current_user: CurrentUser,
-    payload: Optional[dict] = None,
+    payload: Optional[PredictionRunPayload] = Body(default=None),
 ):
     """
     Run rule-based disease prediction given a list of extracted symptoms.
     If payload/symptoms list is empty, symptoms will be automatically extracted
     from the conversation history.
     """
-    payload = payload or {}
-    symptoms = payload.get("symptoms", [])
+    symptoms = (payload.symptoms if payload else None) or []
 
     if not symptoms:
         # Pull messages from conversation to extract symptom keywords
@@ -62,7 +48,7 @@ async def run_prediction(
         common_symptoms = [
             "chest_pain", "chest pain", "fever", "cough", "shortness_of_breath",
             "shortness of breath", "headache", "fatigue", "nausea", "vomiting",
-            "joint_pain", "joint pain", "rash", "dizziness", "chills"
+            "joint_pain", "joint pain", "rash", "dizziness", "chills", "stiff_neck", "stiff neck"
         ]
         symptoms = [s for s in common_symptoms if s in combined_text]
         if not symptoms:
