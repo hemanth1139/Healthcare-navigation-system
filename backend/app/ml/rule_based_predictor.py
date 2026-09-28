@@ -228,6 +228,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "EMERGENCY",
         "emergency_flag": True,
         "specialist": "Cardiologist (Emergency Medicine)",
+        "specialist_code": "CARDIOLOGY",
         "explanation": (
             "Chest discomfort accompanied by radiation to the arm/jaw, breathlessness, or diaphoresis "
             "carries high risk of an acute coronary syndrome. Immediate emergency medical intervention is vital."
@@ -245,6 +246,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "EMERGENCY",
         "emergency_flag": True,
         "specialist": "Neurologist (Emergency)",
+        "specialist_code": "NEUROLOGY",
         "explanation": (
             "Sudden unilateral weakness, facial droop, or speech impairment indicates an acute stroke. "
             "Time is critical for brain tissue preservation."
@@ -262,6 +264,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "URGENT",
         "emergency_flag": False,
         "specialist": "General Surgeon",
+        "specialist_code": "GENERAL_SURGERY",
         "explanation": (
             "Persistent lower abdominal pain with fever, nausea, or vomiting requires rapid surgical and ultrasound assessment."
         ),
@@ -278,6 +281,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "URGENT",
         "emergency_flag": False,
         "specialist": "Pulmonologist",
+        "specialist_code": "PULMONOLOGY",
         "explanation": (
             "High fever coupled with persistent cough, breathlessness, and chest tightness suggests lower respiratory involvement."
         ),
@@ -294,6 +298,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "EMERGENCY",
         "emergency_flag": True,
         "specialist": "Neurologist (Emergency)",
+        "specialist_code": "NEUROLOGY",
         "explanation": (
             "High fever paired with neck stiffness and severe headache is a clinical red flag for central nervous system infection."
         ),
@@ -302,6 +307,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
     {
         "disease": "Musculoskeletal Strain / Joint & Ligament Evaluation",
         "required_symptoms": ["knee_pain", "joint_pain", "back_pain"],
+        "required_match_mode": "any",
         "supporting_symptoms": [
             "swelling", "body_aches", "fatigue"
         ],
@@ -310,6 +316,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "ROUTINE",
         "emergency_flag": False,
         "specialist": "Orthopedic Specialist / General Physician",
+        "specialist_code": "ORTHOPEDICS",
         "explanation": (
             "Localized joint or muscle discomfort without acute neurovascular compromise is characteristic of musculoskeletal strain or joint irritation."
         ),
@@ -326,6 +333,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "NON_URGENT",
         "emergency_flag": False,
         "specialist": "ENT Specialist / General Physician",
+        "specialist_code": "ENT",
         "explanation": (
             "Throat discomfort accompanied by systemic signs such as body aches or nausea is characteristic of acute pharyngitis or upper respiratory tract infection."
         ),
@@ -342,6 +350,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "NON_URGENT",
         "emergency_flag": False,
         "specialist": "Pulmonologist / General Physician",
+        "specialist_code": "PULMONOLOGY",
         "explanation": (
             "Cough with mild respiratory signs is consistent with bronchial airway inflammation. "
             "Supportive care, hydration, and medical review are recommended."
@@ -359,6 +368,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "NON_URGENT",
         "emergency_flag": False,
         "specialist": "Neurologist",
+        "specialist_code": "NEUROLOGY",
         "explanation": (
             "Moderate to severe throbbing headache associated with nausea or sensory sensitivity suggests a migraine pattern."
         ),
@@ -375,6 +385,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "NON_URGENT",
         "emergency_flag": False,
         "specialist": "Gastroenterologist / General Physician",
+        "specialist_code": "GASTROENTEROLOGY",
         "explanation": (
             "Nausea and gastrointestinal distress with associated aches is consistent with gastroenteritis. Hydration and rest are essential."
         ),
@@ -391,6 +402,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "NON_URGENT",
         "emergency_flag": False,
         "specialist": "Gastroenterologist",
+        "specialist_code": "GASTROENTEROLOGY",
         "explanation": (
             "Burning retrosternal discomfort and acid regurgitation without cardiac red flags points to acid reflux."
         ),
@@ -407,6 +419,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "NON_URGENT",
         "emergency_flag": False,
         "specialist": "Urologist / General Physician",
+        "specialist_code": "UROLOGY",
         "explanation": (
             "Dysuria and urinary discomfort indicate urinary tract irritation or bacterial cystitis."
         ),
@@ -423,6 +436,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "ROUTINE",
         "emergency_flag": False,
         "specialist": "General Physician",
+        "specialist_code": "GENERAL_MEDICINE",
         "explanation": (
             "Fever with generalized body aches and fatigue is consistent with a standard viral infection."
         ),
@@ -439,6 +453,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "urgency_tier": "ROUTINE",
         "emergency_flag": False,
         "specialist": "General Physician",
+        "specialist_code": "GENERAL_MEDICINE",
         "explanation": (
             "Bilateral band-like pressure without visual changes or neurological deficits is typical of tension headache."
         ),
@@ -475,6 +490,8 @@ def predict_disease(raw_symptoms: List[str]) -> Dict[str, Any]:
     for rule in DISEASE_RULES:
         req = rule["required_symptoms"]
         sup = rule["supporting_symptoms"]
+        is_emergency = rule.get("urgency_tier") == "EMERGENCY" or rule.get("emergency_flag", False)
+        match_mode = rule.get("required_match_mode", "all")
 
         matched_req_count, matched_req_keys = _match_symptoms_count(canonical_symptoms, req)
         matched_sup_count, matched_sup_keys = _match_symptoms_count(canonical_symptoms, sup)
@@ -482,9 +499,17 @@ def predict_disease(raw_symptoms: List[str]) -> Dict[str, Any]:
         total_req = max(len(req), 1)
         total_sup = max(len(sup), 1)
 
-        # Must match at least 1 required symptom
-        if matched_req_count == 0:
-            continue
+        # EMERGENCY RULES: Mandatory red flags must all be satisfied!
+        if is_emergency:
+            if matched_req_count < len(req):
+                continue
+        else:
+            if match_mode == "any":
+                if matched_req_count == 0:
+                    continue
+            else:
+                if matched_req_count < len(req):
+                    continue
 
         req_ratio = matched_req_count / total_req
         sup_ratio = matched_sup_count / total_sup
@@ -532,6 +557,21 @@ def predict_disease(raw_symptoms: List[str]) -> Dict[str, Any]:
         f"{top_rule['explanation']} {top_rule['recommended_action']}"
     )
 
+    specialist_name = top_rule.get("specialist", "General Physician")
+    specialist_code = top_rule.get("specialist_code", "GENERAL_MEDICINE")
+    dept_name = specialist_name.split("/")[0].strip()
+    specialist_reason = (
+        f"The symptoms identified during assessment ({', '.join(top_triggered)}) are primarily associated "
+        f"with the {dept_name} domain."
+    )
+
+    recommended_specialist = {
+        "name": specialist_name,
+        "code": specialist_code,
+        "department": dept_name,
+        "reason": specialist_reason,
+    }
+
     return {
         "predicted_disease": top_rule["disease"],
         "confidence_score": top_conf,
@@ -541,7 +581,9 @@ def predict_disease(raw_symptoms: List[str]) -> Dict[str, Any]:
         "severity": urgency_tier.lower(),
         "urgency_level": urgency_tier,
         "emergency_flag": emergency_flag,
-        "specialist": top_rule["specialist"],
+        "specialist": specialist_name,
+        "specialist_code": specialist_code,
+        "recommended_specialist": recommended_specialist,
         "explanation": human_explanation,
         "canonical_symptoms": canonical_symptoms,
     }
@@ -551,6 +593,14 @@ def _no_match_result(canonical_symptoms: List[str]) -> Dict[str, Any]:
     norm_list = normalize_symptom_list(canonical_symptoms) if canonical_symptoms else ["general_discomfort"]
     triggered = [format_symptom_title(s) for s in norm_list]
     primary_title = triggered[0] if triggered else "General Inquiry"
+    
+    recommended_specialist = {
+        "name": "General Physician",
+        "code": "GENERAL_MEDICINE",
+        "department": "General Physician",
+        "reason": f"Based on the reported symptom ({', '.join(triggered)}), standard outpatient evaluation by a primary care physician is recommended.",
+    }
+
     return {
         "predicted_disease": f"Clinical Evaluation for {primary_title}",
         "confidence_score": 0.50,
@@ -561,6 +611,8 @@ def _no_match_result(canonical_symptoms: List[str]) -> Dict[str, Any]:
         "urgency_level": "ROUTINE",
         "emergency_flag": False,
         "specialist": "General Physician",
+        "specialist_code": "GENERAL_MEDICINE",
+        "recommended_specialist": recommended_specialist,
         "explanation": f"Based on the reported symptom ({', '.join(triggered)}), standard outpatient evaluation by a primary care physician is recommended.",
         "canonical_symptoms": norm_list,
     }

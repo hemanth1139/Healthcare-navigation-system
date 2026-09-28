@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { HospitalWithDistance } from "@/types/hospital";
 import { hospitalApi } from "@/lib/hospitalApi";
-import { HospitalMap } from "@/components/hospitals/HospitalMap";
 import { HospitalSearchBar } from "@/components/hospitals/HospitalSearchBar";
 import { HospitalFilterBar } from "@/components/hospitals/HospitalFilterBar";
 import { HospitalList } from "@/components/hospitals/HospitalList";
@@ -14,6 +14,19 @@ import { HospitalLoadingSkeleton } from "@/components/hospitals/HospitalLoadingS
 import { Map, List, MapPin, AlertCircle, RefreshCw, Navigation, Building2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/context/LanguageContext";
+
+const HospitalMap = dynamic(
+  () => import("@/components/hospitals/HospitalMap").then((mod) => mod.HospitalMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full min-h-[420px] rounded-2xl flex flex-col items-center justify-center bg-slate-100 border border-slate-200 text-slate-500 gap-3">
+        <div className="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-sm font-medium">Loading interactive map...</p>
+      </div>
+    ),
+  }
+);
 
 // Tamil Nadu Bounding Box Validation Helper (Client-side)
 const isCoordWithinTamilNadu = (lat: number, lng: number) => {

@@ -84,6 +84,28 @@ class VectorStore:
         scores.sort(key=lambda x: x[2], reverse=True)
         return scores[:k]
 
+    def delete_by_document_id(self, document_id: str) -> int:
+        """Removes all vector chunks associated with a specific uploaded document ID."""
+        doc_id_str = str(document_id)
+        original_count = len(self.documents)
+        self.documents = [
+            d for d in self.documents
+            if str(d.get("metadata", {}).get("document_id")) != doc_id_str
+        ]
+        removed = original_count - len(self.documents)
+        if removed > 0:
+            self.save()
+            print(f"[INFO] Removed {removed} vector chunks for document {doc_id_str}.")
+        return removed
+
+    def get_chunks_by_document_id(self, document_id: str) -> List[Dict[str, Any]]:
+        """Retrieves all indexed vector chunks for a specific document ID."""
+        doc_id_str = str(document_id)
+        return [
+            d for d in self.documents
+            if str(d.get("metadata", {}).get("document_id")) == doc_id_str
+        ]
+
     def clear(self):
         """Clears the vector store from memory and disk."""
         self.documents = []
@@ -93,3 +115,4 @@ class VectorStore:
 
     def __len__(self) -> int:
         return len(self.documents)
+

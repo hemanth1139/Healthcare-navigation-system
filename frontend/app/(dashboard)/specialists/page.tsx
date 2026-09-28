@@ -31,9 +31,16 @@ export default function SpecialistsPage() {
     {
       name: "Neurologist",
       icon: Brain,
-      desc: "Experts in brain, spinal cord, nerve disorders, severe migraines, and neuropathy.",
-      symptoms: ["Severe headache", "Seizures", "Numbness", "Dizziness"],
+      desc: "Experts in brain, spinal cord, nerve disorders, severe migraines, and stroke.",
+      symptoms: ["Severe headache", "Seizures", "Numbness", "Dizziness", "Facial droop"],
       hospitalCount: 9,
+    },
+    {
+      name: "ENT Specialist",
+      icon: Stethoscope,
+      desc: "Ear, Nose, and Throat specialists treating pharyngitis, tonsillitis, ear infections, and sinusitis.",
+      symptoms: ["Throat pain", "Sore throat", "Ear ache", "Difficulty swallowing", "Sinus pain"],
+      hospitalCount: 12,
     },
     {
       name: "Pulmonologist",
@@ -45,16 +52,37 @@ export default function SpecialistsPage() {
     {
       name: "General Physician",
       icon: Stethoscope,
-      desc: "Primary care medical doctors for overall health checkups, fever, and common ailments.",
-      symptoms: ["Fever", "Fatigue", "Viral infection", "Routine checkup"],
+      desc: "Primary care medical doctors for overall health checkups, viral fever, and common ailments.",
+      symptoms: ["Fever", "Fatigue", "Viral infection", "Routine checkup", "Body aches"],
       hospitalCount: 22,
     },
     {
       name: "Orthopedist",
       icon: Bone,
       desc: "Musculoskeletal experts treating bone fractures, joint pain, arthritis, and spine issues.",
-      symptoms: ["Joint pain", "Fracture", "Back pain", "Swelling"],
+      symptoms: ["Joint pain", "Fracture", "Back pain", "Knee pain", "Swelling"],
       hospitalCount: 12,
+    },
+    {
+      name: "General Surgeon",
+      icon: Activity,
+      desc: "Surgical specialists for acute abdominal emergencies, appendicitis, and trauma evaluation.",
+      symptoms: ["Severe abdominal pain", "Acute stomach cramps", "Appendicitis", "Trauma"],
+      hospitalCount: 16,
+    },
+    {
+      name: "Gastroenterologist",
+      icon: Activity,
+      desc: "Digestive system doctors for stomach ulcers, GERD, acid reflux, liver, and bowel disorders.",
+      symptoms: ["Stomach burning", "Acidity", "Heartburn", "Abdominal pain", "Indigestion"],
+      hospitalCount: 10,
+    },
+    {
+      name: "Urologist",
+      icon: Activity,
+      desc: "Urinary tract and kidney specialists treating dysuria, infections, and renal conditions.",
+      symptoms: ["Burning urination", "Frequent urination", "Kidney pain"],
+      hospitalCount: 8,
     },
     {
       name: "Pediatrician",
@@ -69,13 +97,6 @@ export default function SpecialistsPage() {
       desc: "Eye care specialists for vision testing, cataract treatment, and eye infections.",
       symptoms: ["Blurry vision", "Eye pain", "Redness", "Cataract"],
       hospitalCount: 8,
-    },
-    {
-      name: "Gastroenterologist",
-      icon: Activity,
-      desc: "Digestive system doctors for stomach ulcers, GERD, liver, and bowel disorders.",
-      symptoms: ["Stomach burning", "Acidity", "Abdominal pain", "Indigestion"],
-      hospitalCount: 10,
     },
   ];
 

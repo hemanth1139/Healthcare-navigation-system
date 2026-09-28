@@ -103,7 +103,8 @@ async def test_hospital_location_query_and_filters():
         assert len(spec_hospitals) >= 1
         for h in spec_hospitals:
             assert h.get("state") == "Tamil Nadu"
-            assert any("cardio" in s.lower() for s in h["specialties"])
+            assert any("cardio" in s.lower() or "cardiac" in s.lower() for s in h["specialties"])
+
 
 
 async def test_tamil_nadu_districts_discovery():

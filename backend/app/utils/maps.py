@@ -859,6 +859,41 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return R * c
 
 
+SPECIALTY_SYNONYMS: Dict[str, List[str]] = {
+    "cardio": ["cardio", "cardiac", "heart", "coronary"],
+    "neuro": ["neuro", "brain", "stroke", "spine"],
+    "ent": ["ent", "throat", "ear", "nose", "pharyng", "otorhinolaryngology"],
+    "ortho": ["ortho", "bone", "joint", "trauma", "musculoskeletal", "spine"],
+    "pulmon": ["pulmon", "respiratory", "chest medicine", "lung", "asthma", "bronch"],
+    "gastro": ["gastro", "digestive", "liver", "hepatology", "stomach", "gerd"],
+    "general": ["general medicine", "internal medicine", "general physician", "family medicine", "emergency care", "multispeciality"],
+    "surgeon": ["surgeon", "surgery", "surgical", "general surgery"],
+    "urolog": ["urolog", "nephrolog", "kidney", "urinary", "renal"],
+    "pediatric": ["pediatric", "child", "infant"],
+    "ophthalm": ["ophthalm", "eye"],
+    "dermat": ["dermat", "skin"],
+}
+
+
+def matches_specialty(hospital_specialties_str: str, query_specialty: str) -> bool:
+    """Matches a requested specialty or specialist against a hospital's comma-separated specialties."""
+    if not query_specialty or query_specialty.lower().strip() == "all":
+        return True
+    h_specs = hospital_specialties_str.lower()
+    q_low = query_specialty.lower().strip()
+
+    # Direct substring check
+    if q_low in h_specs:
+        return True
+
+    # Check normalized specialty keywords
+    for key, synonyms in SPECIALTY_SYNONYMS.items():
+        if any(syn in q_low for syn in synonyms):
+            if any(syn in h_specs for syn in synonyms):
+                return True
+    return False
+
+
 class GoogleMapsService:
 
     @staticmethod
@@ -944,10 +979,9 @@ class GoogleMapsService:
                 elif "teaching" in h_type_filter and "teaching" not in h_type_actual and "college" not in h_type_actual:
                     continue
 
-            # Specialty filter
+            # Specialty / Specialist filter with medical department keyword matching
             if effective_specialty and effective_specialty.lower() != "all":
-                spec_term = effective_specialty.lower()
-                if spec_term not in h["specialties"].lower():
+                if not matches_specialty(h["specialties"], effective_specialty):
                     continue
 
             # Keyword Search (across name, address, city, district, specialties, hospital type)

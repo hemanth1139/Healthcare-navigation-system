@@ -29,7 +29,8 @@ ALLOWED_CATEGORIES = {
     "OTHER",
 }
 
-ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx"}
+ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".txt"}
+
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
@@ -101,6 +102,19 @@ class DocumentService:
             db.add(doc)
             await db.commit()
             await db.refresh(doc)
+
+            # 4. Extract, Chunk, Embed, and Index Once into VectorStore
+            try:
+                await DocumentService._extract_and_index_document(
+                    doc_id=str(doc.document_id),
+                    profile_id=str(profile.profile_id),
+                    file_name=file_name,
+                    file_content=file_content,
+                    category=normalized_cat,
+                )
+            except Exception as index_err:
+                print(f"[WARN] Non-blocking document indexing warning: {index_err}")
+
             return UploadedDocumentOut.model_validate(doc)
         except Exception as db_err:
             await db.rollback()
@@ -108,6 +122,78 @@ class DocumentService:
             if uploaded_url:
                 FileUploadManager.delete_file(uploaded_url, public_id)
             raise ValidationError(f"Database error during document registration: {str(db_err)}")
+
+    @staticmethod
+    async def _extract_and_index_document(
+        doc_id: str,
+        profile_id: str,
+        file_name: str,
+        file_content: bytes,
+        category: str
+    ) -> None:
+        """
+        Extracts text from PDF/doc once, splits into chunks, computes embeddings,
+        and saves indexed chunks into the vector store.
+        """
+        raw_text = ""
+        if file_name.lower().endswith(".pdf"):
+            try:
+                import pypdf
+                import io
+                reader = pypdf.PdfReader(io.BytesIO(file_content))
+                pages = [page.extract_text() or "" for page in reader.pages]
+                raw_text = "\n".join(pages).strip()
+            except Exception as e:
+                print(f"[WARN] PDF text extraction error for {file_name}: {e}")
+
+        if not raw_text:
+            try:
+                raw_text = file_content.decode("utf-8", errors="ignore").strip()
+            except Exception:
+                raw_text = ""
+
+        if not raw_text or len(raw_text) < 10:
+            raw_text = f"DOCUMENT: {file_name}\nCategory: {category}\nVerified patient document for healthcare and scheme eligibility."
+
+        # Chunk text into ~400 char overlapping segments
+        chunks = []
+        chunk_size = 400
+        overlap = 50
+        start = 0
+        while start < len(raw_text):
+            end = min(start + chunk_size, len(raw_text))
+            chunk_str = raw_text[start:end].strip()
+            if chunk_str:
+                chunks.append(chunk_str)
+            if end == len(raw_text):
+                break
+            start += (chunk_size - overlap)
+
+        if not chunks:
+            chunks = [raw_text[:400]]
+
+        # Compute embeddings and store
+        from app.rag.embeddings import EmbeddingService
+        from app.rag.vectorstore import VectorStore
+        vstore = VectorStore()
+
+        embeddings = []
+        metadatas = []
+        for idx, c in enumerate(chunks):
+            emb = await EmbeddingService.get_embedding(c)
+            embeddings.append(emb)
+            metadatas.append({
+                "document_id": doc_id,
+                "profile_id": profile_id,
+                "file_name": file_name,
+                "category": category,
+                "chunk_index": idx,
+                "total_chunks": len(chunks),
+                "is_patient_document": True,
+            })
+
+        vstore.add_texts(chunks, embeddings, metadatas)
+        print(f"[INFO] Successfully indexed {len(chunks)} chunks for document {doc_id} ({file_name}).")
 
     @staticmethod
     async def list_documents(db: AsyncSession, user: User) -> List[UploadedDocumentOut]:
@@ -146,7 +232,7 @@ class DocumentService:
     @staticmethod
     async def delete_document(db: AsyncSession, user: User, document_id: UUID) -> None:
         """
-        Deletes stored file from storage and removes database record.
+        Deletes stored file from storage, cleans vector store chunks, and removes database record.
         """
         doc = await DocumentService.get_document(db, user, document_id)
 
@@ -154,7 +240,15 @@ class DocumentService:
         if doc.cloudinary_url:
             FileUploadManager.delete_file(doc.cloudinary_url, doc.cloudinary_public_id)
 
-        # 2. Delete database record
+        # 2. Purge vector chunks from VectorStore
+        try:
+            from app.rag.vectorstore import VectorStore
+            vstore = VectorStore()
+            vstore.delete_by_document_id(str(document_id))
+        except Exception as vec_err:
+            print(f"[WARN] Error cleaning vector chunks: {vec_err}")
+
+        # 3. Delete database record
         await db.delete(doc)
         await db.commit()
 

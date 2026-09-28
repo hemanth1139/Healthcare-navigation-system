@@ -148,3 +148,62 @@ async def test_complete_scheme_documents_lifecycle_and_security():
         # User A now has only 1 document remaining
         res_list_after_del = await ac.get("/api/v1/documents", headers=headers_a)
         assert len(res_list_after_del.json()) == 1
+
+
+async def test_document_rag_chunk_indexing_and_retrieval_flow():
+    """
+    ISSUE 4 VERIFICATION:
+    1. User uploads a PDF document.
+    2. File is saved, metadata stored, text extracted and chunked into VectorStore once.
+    3. Subsequent RAG Q&A queries retrieve indexed vector chunks without reparsing raw PDF.
+    4. Deletion cleans both storage and indexed vector chunks.
+    """
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        headers = await _register_and_get_user(ac, "rag_doc_patient")
+
+        # 1. Upload valid document
+        sample_text = (
+            "TAMIL NADU GOVERNMENT HEALTH CERTIFICATE\n"
+            "This certifies that the annual family income is INR 85,000.\n"
+            "The household is eligible for BPL category state healthcare benefits and CMCHIS cover."
+        )
+        files = {
+            "file": ("income_verification_doc.txt", sample_text.encode("utf-8"), "text/plain")
+        }
+        data = {"category": "INCOME_CERTIFICATE"}
+
+        res_upload = await ac.post("/api/v1/documents", files=files, data=data, headers=headers)
+        assert res_upload.status_code == 201
+        doc_info = res_upload.json()
+        doc_id = doc_info["document_id"]
+
+        # 2. Verify chunks were generated in VectorStore
+        from app.rag.vectorstore import VectorStore
+        vstore = VectorStore()
+        chunks = vstore.get_chunks_by_document_id(doc_id)
+        assert len(chunks) >= 1
+        assert "85,000" in chunks[0]["text"] or "CMCHIS" in chunks[0]["text"] or "INCOME" in chunks[0]["text"]
+
+        # 3. Query RAG with uploaded_document_id -> Retrieves indexed chunk directly
+        from app.rag.pipeline import RAGPipeline
+        rag_res = await RAGPipeline.query(
+            query_text="What is my annual income in the uploaded certificate?",
+            scoped_scheme_id="scheme_TN01",
+            uploaded_document_id=doc_id,
+            additional_info={"state": "Tamil Nadu"}
+        )
+        assert len(rag_res["retrieved_chunks"]) >= 1
+        # Confirm that evidence sources includes the uploaded document chunk
+        evidence_titles = [src["document_title"] for src in rag_res["eligibility_result"]["all_evidence_sources"]]
+        assert any("income_verification_doc" in t for t in evidence_titles)
+
+
+        # 4. Delete document
+        res_del = await ac.delete(f"/api/v1/documents/{doc_id}", headers=headers)
+        assert res_del.status_code == 204
+
+        # 5. Verify vector chunks purged
+        chunks_after = VectorStore().get_chunks_by_document_id(doc_id)
+        assert len(chunks_after) == 0
+
+

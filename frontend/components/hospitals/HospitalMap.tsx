@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { HospitalWithDistance } from "@/types/hospital";
 import { Navigation, MapPin, ZoomIn, ZoomOut, Maximize, ExternalLink, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -21,66 +23,48 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
   onOpenDetail,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<{ [key: string]: any }>({});
-  const userMarkerRef = useRef<any>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<{ [key: string]: L.Marker }>({});
+  const userMarkerRef = useRef<L.Marker | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
 
   // Initialize Leaflet Map
   useEffect(() => {
-    let isMounted = true;
+    if (typeof window === "undefined" || !mapContainerRef.current) return;
 
-    const initMap = async () => {
-      if (typeof window === "undefined" || !mapContainerRef.current) return;
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
 
-      // Dynamically import Leaflet
-      const L = (await import("leaflet")).default;
+    // Default center: userCoords or first hospital or Chennai
+    const initialLat =
+      userCoords?.latitude || (hospitals.length > 0 ? hospitals[0].latitude : 13.0827);
+    const initialLng =
+      userCoords?.longitude || (hospitals.length > 0 ? hospitals[0].longitude : 80.2707);
 
-      // Ensure leaflet CSS is present
-      if (!document.getElementById("leaflet-css")) {
-        const link = document.createElement("link");
-        link.id = "leaflet-css";
-        link.rel = "stylesheet";
-        link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-        document.head.appendChild(link);
-      }
+    const map = L.map(mapContainerRef.current, {
+      center: [initialLat, initialLng],
+      zoom: 12,
+      zoomControl: false,
+    });
 
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
+    // Add OpenStreetMap tile layer
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map);
 
-      // Default center: userCoords or first hospital or Chennai
-      const initialLat =
-        userCoords?.latitude || (hospitals.length > 0 ? hospitals[0].latitude : 13.0827);
-      const initialLng =
-        userCoords?.longitude || (hospitals.length > 0 ? hospitals[0].longitude : 80.2707);
-
-      const map = L.map(mapContainerRef.current, {
-        center: [initialLat, initialLng],
-        zoom: 12,
-        zoomControl: false,
-      });
-
-      // Add OpenStreetMap tile layer
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(map);
-
-      mapInstanceRef.current = map;
-      if (isMounted) setIsMapReady(true);
-    };
-
-    initMap();
+    mapInstanceRef.current = map;
+    setIsMapReady(true);
 
     return () => {
-      isMounted = false;
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
+      setIsMapReady(false);
     };
   }, []);
 
@@ -88,18 +72,16 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
   useEffect(() => {
     if (!isMapReady || !mapInstanceRef.current) return;
 
-    const updateMarkers = async () => {
-      const L = (await import("leaflet")).default;
-      const map = mapInstanceRef.current;
+    const map = mapInstanceRef.current;
 
-      // Clear previous hospital markers
-      Object.values(markersRef.current).forEach((marker: any) => marker.remove());
-      markersRef.current = {};
+    // Clear previous hospital markers
+    Object.values(markersRef.current).forEach((marker) => marker.remove());
+    markersRef.current = {};
 
-      if (userMarkerRef.current) {
-        userMarkerRef.current.remove();
-        userMarkerRef.current = null;
-      }
+    if (userMarkerRef.current) {
+      userMarkerRef.current.remove();
+      userMarkerRef.current = null;
+    }
 
       // Plot User location if available
       if (userCoords?.latitude && userCoords?.longitude) {
@@ -227,9 +209,6 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
       } else if (bounds.isValid() && hospitals.length > 0) {
         map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
       }
-    };
-
-    updateMarkers();
   }, [hospitals, selectedHospitalId, userCoords, isMapReady]);
 
   // Recenter controls

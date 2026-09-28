@@ -467,4 +467,63 @@ async def test_unscoped_general_query_scheme_resolution_lock(db_session):
         assert len(elig["missingInformation"]) == 0
 
 
+async def test_generic_multi_scheme_query_missing_profile_intake(db_session):
+    """
+    Test Case 3: Generic 'What schemes am I eligible for?' with no profile
+    MUST return PROFILE_DATA_REQUIRED and structured intake questions for state, age, and annual income.
+    """
+    await _seed_test_schemes(db_session)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        headers = await _get_auth_headers(ac, "generic_query_user@example.com")
+
+        res = await ac.post("/api/v1/schemes/query", json={
+            "query_text": "What schemes am I eligible for?"
+        }, headers=headers)
+        assert res.status_code == 200
+        data = res.json()
+
+        elig = data["eligibilityResult"]
+        assert elig["queryType"] == "MULTI_SCHEME_ELIGIBILITY_QUERY"
+        assert elig["overallStatus"] == "PROFILE_DATA_REQUIRED"
+        assert elig["interviewState"] == "PROFILE_DATA_REQUIRED"
+        assert len(elig["structuredMissingCriteria"]) == 3
+
+        field_keys = [q["fieldKey"] for q in elig["structuredMissingCriteria"]]
+        assert "state" in field_keys
+        assert "age" in field_keys
+        assert "annual_income" in field_keys
+
+
+async def test_generic_multi_scheme_query_with_profile_evaluates_schemes(db_session):
+    """
+    Test Case 4: Generic 'What schemes am I eligible for?' with demographic info provided.
+    Evaluates Tamil Nadu & Central schemes against official criteria and returns match breakdown.
+    """
+    await _seed_test_schemes(db_session)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        headers = await _get_auth_headers(ac, "full_profile_user@example.com")
+
+        res = await ac.post("/api/v1/schemes/query", json={
+            "query_text": "What schemes am I eligible for?",
+            "additional_info": {
+                "state": "Tamil Nadu",
+                "age": 72,
+                "annual_income": "100000"
+            }
+        }, headers=headers)
+        assert res.status_code == 200
+        data = res.json()
+
+        elig = data["eligibilityResult"]
+        assert elig["queryType"] == "MULTI_SCHEME_ELIGIBILITY_QUERY"
+        assert elig["overallStatus"] in ["ELIGIBLE", "POSSIBLY_ELIGIBLE"]
+        assert elig["interviewState"] == "COMPLETED"
+        assert len(elig["missingInformation"]) == 0
+        assert "Tamil Nadu" in data["aiResponse"]
+        assert len(data["retrievedChunks"]) >= 1
+
+
+
 
