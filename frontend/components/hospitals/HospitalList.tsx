@@ -9,6 +9,7 @@ import { MapPinOff, Maximize2, MapPin, RotateCcw } from "lucide-react";
 export interface HospitalListProps {
   hospitals: HospitalWithDistance[];
   selectedHospitalId?: string | null;
+  activeSpecialty?: string;
   onSelectHospital: (hospital: HospitalWithDistance) => void;
   onOpenDetail: (hospital: HospitalWithDistance) => void;
   onExpandDistance?: () => void;
@@ -19,6 +20,7 @@ export interface HospitalListProps {
 export const HospitalList: React.FC<HospitalListProps> = ({
   hospitals,
   selectedHospitalId,
+  activeSpecialty,
   onSelectHospital,
   onOpenDetail,
   onExpandDistance,
@@ -73,6 +75,7 @@ export const HospitalList: React.FC<HospitalListProps> = ({
           key={hosp.hospital_id}
           hospital={hosp}
           isSelected={hosp.hospital_id === selectedHospitalId}
+          activeSpecialty={activeSpecialty}
           onSelect={onSelectHospital}
           onOpenDetail={onOpenDetail}
         />

@@ -4,14 +4,14 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { HospitalWithDistance } from "@/types/hospital";
-import { hospitalApi } from "@/lib/hospitalApi";
+import { hospitalApi, normalizeSpecialty } from "@/lib/hospitalApi";
 import { HospitalSearchBar } from "@/components/hospitals/HospitalSearchBar";
 import { HospitalFilterBar } from "@/components/hospitals/HospitalFilterBar";
 import { HospitalList } from "@/components/hospitals/HospitalList";
 import { HospitalDetailModal } from "@/components/hospitals/HospitalDetailModal";
 import { LocationSelectorModal } from "@/components/hospitals/LocationSelectorModal";
 import { HospitalLoadingSkeleton } from "@/components/hospitals/HospitalLoadingSkeleton";
-import { Map, List, MapPin, AlertCircle, RefreshCw, Navigation, Building2, CheckCircle2 } from "lucide-react";
+import { Map, List, MapPin, AlertCircle, RefreshCw, Navigation, Building2, CheckCircle2, Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -35,7 +35,8 @@ const isCoordWithinTamilNadu = (lat: number, lng: number) => {
 
 export default function HospitalsPage() {
   const searchParams = useSearchParams();
-  const initialSpecialist = searchParams?.get("specialist") || "";
+  const rawSpecialist = searchParams?.get("specialty") || searchParams?.get("specialist") || "";
+  const initialSpecialist = normalizeSpecialty(rawSpecialist);
   const { t, language } = useLanguage();
 
   // Location State (Default: Chennai, Tamil Nadu)
@@ -53,6 +54,14 @@ export default function HospitalsPage() {
   const [specialtyFilter, setSpecialtyFilter] = useState<string>(initialSpecialist);
   const [maxDistance, setMaxDistance] = useState<number>(0); // 0 = Any Distance
   const [sortBy, setSortBy] = useState<string>("distance");
+
+  // React to URL query parameter changes on client navigation
+  useEffect(() => {
+    const raw = searchParams?.get("specialty") || searchParams?.get("specialist") || "";
+    if (raw) {
+      setSpecialtyFilter(normalizeSpecialty(raw));
+    }
+  }, [searchParams]);
 
   // Data & UI State
   const [hospitals, setHospitals] = useState<HospitalWithDistance[]>([]);
@@ -329,6 +338,32 @@ export default function HospitalsPage() {
         </span>
       </div>
 
+      {/* Active Specialty Indicator Banner */}
+      {specialtyFilter && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 px-4 py-3 rounded-2xl text-xs text-teal-900 dark:text-teal-200 shadow-2xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-xl bg-[#0D9488] text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Stethoscope className="w-4 h-4" />
+            </div>
+            <div>
+              <span>
+                Targeted Specialty: <strong className="text-teal-950 dark:text-white font-bold">{specialtyFilter} Department</strong>
+              </span>
+              <p className="text-[11px] text-teal-700 dark:text-teal-300 mt-0.5">
+                Displaying <b>{hospitals.length}</b> verified healthcare facilities with active {specialtyFilter.toLowerCase()} services.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSpecialtyFilter("")}
+            className="text-xs font-bold text-[#0D9488] dark:text-[#14B8A6] hover:underline cursor-pointer shrink-0 self-start sm:self-center"
+          >
+            Clear Specialty Filter
+          </button>
+        </div>
+      )}
+
       {/* Error State Banner */}
       {fetchError && (
         <div className="bg-rose-50 border border-rose-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-rose-900">
@@ -366,6 +401,7 @@ export default function HospitalsPage() {
             <HospitalList
               hospitals={hospitals}
               selectedHospitalId={selectedHospitalId}
+              activeSpecialty={specialtyFilter}
               onSelectHospital={handleSelectHospital}
               onOpenDetail={handleOpenDetail}
               onExpandDistance={() => setMaxDistance(50)}

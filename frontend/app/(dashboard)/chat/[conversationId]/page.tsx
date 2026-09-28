@@ -1,12 +1,10 @@
 "use client";
 
-import React from "react";
-import { useParams } from "next/navigation";
+import React, { use } from "react";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 
-export default function ActiveChatPage() {
-  const params = useParams();
-  const conversationId = params?.conversationId as string;
+export default function ActiveChatPage({ params }: { params: Promise<{ conversationId: string }> }) {
+  const { conversationId } = use(params);
 
   return (
     <div className="py-2">

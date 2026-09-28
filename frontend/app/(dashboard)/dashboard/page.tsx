@@ -124,7 +124,7 @@ export default function DashboardHomePage() {
     totalRecords: 0,
     totalSchemesChecked: 0,
     emergencyAlertsCount: 0,
-    activeSchemesCount: 40,
+    activeSchemesCount: 20,
   };
   const latest = data?.latestAssessment;
   const specialist = data?.specialistRecommendation;

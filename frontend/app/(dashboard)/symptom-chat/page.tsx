@@ -158,7 +158,9 @@ export default function SymptomChatPage() {
     setErrorMessage(null);
     try {
       const { data } = await api.post("/conversations", { language: "en", input_type: "text" });
-      const newId = data?.conversationId || data?.conversation_id || `conv_${Date.now()}`;
+      const newId = data?.conversationId || data?.conversation_id;
+      if (!newId) throw new Error("Backend failed to return a valid conversation ID");
+      
       const newConv: ConversationItem = {
         id: newId,
         title: "New Symptom Check",
@@ -168,9 +170,10 @@ export default function SymptomChatPage() {
       };
       setConversations((prev) => [newConv, ...prev]);
       setActiveConvId(newId);
-    } catch {
-      const fallbackId = `conv_${Date.now()}`;
-      setActiveConvId(fallbackId);
+    } catch (err) {
+      console.error("[Chat] Failed to create new conversation:", err);
+      setErrorMessage("Failed to start a new symptom assessment. Please try again later.");
+      return;
     }
 
     setMessages([INITIAL_GREETING]);
@@ -202,7 +205,8 @@ export default function SymptomChatPage() {
       // Ensure we have a conversation ID
       if (!currentConvId) {
         const { data: convData } = await api.post("/conversations", { language: "en", input_type: "text" });
-        currentConvId = convData?.conversationId || convData?.conversation_id || `conv_${Date.now()}`;
+        currentConvId = convData?.conversationId || convData?.conversation_id;
+        if (!currentConvId) throw new Error("Could not initialize a conversation ID.");
         setActiveConvId(currentConvId);
       }
 

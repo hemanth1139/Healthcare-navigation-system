@@ -19,6 +19,7 @@ import {
 export interface HospitalCardProps {
   hospital: HospitalWithDistance;
   isSelected?: boolean;
+  activeSpecialty?: string;
   onSelect: (hospital: HospitalWithDistance) => void;
   onOpenDetail: (hospital: HospitalWithDistance) => void;
 }
@@ -26,6 +27,7 @@ export interface HospitalCardProps {
 export const HospitalCard: React.FC<HospitalCardProps> = ({
   hospital,
   isSelected = false,
+  activeSpecialty,
   onSelect,
   onOpenDetail,
 }) => {
@@ -142,14 +144,27 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
             Available Services
           </span>
           <div className="flex flex-wrap gap-1.5">
-            {hospital.specialties.slice(0, 4).map((spec) => (
-              <span
-                key={spec}
-                className="text-[11px] font-medium text-slate-700 bg-slate-100 hover:bg-[#F0FDFA] hover:text-[#0D9488] px-2.5 py-0.5 rounded-lg border border-slate-200 transition-colors"
-              >
-                {spec}
-              </span>
-            ))}
+            {hospital.specialties.slice(0, 4).map((spec) => {
+              const isMatch = Boolean(
+                activeSpecialty && (
+                  spec.toLowerCase().includes(activeSpecialty.toLowerCase()) ||
+                  activeSpecialty.toLowerCase().includes(spec.toLowerCase()) ||
+                  (activeSpecialty.toLowerCase().includes("cardio") && spec.toLowerCase().includes("cardiac"))
+                )
+              );
+              return (
+                <span
+                  key={spec}
+                  className={`text-[11px] font-medium px-2.5 py-0.5 rounded-lg border transition-all ${
+                    isMatch
+                      ? "bg-teal-500/20 text-[#0D9488] dark:text-[#14B8A6] border-[#0D9488]/40 font-bold ring-2 ring-teal-500/20 shadow-2xs"
+                      : "text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                  }`}
+                >
+                  {isMatch ? `✓ ${spec}` : spec}
+                </span>
+              );
+            })}
             {hospital.specialties.length > 4 && (
               <span className="text-[11px] text-[#64748B] font-medium px-1 py-0.5">
                 +{hospital.specialties.length - 4} more

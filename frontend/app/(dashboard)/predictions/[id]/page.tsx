@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import {
   Sparkles,
@@ -15,6 +15,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { normalizeSpecialty } from "@/lib/hospitalApi";
 import { Spinner } from "@/components/ui/Spinner";
 
 interface PredictionReport {
@@ -46,14 +47,20 @@ interface PredictionReport {
   predicted_at?: string;
 }
 
-export default function PredictionResultPage({ params }: { params: { id: string } }) {
+export default function PredictionResultPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [report, setReport] = useState<PredictionReport | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
     api
-      .get(`/predictions/${params.id}`)
+      .get(`/predictions/${id}`)
       .then(({ data }) => {
         if (isMounted && data) {
           setReport(data);
@@ -69,7 +76,7 @@ export default function PredictionResultPage({ params }: { params: { id: string 
     return () => {
       isMounted = false;
     };
-  }, [params.id]);
+  }, [id]);
 
   if (loading) {
     return (
@@ -90,7 +97,7 @@ export default function PredictionResultPage({ params }: { params: { id: string 
           Report Not Found
         </h2>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-          No diagnostic prediction was found matching report ID #{params.id}. Please start a symptom check to generate a new report.
+          No diagnostic prediction was found matching report ID #{id}. Please start a symptom check to generate a new report.
         </p>
         <div className="flex items-center gap-3 mt-6">
           <Link
@@ -136,7 +143,7 @@ export default function PredictionResultPage({ params }: { params: { id: string 
               <span>History</span>
             </Link>
             <span className="px-2.5 py-0.5 rounded-md bg-[#0D9488]/10 text-[#0D9488] dark:text-[#14B8A6] font-mono text-[11px] font-bold">
-              REPORT #{report.prediction_id || params.id}
+              REPORT #{report.prediction_id || id}
             </span>
             <span className="text-xs text-slate-400">{formattedDate}</span>
           </div>
@@ -402,7 +409,11 @@ export default function PredictionResultPage({ params }: { params: { id: string 
           </div>
 
           <Link
-            href="/hospitals"
+            href={
+              report.specialist?.specialist
+                ? `/hospitals?specialty=${encodeURIComponent(normalizeSpecialty(report.specialist.specialist))}`
+                : "/hospitals"
+            }
             className="px-6 py-3 rounded-xl bg-[#0D9488] hover:bg-[#0F766E] text-white font-bold text-xs shadow-md transition-all shrink-0 flex items-center gap-2"
           >
             <span>Find Nearby Hospitals</span>

@@ -8,6 +8,7 @@ import { SeverityBadge } from "@/components/ui/SeverityBadge";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { UserCheck, Stethoscope, ArrowRight, ArrowLeft, ShieldAlert } from "lucide-react";
+import { normalizeSpecialty } from "@/lib/hospitalApi";
 
 export interface SpecialistRecommendationCardProps {
   recommendation: SpecialistRecommendation;
@@ -21,9 +22,9 @@ export const SpecialistRecommendationCard: React.FC<SpecialistRecommendationCard
   const router = useRouter();
 
   const handleFindHospitals = () => {
-    // Extract main specialty name for search filter
-    const primarySpecialty = recommendation.specialist.split("&")[0].trim();
-    router.push(`/hospitals?specialist=${encodeURIComponent(primarySpecialty)}`);
+    // Normalize specialty to match official hospital department categories
+    const primarySpecialty = normalizeSpecialty(recommendation.specialist);
+    router.push(`/hospitals?specialty=${encodeURIComponent(primarySpecialty)}`);
   };
 
   return (

@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 import { SpecialistRecommendation } from "@/types/specialist";
 import { specialistApi } from "@/lib/mockSpecialistData";
 import { SpecialistRecommendationCard } from "@/components/specialist/SpecialistRecommendationCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { ArrowLeft } from "lucide-react";
 
-export default function SpecialistRecommendationPage() {
-  const params = useParams();
-  const predictionId = (params?.predictionId as string) || "pred_101";
+export default function SpecialistRecommendationPage({ params }: { params: Promise<{ predictionId: string }> }) {
+  const { predictionId = "pred_101" } = use(params);
 
   const [recommendation, setRecommendation] = useState<SpecialistRecommendation | null>(null);
   const [loading, setLoading] = useState(true);

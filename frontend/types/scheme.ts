@@ -5,6 +5,7 @@ export type EligibilityStatus =
   | "NOT_ELIGIBLE"
   | "POSSIBLY_ELIGIBLE"
   | "INSUFFICIENT_INFORMATION"
+  | "PROFILE_DATA_REQUIRED"
   | "COVERED"
   | "NOT_COVERED"
   | "INFORMATIONAL";

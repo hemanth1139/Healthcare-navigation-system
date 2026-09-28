@@ -9,6 +9,7 @@ import { SchemeSearchBar } from "@/components/schemes/SchemeSearchBar";
 import { SchemeList } from "@/components/schemes/SchemeList";
 import { Spinner } from "@/components/ui/Spinner";
 import { Card } from "@/components/ui/Card";
+import { QuickEligibilityIntakeCard, QuickIntakeData } from "@/components/schemes/QuickEligibilityIntakeCard";
 import {
   ShieldAlert,
   Send,
@@ -24,7 +25,27 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
-import { QuickEligibilityIntakeCard, QuickIntakeData } from "@/components/schemes/QuickEligibilityIntakeCard";
+
+/** Phrases that trigger the intake card before querying */
+const OPEN_ENDED_KEYWORDS = [
+  "what are the schemes am i eligible for",
+  "what schemes am i eligible for",
+  "which schemes am i eligible for",
+  "am i eligible for any schemes",
+  "what schemes can i get",
+  "find schemes for me",
+  "schemes for me",
+  "what am i eligible for",
+  "show me schemes",
+  "list schemes",
+  "available schemes",
+  "eligible schemes",
+];
+
+function isOpenEndedQuery(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  return OPEN_ENDED_KEYWORDS.some((kw) => lower.includes(kw));
+}
 
 export default function SchemesLandingPage() {
   const [schemes, setSchemes] = useState<GovernmentScheme[]>([]);
@@ -37,6 +58,9 @@ export default function SchemesLandingPage() {
   const [question, setQuestion] = useState("");
   const [queryLoading, setQueryLoading] = useState(false);
   const [eligibilityResult, setEligibilityResult] = useState<MultiDocEligibilityResult | null>(null);
+  const [activeQueryId, setActiveQueryId] = useState<string | null>(null);
+
+  // Intake card state — shown when user types an open-ended query
   const [showIntakeCard, setShowIntakeCard] = useState(false);
 
   // Past queries history
@@ -75,20 +99,65 @@ export default function SchemesLandingPage() {
     loadHistory();
   }, []);
 
+  /** Core query function — submits to the RAG pipeline */
+  const runQuery = async (text: string, additionalInfo?: Record<string, any>) => {
+    setQueryLoading(true);
+    setEligibilityResult(null);
+    setActiveQueryId(null);
+    try {
+      const { query, eligibilityResult: result } = await schemeApi.querySchemeEligibility(text, undefined, additionalInfo);
+      setEligibilityResult(result);
+      // Track the query_id so we can continue the interview
+      const qId = result?.query_id || query?.query_id || null;
+      setActiveQueryId(qId);
+      loadHistory();
+    } catch (err: any) {
+      console.error("Eligibility query failed:", err);
+      const detail = err?.response?.data?.detail || err?.message || "Please check your network and try again.";
+      alert(`Eligibility Analysis: ${detail}`);
+    } finally {
+      setQueryLoading(false);
+    }
+  };
+
   const handleQuery = async (customQ?: string) => {
     const text = (customQ || question).trim();
     if (!text) return;
 
+    // If it's an open-ended "find all schemes" query, show intake card first
+    if (isOpenEndedQuery(text) && !showIntakeCard) {
+      setShowIntakeCard(true);
+      return;
+    }
+
+    setShowIntakeCard(false);
+    await runQuery(text);
+  };
+
+  /** Called when user fills in the QuickEligibilityIntakeCard */
+  const handleIntakeSubmit = async (intakeData: QuickIntakeData) => {
+    setShowIntakeCard(false);
+    const q = question.trim() || "What government healthcare schemes am I eligible for?";
+    await runQuery(q, {
+      state: intakeData.state,
+      age: intakeData.age,
+      annual_income: intakeData.annual_income,
+    });
+  };
+
+  /** Called when MultiDocEligibilityCard's interview panel submits answers */
+  const handleContinueInterview = async (queryId: string, additionalInfo: Record<string, any>) => {
     setQueryLoading(true);
-    setEligibilityResult(null);
     try {
-      const { eligibilityResult: result } = await schemeApi.querySchemeEligibility(text);
+      const { eligibilityResult: result } = await schemeApi.continueEligibility(queryId, additionalInfo);
       setEligibilityResult(result);
+      const newQId = result?.query_id || queryId;
+      setActiveQueryId(newQId);
       loadHistory();
     } catch (err: any) {
-      console.error("Eligibility query failed:", err);
-      const detail = err?.response?.data?.detail || err?.message || "Please check your network and query and try again.";
-      alert(`Eligibility Analysis: ${detail}`);
+      console.error("Continue eligibility failed:", err);
+      const detail = err?.response?.data?.detail || err?.message || "Please try again.";
+      alert(`Could not process your answers: ${detail}`);
     } finally {
       setQueryLoading(false);
     }
@@ -144,8 +213,8 @@ export default function SchemesLandingPage() {
           <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <p>
             {language === "ta"
-              ? "அரசு திட்ட தகுதி குறித்து எந்த கேள்வியையும் கேளுங்கள். AI உங்கள் கேள்வியை தனிப்பட்ட தகுதிகளாக பிரித்து அதிகாரப்பூர்வ ஆவணங்களிலிருந்து ஆதாரங்களை வழங்கும்."
-              : "Ask any question about government scheme eligibility. The system decomposes your query into criteria, retrieves official evidence, compares your patient profile, and provides traceable source citations."}
+              ? "அரசு திட்ட தகுதி குறித்து எந்த கேள்வியையும் கேளுங்கள். 'என்ன திட்டங்களுக்கு நான் தகுதியானவன்?' என்று கேட்டால் உங்கள் விவரங்களை உள்ளிட சிறு படிவம் வரும்."
+              : "Ask any question about government scheme eligibility. Asking 'What schemes am I eligible for?' will prompt a quick intake form to collect your state, age, and income for accurate matching."}
           </p>
         </div>
 
@@ -173,21 +242,34 @@ export default function SchemesLandingPage() {
           </button>
         </div>
 
+        {/* Quick Intake Card — shown for open-ended queries */}
+        {showIntakeCard && (
+          <div className="pt-1">
+            <QuickEligibilityIntakeCard
+              isLoading={queryLoading}
+              onSubmit={handleIntakeSubmit}
+              onCancel={() => setShowIntakeCard(false)}
+            />
+          </div>
+        )}
+
         {/* Example Questions */}
-        <div className="flex flex-wrap gap-2">
-          {exampleQuestions.map((q) => (
-            <button
-              key={q}
-              onClick={() => {
-                setQuestion(q);
-                handleQuery(q);
-              }}
-              className="text-[11px] px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-teal-500/10 hover:border-teal-500/30 transition-colors cursor-pointer"
-            >
-              {q}
-            </button>
-          ))}
-        </div>
+        {!showIntakeCard && (
+          <div className="flex flex-wrap gap-2">
+            {exampleQuestions.map((q) => (
+              <button
+                key={q}
+                onClick={() => {
+                  setQuestion(q);
+                  handleQuery(q);
+                }}
+                className="text-[11px] px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-teal-500/10 hover:border-teal-500/30 transition-colors cursor-pointer"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Loading State */}
         {queryLoading && (
@@ -218,11 +300,14 @@ export default function SchemesLandingPage() {
               <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <MultiDocEligibilityCard result={eligibilityResult} />
+          <MultiDocEligibilityCard
+            result={eligibilityResult}
+            onContinue={activeQueryId ? handleContinueInterview : undefined}
+          />
         </div>
       )}
 
-      {/* Past Queries History (if available) */}
+      {/* Past Queries History */}
       {pastQueries.length > 0 && (
         <Card className="p-4 border border-slate-200 dark:border-slate-800 flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
@@ -239,6 +324,7 @@ export default function SchemesLandingPage() {
                 onClick={() => {
                   if (pq.eligibility_result) {
                     setEligibilityResult(pq.eligibility_result);
+                    setActiveQueryId(pq.eligibility_result.query_id || pq.query_id);
                   }
                 }}
                 className="w-full text-left p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors flex items-center justify-between gap-3 text-xs"
@@ -248,7 +334,8 @@ export default function SchemesLandingPage() {
                     {pq.user_question}
                   </span>
                   <span className="text-[10px] text-slate-400">
-                    {pq.created_at ? new Date(pq.created_at).toLocaleDateString() : "Recent"} • Status: {pq.eligibility_result?.overall_status || "Evaluated"}
+                    {pq.created_at ? new Date(pq.created_at).toLocaleDateString() : "Recent"} • Status:{" "}
+                    {pq.eligibility_result?.overall_status || "Evaluated"}
                   </span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />

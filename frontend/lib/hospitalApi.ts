@@ -13,6 +13,27 @@ export interface NearbyHospitalsQueryParams {
   sortBy?: "distance" | "name" | "rating" | string;
 }
 
+/**
+ * Maps clinician/specialist titles (e.g. "Cardiologist (Emergency Medicine)")
+ * to standard hospital department values (e.g. "Cardiology").
+ */
+export function normalizeSpecialty(input?: string | null): string {
+  if (!input) return "";
+  const low = input.toLowerCase().trim();
+  if (low === "all" || low === "") return "";
+  if (low.includes("cardio") || low.includes("heart") || low.includes("cardiac")) return "Cardiology";
+  if (low.includes("neuro") || low.includes("brain") || low.includes("stroke") || low.includes("spine")) return "Neurology";
+  if (low.includes("ortho") || low.includes("bone") || low.includes("joint") || low.includes("musculoskeletal")) return "Orthopedics";
+  if (low.includes("pulmon") || low.includes("chest") || low.includes("respiratory") || low.includes("lung") || low.includes("asthma")) return "Pulmonology";
+  if (low.includes("gastro") || low.includes("digest") || low.includes("liver") || low.includes("stomach")) return "Gastroenterology";
+  if (low.includes("pediatr") || low.includes("child") || low.includes("infant")) return "Pediatrics";
+  if (low.includes("oncol") || low.includes("cancer")) return "Oncology";
+  if (low.includes("transplant")) return "Multi-Organ Transplant";
+  if (low.includes("emerg") || low.includes("trauma")) return "Emergency";
+  if (low.includes("general") || low.includes("physician") || low.includes("internal")) return "General Medicine";
+  return input.trim();
+}
+
 export const hospitalApi = {
   /**
    * Fetch nearby hospitals from real backend
