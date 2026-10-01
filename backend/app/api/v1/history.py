@@ -34,6 +34,7 @@ async def get_assessment_history(db: DBSession, current_user: CurrentUser):
         .options(
             selectinload(Conversation.disease_predictions).selectinload(DiseasePrediction.severity_assessment),
             selectinload(Conversation.disease_predictions).selectinload(DiseasePrediction.specialist_recommendation),
+            selectinload(Conversation.disease_predictions).selectinload(DiseasePrediction.hospital_recommendations),
             selectinload(Conversation.messages)
         )
         .order_by(Conversation.started_at.desc())
@@ -59,13 +60,38 @@ async def get_assessment_history(db: DBSession, current_user: CurrentUser):
         specialist_val = "General Physician"
         confidence_score = 0.5
         
+        explanation_val = None
+        symptoms_val = []
+        hospital_val = None
+        urgency_val = "Routine"
+        
         if pred:
             confidence_score = float(pred.confidence_score)
+            
+            # parse symptoms
+            if pred.symptom_vector:
+                import json
+                try:
+                    symptoms_dict = json.loads(pred.symptom_vector)
+                    # symptom_vector could be a list of strings or a dict of {symptom: value}
+                    if isinstance(symptoms_dict, dict):
+                        symptoms_val = [k for k, v in symptoms_dict.items() if v == 1 or v is True]
+                    elif isinstance(symptoms_dict, list):
+                        symptoms_val = symptoms_dict
+                except Exception:
+                    pass
+
             if pred.severity_assessment:
                 sev_raw = (pred.severity_assessment.severity or "routine").lower()
                 severity_val = "Emergency" if "emergen" in sev_raw else "Urgent" if "high" in sev_raw or "urg" in sev_raw else "Moderate" if "mod" in sev_raw else "Routine"
+                explanation_val = pred.severity_assessment.explanation
+                urgency_val = pred.severity_assessment.urgency_level
+                
             if pred.specialist_recommendation:
                 specialist_val = pred.specialist_recommendation.specialist
+                
+            if hasattr(pred, "hospital_recommendations") and pred.hospital_recommendations:
+                hospital_val = pred.hospital_recommendations[0].hospital_name
 
         history_list.append({
             "predictionId": str(pred.prediction_id) if pred else str(conv.conversation_id),
@@ -73,7 +99,11 @@ async def get_assessment_history(db: DBSession, current_user: CurrentUser):
             "predictedDisease": disease_title,
             "confidenceScore": confidence_score,
             "severity": severity_val,
+            "urgency": urgency_val,
             "specialist": specialist_val,
+            "hospital": hospital_val,
+            "explanation": explanation_val,
+            "symptoms": symptoms_val,
             "predictedAt": pred.predicted_at.isoformat() if pred else conv.started_at.isoformat()
         })
         

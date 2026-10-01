@@ -16,7 +16,6 @@ import {
   AlertTriangle,
   FileText,
   ExternalLink,
-  Upload,
   Sparkles,
   ArrowLeft,
   Send,
@@ -302,16 +301,9 @@ export default function SchemeEligibilityResultPage({ params }: { params: Promis
                 </div>
               )}
 
-              {/* Optional verification doc upload note */}
-              <div className="flex items-center justify-between gap-2 pt-2 text-[11px] text-slate-500 dark:text-slate-400">
+              {/* Privacy note */}
+              <div className="flex items-center gap-2 pt-2 text-[11px] text-slate-500 dark:text-slate-400">
                 <span>Privacy First: Answers are only evaluated for this query session.</span>
-                <Link
-                  href="/documents"
-                  className="text-teal-600 dark:text-teal-400 hover:underline font-semibold flex items-center gap-1"
-                >
-                  <Upload className="w-3 h-3" />
-                  <span>Upload Certificate (Optional)</span>
-                </Link>
               </div>
             </Card>
           ) : (

@@ -160,23 +160,23 @@ export default function MedicalRecordsPage() {
         const mappedConsultations: ConsultationRecord[] = hist.map((h: any) => {
           const syms = Array.isArray(h.symptoms) ? h.symptoms : [];
           return {
-            id: h.prediction_id || h.conversation_id || `hist_${Math.random()}`,
-            conversationId: h.conversation_id || "",
-            date: h.created_at
-              ? new Date(h.created_at).toLocaleDateString("en-US", {
+            id: h.predictionId || h.conversationId || h.prediction_id || h.conversation_id || `hist_${Math.random()}`,
+            conversationId: h.conversationId || h.conversation_id || "",
+            date: h.predictedAt || h.created_at
+              ? new Date(h.predictedAt || h.created_at).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
                 })
               : "Recent",
             symptoms: syms,
-            predictedDisease: h.predicted_disease || "Clinical Assessment",
-            confidence: Math.round((h.confidence_score || 0.85) * 100),
+            predictedDisease: h.predictedDisease || h.predicted_disease || "Clinical Assessment",
+            confidence: Math.round((h.confidenceScore || h.confidence_score || 0.85) * 100),
             severity: h.severity || "MODERATE",
             urgency: h.urgency || "ROUTINE",
             explanation: h.explanation,
-            specialist: h.recommended_specialist,
-            hospital: h.recommended_hospital,
+            specialist: h.specialist || h.recommended_specialist,
+            hospital: h.hospital || h.recommended_hospital,
           };
         });
         setConsultations(mappedConsultations);
@@ -262,13 +262,6 @@ export default function MedicalRecordsPage() {
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-[#0D9488]" : ""}`} />
           </button>
-          <Link
-            href="/documents"
-            className="px-4 py-2.5 rounded-xl bg-[#0D9488] hover:bg-[#0F766E] text-white font-semibold text-xs shadow-sm flex items-center gap-1.5 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Upload Document</span>
-          </Link>
         </div>
       </div>
 

@@ -68,10 +68,10 @@ export const MOCK_DASHBOARD_DATA: DashboardData = {
     },
     {
       id: "act_2",
-      title: "Upload Scheme Documents",
-      description: "Upload Income Certificate, Aadhaar, Ration Card for eligibility.",
+      title: "Check Scheme Eligibility",
+      description: "Find government healthcare schemes you qualify for.",
       iconName: "FileUp",
-      linkUrl: "/documents",
+      linkUrl: "/schemes",
     },
     {
       id: "act_3",

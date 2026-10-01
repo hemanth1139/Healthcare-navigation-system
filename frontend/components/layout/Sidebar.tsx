@@ -13,7 +13,6 @@ import {
   Clock,
   Folder,
   HeartPulse,
-  Upload,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -39,7 +38,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "History", href: "/history", icon: Clock },
   { label: "Medical Records", href: "/records", icon: Folder },
   { label: "Health Tips", href: "/health-tips", icon: HeartPulse },
-  { label: "Scheme Documents", href: "/documents", icon: Upload },
   { label: "Settings", href: "/settings", icon: Settings },
   { label: "Patient Profile", href: "/profile", icon: User },
 ];
@@ -57,7 +55,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   },
   {
     title: "Patient Data",
-    items: [NAV_ITEMS[7], NAV_ITEMS[8], NAV_ITEMS[9], NAV_ITEMS[10], NAV_ITEMS[11]],
+    items: [NAV_ITEMS[7], NAV_ITEMS[8], NAV_ITEMS[9], NAV_ITEMS[10]],
   },
 ];
 
@@ -73,7 +71,6 @@ export const Sidebar: React.FC = () => {
       case "/symptom-chat": return t.symptomChat || "Symptom Chat";
       case "/history": return t.history || "History";
       case "/schemes": return t.schemes || "Government Schemes";
-      case "/documents": return t.documents || "Scheme Documents";
       case "/hospitals": return t.hospitals || "Hospitals";
       case "/specialists": return t.specialists || "Specialists";
       case "/health-tips": return t.tips || "Health Tips";

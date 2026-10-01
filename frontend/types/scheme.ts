@@ -15,6 +15,7 @@ export type CriterionResult = "PASS" | "FAIL" | "UNKNOWN" | "NOT_REQUIRED";
 export interface EvidenceSource {
   chunk_id: string;
   document_title: string;          // e.g. "PM-JAY Master Operational Guidelines 2024"
+  scheme_name?: string;
   page_number?: number;
   excerpt: string;                 // Relevant text chunk retrieved from ChromaDB
   official_url: string;

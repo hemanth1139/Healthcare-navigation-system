@@ -104,9 +104,9 @@ class EmbeddingService:
             loop = asyncio.get_running_loop()
             res = await loop.run_in_executor(
                 None,
-                lambda: client.models.embed_content(
+                lambda c=chunk: client.models.embed_content(
                     model=model_name,
-                    contents=chunk,
+                    contents=c,
                     config={"output_dimensionality": DEFAULT_DIMENSION}
                 )
             )
@@ -114,5 +114,7 @@ class EmbeddingService:
                 all_embeddings.extend([emb.values for emb in res.embeddings])
             else:
                 raise RuntimeError(f"Failed to generate embeddings for batch {i//batch_size}")
+            if i + batch_size < len(texts):
+                await asyncio.sleep(0.6)
 
         return all_embeddings

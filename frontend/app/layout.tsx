@@ -36,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${sora.variable} ${inter.variable} ${ibmPlexMono.variable}`}>
+    <html lang="en" className={`${sora.variable} ${inter.variable} ${ibmPlexMono.variable}`} suppressHydrationWarning>
       <body className="bg-[#F8FAFC] dark:bg-[#020617] text-[#0F172A] dark:text-[#F8FAFC] antialiased font-body min-h-screen transition-colors duration-200">
         <ThemeProvider>
           <LanguageProvider>

@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     # ─── LLM Providers ────────────────────────────────────────────────────────
     GOOGLE_API_KEY: str = ""
     PRIMARY_LLM_PROVIDER: str = "gemini"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
 
     # ─── Google OAuth 2.0 ─────────────────────────────────────────────────────
     GOOGLE_CLIENT_ID: str = ""

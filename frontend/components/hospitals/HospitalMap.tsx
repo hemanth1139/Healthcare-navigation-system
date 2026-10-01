@@ -74,6 +74,9 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
 
     const map = mapInstanceRef.current;
 
+    // Close any open popups before removing markers to prevent _leaflet_pos error
+    map.closePopup();
+
     // Clear previous hospital markers
     Object.values(markersRef.current).forEach((marker) => marker.remove());
     markersRef.current = {};
@@ -204,7 +207,11 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
         const targetHosp = hospitals.find((h) => h.hospital_id === selectedHospitalId);
         if (targetHosp) {
           map.setView([targetHosp.latitude, targetHosp.longitude], 14, { animate: true });
-          markersRef.current[selectedHospitalId].openPopup();
+          setTimeout(() => {
+            if (markersRef.current[selectedHospitalId]) {
+              markersRef.current[selectedHospitalId].openPopup();
+            }
+          }, 100);
         }
       } else if (bounds.isValid() && hospitals.length > 0) {
         map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });

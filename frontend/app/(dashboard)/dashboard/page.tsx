@@ -173,13 +173,6 @@ export default function DashboardHomePage() {
               <span>Start Symptom Triage</span>
             </Link>
             <Link
-              href="/documents"
-              className="px-4 py-2.5 rounded-xl font-semibold text-xs bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm transition-all flex items-center gap-1.5"
-            >
-              <FolderOpen className="w-4 h-4" />
-              <span>Upload Records</span>
-            </Link>
-            <Link
               href="/schemes"
               className="px-4 py-2.5 rounded-xl font-semibold text-xs bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm transition-all flex items-center gap-1.5"
             >

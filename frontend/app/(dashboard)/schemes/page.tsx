@@ -9,7 +9,6 @@ import { SchemeSearchBar } from "@/components/schemes/SchemeSearchBar";
 import { SchemeList } from "@/components/schemes/SchemeList";
 import { Spinner } from "@/components/ui/Spinner";
 import { Card } from "@/components/ui/Card";
-import { QuickEligibilityIntakeCard, QuickIntakeData } from "@/components/schemes/QuickEligibilityIntakeCard";
 import {
   ShieldAlert,
   Send,
@@ -124,26 +123,9 @@ export default function SchemesLandingPage() {
     const text = (customQ || question).trim();
     if (!text) return;
 
-    // If it's an open-ended "find all schemes" query, show intake card first
-    if (isOpenEndedQuery(text) && !showIntakeCard) {
-      setShowIntakeCard(true);
-      return;
-    }
-
-    setShowIntakeCard(false);
     await runQuery(text);
   };
 
-  /** Called when user fills in the QuickEligibilityIntakeCard */
-  const handleIntakeSubmit = async (intakeData: QuickIntakeData) => {
-    setShowIntakeCard(false);
-    const q = question.trim() || "What government healthcare schemes am I eligible for?";
-    await runQuery(q, {
-      state: intakeData.state,
-      age: intakeData.age,
-      annual_income: intakeData.annual_income,
-    });
-  };
 
   /** Called when MultiDocEligibilityCard's interview panel submits answers */
   const handleContinueInterview = async (queryId: string, additionalInfo: Record<string, any>) => {
@@ -242,34 +224,22 @@ export default function SchemesLandingPage() {
           </button>
         </div>
 
-        {/* Quick Intake Card — shown for open-ended queries */}
-        {showIntakeCard && (
-          <div className="pt-1">
-            <QuickEligibilityIntakeCard
-              isLoading={queryLoading}
-              onSubmit={handleIntakeSubmit}
-              onCancel={() => setShowIntakeCard(false)}
-            />
-          </div>
-        )}
 
         {/* Example Questions */}
-        {!showIntakeCard && (
-          <div className="flex flex-wrap gap-2">
-            {exampleQuestions.map((q) => (
-              <button
-                key={q}
-                onClick={() => {
-                  setQuestion(q);
-                  handleQuery(q);
-                }}
-                className="text-[11px] px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-teal-500/10 hover:border-teal-500/30 transition-colors cursor-pointer"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {exampleQuestions.map((q) => (
+            <button
+              key={q}
+              onClick={() => {
+                setQuestion(q);
+                handleQuery(q);
+              }}
+              className="text-[11px] px-2.5 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-teal-500/10 hover:border-teal-500/30 transition-colors cursor-pointer"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
 
         {/* Loading State */}
         {queryLoading && (
@@ -291,14 +261,6 @@ export default function SchemesLandingPage() {
             <h2 className="font-heading font-bold text-base text-slate-900 dark:text-white">
               {language === "ta" ? "தகுதி ஆய்வு முடிவுகள்" : "Eligibility Assessment Result"}
             </h2>
-            <Link
-              href="/documents"
-              className="flex items-center gap-1 text-xs font-semibold text-[#0D9488] hover:underline"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              {t.uploadDocuments}
-              <ArrowRight className="w-3 h-3" />
-            </Link>
           </div>
           <MultiDocEligibilityCard
             result={eligibilityResult}

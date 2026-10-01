@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   MultiDocEligibilityResult,
   EligibilityCriterion,
@@ -141,6 +142,63 @@ const SOURCE_BADGES: Record<string, { label: string; style: string }> = {
   DOCUMENT_VERIFIED: { label: "Verified Document", style: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300" },
   PROFILE_CONTEXT: { label: "Profile Context", style: "bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-950 dark:text-teal-300" },
   OFFICIAL_RULE: { label: "Official Policy", style: "bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-300" },
+};
+
+const parseInlineStyles = (content: string) => {
+  const parts = content.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="font-semibold text-slate-900 dark:text-white">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return part;
+  });
+};
+
+const renderFormattedText = (text: string) => {
+  if (!text) return null;
+  const lines = text.split("\n");
+  return (
+    <div className="flex flex-col gap-1">
+      {lines.map((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return <div key={idx} className="h-1.5" />;
+        }
+        if (trimmed.startsWith("### ")) {
+          return (
+            <h4 key={idx} className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white mt-2">
+              {trimmed.replace(/^###\s+/, "")}
+            </h4>
+          );
+        }
+        if (trimmed.startsWith("## ")) {
+          return (
+            <h3 key={idx} className="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-2.5">
+              {trimmed.replace(/^##\s+/, "")}
+            </h3>
+          );
+        }
+        if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+          const content = trimmed.replace(/^[\*\-]\s+/, "");
+          return (
+            <div key={idx} className="flex items-start gap-2 ml-1 my-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-teal-500 mt-1.5 shrink-0" />
+              <span className="leading-relaxed">{parseInlineStyles(content)}</span>
+            </div>
+          );
+        }
+        return (
+          <p key={idx} className="my-0.5 leading-relaxed">
+            {parseInlineStyles(trimmed)}
+          </p>
+        );
+      })}
+    </div>
+  );
 };
 
 // ─── CriterionRow ─────────────────────────────────────────────────────────────
@@ -562,7 +620,93 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
       )}
 
       {/* Overall Explanation */}
-      <p className={`text-xs leading-relaxed ${cfg.text}`}>{explanationText}</p>
+      <div className={`text-xs leading-relaxed ${cfg.text}`}>
+        {renderFormattedText(explanationText)}
+      </div>
+
+      {/* Eligible Schemes Grid (for MULTI_SCHEME queries) */}
+      {(queryType === "MULTI_SCHEME_ELIGIBILITY_QUERY" || (evidenceSources.length > 0 && evidenceSources.some((e: any) => e.scheme_id))) && (
+        <div className="flex flex-col gap-3 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Matched Healthcare Schemes ({evidenceSources.length})
+            </p>
+            <span className="text-[11px] text-teal-600 dark:text-teal-400 font-medium">
+              Click &quot;Check Eligibility&quot; for personalized assessment
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {evidenceSources.map((source: any, idx: number) => {
+              const sId = source.scheme_id || `s_${idx}`;
+              const sName = source.scheme_name || source.document_title || "Healthcare Scheme";
+              const sGov = source.government_level || (sId.includes("TN") ? "Tamil Nadu" : "Central Government");
+              const sMatch = source.match_percentage ?? (source.relevance_score ? Math.round(source.relevance_score * 100) : 100);
+              const sCoverage = source.coverage_amount || "Per official guidelines";
+              const sUrl = source.official_url;
+
+              return (
+                <div
+                  key={`${sId}_${idx}`}
+                  className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 flex flex-col justify-between gap-2.5 shadow-sm hover:border-teal-500/50 hover:shadow-md transition-all group"
+                >
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                        sGov.includes("Tamil") ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300" : "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                      }`}>
+                        {sGov}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
+                        {sMatch}% Match
+                      </span>
+                    </div>
+
+                    <h4 className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
+                      {sName}
+                    </h4>
+
+                    {sCoverage && (
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 flex items-center gap-1 font-medium">
+                        <IndianRupee className="w-3 h-3 text-teal-600 shrink-0" />
+                        <span>{sCoverage}</span>
+                      </p>
+                    )}
+
+                    {source.excerpt && (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                        {source.excerpt}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                    <Link
+                      href={`/schemes/${sId}/eligibility`}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 dark:text-teal-400 hover:text-teal-700 hover:underline"
+                    >
+                      Check Eligibility
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+
+                    {sUrl && (
+                      <a
+                        href={sUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        Official Portal
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Interactive Answer Panel (when interview is active and onContinue is wired) */}
       {needsInterview && (
@@ -590,8 +734,8 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
           </div>
         )}
 
-      {/* Criteria Breakdown */}
-      {criteriaBreakdown.length > 0 && (
+      {/* Criteria Breakdown (for single-scheme evaluation) */}
+      {criteriaBreakdown.length > 0 && queryType !== "MULTI_SCHEME_ELIGIBILITY_QUERY" && (
         <div className="flex flex-col gap-2">
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             {breakdownTitle}
@@ -603,6 +747,39 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
             />
           ))}
         </div>
+      )}
+
+      {/* Official Policy Citations (for single-scheme queries) */}
+      {queryType !== "MULTI_SCHEME_ELIGIBILITY_QUERY" && evidenceSources.length > 0 && (
+        <details className="mt-2 text-xs border border-slate-200 dark:border-slate-800 rounded-xl bg-white/50 dark:bg-slate-900/50 p-3 group">
+          <summary className="font-semibold text-slate-700 dark:text-slate-300 cursor-pointer flex items-center justify-between">
+            <span>Official Policy Documents & Citations ({evidenceSources.length} excerpts)</span>
+            <ChevronDown className="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform" />
+          </summary>
+          <div className="flex flex-col gap-2 mt-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            {evidenceSources.map((source, i) => (
+              <div key={i} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50">
+                <p className="font-semibold text-[11px] text-slate-800 dark:text-slate-200 mb-1">
+                  {source.document_title || source.scheme_name || `Excerpt #${i + 1}`}
+                </p>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                  {source.excerpt}
+                </p>
+                {source.official_url && (
+                  <a
+                    href={source.official_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[10px] text-teal-600 dark:text-teal-400 mt-1.5 hover:underline"
+                  >
+                    View official source
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </details>
       )}
     </Card>
   );

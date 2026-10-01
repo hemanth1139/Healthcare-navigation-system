@@ -8,11 +8,15 @@ Supports single-scheme and multi-scheme eligibility evaluation over 20 supported
 import re
 import os
 import json
+import asyncio
+import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 from app.config import settings
 from app.rag.embeddings import EmbeddingService
 from app.rag.vectorstore import VectorStore, _cosine_similarity
+
+logger = logging.getLogger("app.rag.pipeline")
 
 # ─── Lazy VectorStore singleton ─────────────────────────────────────────────
 _vector_store: VectorStore | None = None
@@ -25,8 +29,15 @@ def _get_vector_store() -> VectorStore:
     return _vector_store
 
 
+# ─── Cached scheme data ─────────────────────────────────────────────────────
+_cached_schemes: List[Dict[str, Any]] | None = None
+
+
 def _load_all_schemes() -> List[Dict[str, Any]]:
-    """Loads all supported 20 schemes from healthcare_schemes.json."""
+    """Loads all supported 20 schemes from healthcare_schemes.json (cached after first load)."""
+    global _cached_schemes
+    if _cached_schemes is not None:
+        return _cached_schemes
     possible_paths = [
         os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "healthcare_schemes.json")),
         os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "healthcare_schemes.json")),
@@ -36,10 +47,107 @@ def _load_all_schemes() -> List[Dict[str, Any]]:
         if os.path.exists(p):
             try:
                 with open(p, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    _cached_schemes = json.load(f)
+                    return _cached_schemes
             except Exception:
                 pass
     return []
+
+
+# ─── Gemini LLM Client ──────────────────────────────────────────────────────
+def _get_genai_client():
+    """Returns a Google GenAI client using the configured API key."""
+    try:
+        from google import genai
+        api_key = getattr(settings, "GOOGLE_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
+        if not api_key:
+            return None
+        return genai.Client(api_key=api_key)
+    except ImportError:
+        logger.warning("[RAG] google-genai package not installed. LLM generation disabled.")
+        return None
+
+
+async def _generate_llm_response(
+    query_text: str,
+    retrieved_chunks: List[str],
+    scheme_name: str,
+    query_type: str,
+    patient_context: Optional[Dict[str, Any]] = None,
+) -> Optional[str]:
+    """
+    Calls Gemini LLM with retrieved RAG chunks as context to generate an intelligent,
+    grounded response. Returns None on failure so caller can use template fallback.
+    """
+    client = _get_genai_client()
+    if not client:
+        return None
+
+    context_text = "\n\n---\n\n".join(retrieved_chunks[:8])  # Top 8 chunks
+
+    patient_info = ""
+    if patient_context:
+        parts = []
+        if patient_context.get("age"):
+            parts.append(f"Age: {patient_context['age']}")
+        if patient_context.get("state"):
+            parts.append(f"State: {patient_context['state']}")
+        if patient_context.get("annual_income"):
+            parts.append(f"Annual Income: {patient_context['annual_income']}")
+        if patient_context.get("gender"):
+            parts.append(f"Gender: {patient_context['gender']}")
+        if parts:
+            patient_info = f"\n\nPatient Details: {', '.join(parts)}"
+
+    system_prompt = (
+        "You are an expert Indian healthcare scheme advisor. You provide accurate, helpful answers "
+        "about government healthcare schemes based ONLY on the official document excerpts provided below. "
+        "Do not invent information. If the excerpts don't contain the answer, say so clearly. "
+        "Be concise but thorough. Use bullet points for lists. Always mention the scheme name."
+    )
+
+    if query_type == "COVERAGE_QUERY":
+        task = f"Based on the official excerpts below, answer whether the following treatment/procedure is covered under {scheme_name} and explain the coverage details, limits, and any exclusions."
+    elif query_type == "REQUIREMENTS_QUERY":
+        task = f"Based on the official excerpts below, list ALL eligibility criteria, required documents, and application process for {scheme_name}. Be specific and thorough."
+    elif query_type == "GENERAL_INFORMATION":
+        task = f"Based on the official excerpts below, provide a comprehensive overview of {scheme_name} including: what it covers, who it's for, coverage amount, and how to apply."
+    else:  # PERSONAL_ELIGIBILITY
+        task = f"Based on the official excerpts and the patient's details below, assess whether this patient is likely eligible for {scheme_name}. Explain which criteria they meet and which they don't."
+
+    prompt = f"""{task}
+
+User Question: {query_text}
+{patient_info}
+
+--- Official Document Excerpts for {scheme_name} ---
+{context_text}
+--- End of Excerpts ---
+
+Provide a clear, structured answer:"""
+
+    try:
+        model_name = getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash") or "gemini-2.0-flash"
+        loop = asyncio.get_running_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config={
+                    "system_instruction": system_prompt,
+                    "temperature": 0.3,
+                    "max_output_tokens": 1024,
+                }
+            )
+        )
+        if response and response.text:
+            return response.text.strip()
+    except Exception as e:
+        logger.warning(f"[RAG] Gemini LLM generation failed: {e}")
+
+    return None
+
 
 
 def _parse_income_val(raw_val: Any) -> Optional[float]:
@@ -197,111 +305,111 @@ ALL_SCHEMES_MAP = {
         "id": "scheme_C03",
         "name": "Central Government Health Scheme (CGHS)",
         "url": "https://cghs.nic.in/",
-        "aliases": ["cghs", "central government health scheme", "central employee health"]
+        "aliases": ["cghs", "central government health scheme", "central employee health", "central pensioner health"]
     },
     "scheme_C04": {
         "id": "scheme_C04",
-        "name": "Employees' State Insurance Scheme (ESIS)",
+        "name": "Employees' State Insurance Scheme (ESIC)",
         "url": "https://www.esic.gov.in/",
-        "aliases": ["esic", "esi scheme", "employees state insurance", "esi hospital"]
+        "aliases": ["esic", "esi scheme", "employees state insurance", "esi hospital", "insured person"]
     },
     "scheme_C05": {
         "id": "scheme_C05",
-        "name": "Pradhan Mantri Swasthya Suraksha Yojana (PMSSY)",
-        "url": "https://pmssy.mohfw.gov.in/",
-        "aliases": ["pmssy", "swasthya suraksha", "aiims scheme", "tertiary healthcare expansion"]
+        "name": "Niramaya Health Insurance Scheme",
+        "url": "https://thenationaltrust.gov.in/",
+        "aliases": ["niramaya", "national trust", "autism health", "cerebral palsy", "multiple disabilities", "mental retardation", "disability insurance"]
     },
     "scheme_C06": {
         "id": "scheme_C06",
         "name": "Rashtriya Arogya Nidhi (RAN)",
         "url": "https://mohfw.gov.in/",
-        "aliases": ["rashtriya arogya nidhi", "ran", "rare disease fund", "revolving fund financial assistance"]
+        "aliases": ["rashtriya arogya nidhi", "ran", "rare disease fund", "revolving fund financial assistance", "bpl life threatening financial assistance"]
     },
     "scheme_C07": {
         "id": "scheme_C07",
+        "name": "Pradhan Mantri Matru Vandana Yojana (PMMVY)",
+        "url": "https://pmmvy.wcd.gov.in/",
+        "aliases": ["pmmvy", "matru vandana", "maternity benefit yojana", "pregnancy cash", "first child cash"]
+    },
+    "scheme_C08": {
+        "id": "scheme_C08",
+        "name": "Pradhan Mantri Surakshit Matritva Abhiyan (PMSMA)",
+        "url": "https://pmsma.nhp.gov.in/",
+        "aliases": ["pmsma", "surakshit matritva", "antenatal checkup", "free anc 9th", "maternal checkup"]
+    },
+    "scheme_C09": {
+        "id": "scheme_C09",
+        "name": "Janani Shishu Suraksha Karyakram (JSSK)",
+        "url": "https://nhm.gov.in/",
+        "aliases": ["janani shishu", "jssk", "zero out of pocket delivery", "sick infant care", "free delivery cashless"]
+    },
+    "scheme_C10": {
+        "id": "scheme_C10",
         "name": "Janani Suraksha Yojana (JSY)",
         "url": "https://nhm.gov.in/",
         "aliases": ["janani suraksha", "jsy", "institutional delivery cash", "maternal health cash"]
     },
-    "scheme_C08": {
-        "id": "scheme_C08",
-        "name": "Janani Shishu Suraksha Karyakram (JSSK)",
-        "url": "https://nhm.gov.in/",
-        "aliases": ["janani shishu", "jssk", "zero out of pocket delivery", "sick infant care"]
-    },
-    "scheme_C09": {
-        "id": "scheme_C09",
-        "name": "Rashtriya Bal Swasthya Karyakram (RBSK)",
-        "url": "https://rbsk.gov.in/",
-        "aliases": ["rashtriya bal swasthya", "rbsk", "child health screening", "birth defect screening", "4ds screening"]
-    },
-    "scheme_C10": {
-        "id": "scheme_C10",
-        "name": "National Tuberculosis Elimination Program (NTEP)",
-        "url": "https://tbcindia.gov.in/",
-        "aliases": ["tuberculosis", "tb elimination", "ntep", "nikshay", "tb patient nutritional", "nikshay poshan"]
-    },
     "scheme_C11": {
         "id": "scheme_C11",
-        "name": "National Programme for Prevention and Control of Cancer, Diabetes, CVD and Stroke (NPCDCS)",
-        "url": "https://main.mohfw.gov.in/",
-        "aliases": ["npcdcs", "cancer diabetes cvd stroke", "ncd screening", "lifestyle disease control"]
+        "name": "National Health Mission (NHM)",
+        "url": "https://nhm.gov.in/",
+        "aliases": ["national health mission", "nhm", "national rural health", "nrhm", "nuhm", "primary health care center"]
     },
 
     # Tamil Nadu State Schemes (9)
     "scheme_TN01": {
         "id": "scheme_TN01",
-        "name": "Chief Minister Comprehensive Health Insurance Scheme (TN CMCHIS)",
+        "name": "Chief Minister's Comprehensive Health Insurance Scheme (CMCHIS)",
         "url": "https://cmchistn.com/",
-        "aliases": ["cmchis", "tn cmchis", "chief minister comprehensive", "tamil nadu scheme", "tamilnadu insurance", "kalaignar", "maruthuva kaapeedu", "tn insurance"]
+        "aliases": ["cmchis", "tn cmchis", "chief minister comprehensive", "chief minister's comprehensive", "tamil nadu scheme", "tamilnadu insurance", "kalaignar", "maruthuva kaapeedu", "tn insurance"]
     },
     "scheme_TN02": {
         "id": "scheme_TN02",
-        "name": "Innuyir Kaappom – Nammai Kaakkum 48 (NK48)",
-        "url": "https://cmchistn.com/",
-        "aliases": ["innuyir kaappom", "innuyir", "nammai kaakkum", "nk48", "nk-48", "emergency trauma 48", "accident emergency care tn"]
-    },
-    "scheme_TN03": {
-        "id": "scheme_TN03",
-        "name": "Makkalai Thedi Maruthuvam (MTM)",
-        "url": "https://tnhealth.tn.gov.in/",
-        "aliases": ["makkalai thedi maruthuvam", "makkalai thedi", "mtm", "doorstep healthcare tn", "home delivery medicines tn"]
-    },
-    "scheme_TN04": {
-        "id": "scheme_TN04",
         "name": "Dr. Muthulakshmi Reddy Maternity Benefit Scheme (MRMBS)",
         "url": "https://picme.tn.gov.in/",
         "aliases": ["muthulakshmi reddy", "muthulakshmi", "mrmbs", "maternity benefit scheme tn", "picme", "tamil nadu pregnancy assistance"]
     },
+    "scheme_TN03": {
+        "id": "scheme_TN03",
+        "name": "Amma Baby Care Kit",
+        "url": "https://tnhealth.tn.gov.in/",
+        "aliases": ["amma baby care kit", "baby care kit", "amma kit", "newborn kit tn", "postnatal care kit"]
+    },
+    "scheme_TN04": {
+        "id": "scheme_TN04",
+        "name": "Amma Arokiya Scheme",
+        "url": "https://tnhealth.tn.gov.in/",
+        "aliases": ["amma arokiya", "arokiya scheme", "master health checkup tn", "free health screening tn", "free checkup packages"]
+    },
     "scheme_TN05": {
         "id": "scheme_TN05",
-        "name": "Kannoli Thittam (Free Spectacles and Cataract Care)",
-        "url": "https://tnhealth.tn.gov.in/",
-        "aliases": ["kannoli thittam", "kannoli", "free spectacles tn", "cataract surgery tn", "eye screening tn"]
+        "name": "Nammai Kaakkum 48",
+        "url": "https://cmchistn.com/",
+        "aliases": ["nammai kaakkum", "nammai kaakkum 48", "nk48", "nk-48", "innuyir kaappom", "accident emergency 48", "emergency trauma tn", "first 48 hours free"]
     },
     "scheme_TN06": {
         "id": "scheme_TN06",
-        "name": "Menstrual Hygiene Scheme (Free Sanitary Napkins)",
+        "name": "Nalam 360 – Annual Free Health Check-up for All",
         "url": "https://tnhealth.tn.gov.in/",
-        "aliases": ["menstrual hygiene tn", "sanitary napkins tn", "free pads tn", "adolescent girls hygiene tn"]
+        "aliases": ["nalam 360", "nalam360", "annual free health check-up", "preventive screening tn", "wellness screening"]
     },
     "scheme_TN07": {
         "id": "scheme_TN07",
-        "name": "Elderly Health Care and Geriatric Outreach (Tamil Nadu)",
+        "name": "Chief Minister's Elderly Health Insurance Scheme",
         "url": "https://tnhealth.tn.gov.in/",
-        "aliases": ["elderly health care tn", "geriatric clinic tn", "senior citizen tn", "elderly care tamil nadu", "geriatric outreach"]
+        "aliases": ["elderly health insurance", "chief minister elderly", "senior citizen tn insurance", "tn geriatric insurance", "elderly scheme tn"]
     },
     "scheme_TN08": {
         "id": "scheme_TN08",
-        "name": "Free Dialysis Services at District Hospitals (Tamil Nadu)",
-        "url": "https://tnhealth.tn.gov.in/",
-        "aliases": ["free dialysis tn", "dialysis district hospitals", "kidney failure scheme tn", "renal care tn"]
+        "name": "Tamil Nadu New Health Insurance Scheme 2026 (Employees)",
+        "url": "https://tn.gov.in/",
+        "aliases": ["nhis employees", "tn new health insurance employees", "tn government employee insurance", "tamil nadu government servant health", "nhis 2026"]
     },
     "scheme_TN09": {
         "id": "scheme_TN09",
-        "name": "Transgender Health Insurance and Welfare Coverage (Tamil Nadu)",
-        "url": "https://tnhealth.tn.gov.in/",
-        "aliases": ["transgender health insurance", "transgender welfare tn", "gender affirmation tn", "thirunangai scheme"]
+        "name": "Tamil Nadu New Health Insurance Scheme 2026 (Pensioners)",
+        "url": "https://tn.gov.in/",
+        "aliases": ["nhis pensioners", "tn pensioner health insurance", "tamil nadu pensioner health", "pensioner medical cover tn"]
     }
 }
 
@@ -959,26 +1067,48 @@ class RAGPipeline:
             tn_schemes_count = sum(1 for s in all_schemes if "TN" in s.get("scheme_id", "") or "Tamil Nadu" in s.get("state", ""))
             central_schemes_count = total_schemes_count - tn_schemes_count
 
-            eligible_names = [f"**{s['scheme_name']}** ({s['match_percentage']}% Match)" for s in eligible_schemes[:5]]
+            eligible_names_list = [f"- **{s['scheme_name']}** ({s['government_level']}, {s['coverage_amount']}) — {s['match_percentage']}% Match" for s in eligible_schemes]
+            names_bulleted = "\n".join(eligible_names_list)
+            
             summary_text = (
-                f"Based on your demographic details (State: {effective_state}, Age: {effective_age}, "
+                f"Based on your profile (State: {effective_state}, Age: {effective_age}, "
                 f"Income: ₹{int(effective_income):,}/year), we evaluated all {total_schemes_count} supported healthcare schemes "
-                f"({tn_schemes_count} Tamil Nadu + {central_schemes_count} Central Government). You qualify for {len(eligible_schemes)} scheme(s): {', '.join(eligible_names)}."
+                f"({tn_schemes_count} Tamil Nadu + {central_schemes_count} Central Government).\n\n"
+                f"You qualify for **{len(eligible_schemes)} scheme(s)** based on demographic rules:\n"
+                f"{names_bulleted}\n\n"
+                f"Select any scheme below to see full criteria or begin an eligibility check."
             )
 
-            # Build retrieved chunks for top matched schemes
+            # Build retrieved chunks with ALL matching schemes so frontend can render them
             multi_chunks = []
-            for s in evaluated_schemes[:4]:
-                multi_chunks.append({
-                    "chunk_id": f"chk_{s['scheme_id']}",
-                    "document_title": f"{s['scheme_name']} ({s['government_level']})",
-                    "scheme_id": s["scheme_id"],
-                    "scheme_name": s["scheme_name"],
-                    "excerpt": f"{s['scheme_name']} ({s['government_level']}): Coverage: {s['coverage_amount']}. Eligibility Status: {s['status']} ({s['match_percentage']}% Criteria Match).",
-                    "official_url": s["official_url"],
-                    "page_number": 1,
-                    "relevance_score": 0.95,
-                })
+            for s in evaluated_schemes:
+                if s["status"] in ["ELIGIBLE", "POSSIBLY_ELIGIBLE"]:
+                    multi_chunks.append({
+                        "chunk_id": f"chk_{s['scheme_id']}",
+                        "document_title": f"{s['scheme_name']} ({s['government_level']})",
+                        "scheme_id": s["scheme_id"],
+                        "scheme_name": s["scheme_name"],
+                        "government_level": s["government_level"],
+                        "status": s["status"],
+                        "match_percentage": s["match_percentage"],
+                        "coverage_amount": s["coverage_amount"],
+                        "excerpt": f"{s['scheme_name']} ({s['government_level']}): Coverage: {s['coverage_amount']}. Eligibility: {s['status']} ({s['match_percentage']}% Criteria Match).",
+                        "official_url": s["official_url"],
+                        "page_number": 1,
+                        "relevance_score": round(s["match_percentage"] / 100.0, 2),
+                    })
+
+            # Call Gemini LLM to generate intelligent multi-scheme summary if available
+            chunk_excerpts = [s["excerpt"] for s in multi_chunks[:8]]
+            llm_text = await _generate_llm_response(
+                query_text=query_text or "What healthcare schemes am I eligible for?",
+                retrieved_chunks=chunk_excerpts,
+                scheme_name="Government Healthcare Schemes",
+                query_type="GENERAL_INFORMATION",
+                patient_context={"age": effective_age, "state": effective_state, "annual_income": effective_income}
+            )
+            if llm_text:
+                summary_text = llm_text
 
             return {
                 "ai_response": summary_text,
@@ -1129,6 +1259,18 @@ class RAGPipeline:
                     "is_missing_info": False,
                 }]
 
+            # Call Gemini LLM with retrieved official excerpts
+            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
+            llm_text = await _generate_llm_response(
+                query_text=query_text,
+                retrieved_chunks=chunk_texts,
+                scheme_name=top_scheme_name,
+                query_type="COVERAGE_QUERY",
+                patient_context=patient_context,
+            )
+            if llm_text:
+                overall_exp = llm_text
+
             eligibility_result = {
                 "query_id": query_id_str,
                 "scheme_id": top_scheme_id,
@@ -1159,6 +1301,17 @@ class RAGPipeline:
         if query_type == "REQUIREMENTS_QUERY":
             overall_status = "INFORMATIONAL"
             overall_exp = f"Official eligibility criteria and document requirements for **{top_scheme_name}** derived from government operational framework:"
+
+            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
+            llm_text = await _generate_llm_response(
+                query_text=query_text,
+                retrieved_chunks=chunk_texts,
+                scheme_name=top_scheme_name,
+                query_type="REQUIREMENTS_QUERY",
+                patient_context=patient_context,
+            )
+            if llm_text:
+                overall_exp = llm_text
             
             eligibility_result = {
                 "query_id": query_id_str,
@@ -1190,6 +1343,17 @@ class RAGPipeline:
         if query_type == "GENERAL_INFORMATION":
             overall_status = "INFORMATIONAL"
             overall_exp = f"**{top_scheme_name}** provides cashless secondary and tertiary hospitalization cover across public and empanelled private hospitals."
+
+            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
+            llm_text = await _generate_llm_response(
+                query_text=query_text,
+                retrieved_chunks=chunk_texts,
+                scheme_name=top_scheme_name,
+                query_type="GENERAL_INFORMATION",
+                patient_context=patient_context,
+            )
+            if llm_text:
+                overall_exp = llm_text
             
             eligibility_result = {
                 "query_id": query_id_str,
@@ -1323,6 +1487,25 @@ class RAGPipeline:
         } if total_applicable > 0 else None
 
         missing_info_names = [c["criterion_name"] for c in applicable_criteria if c["criterion_result"] == "UNKNOWN"]
+
+        # Call Gemini LLM for personalized explanation once interview questions are complete
+        if interview_state == "COMPLETED":
+            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
+            effective_patient = {
+                "age": effective_age,
+                "state": effective_state,
+                "annual_income": effective_income,
+                "gender": patient_context.get("gender") if patient_context else None,
+            }
+            llm_text = await _generate_llm_response(
+                query_text=query_text or f"Check eligibility for {top_scheme_name}",
+                retrieved_chunks=chunk_texts,
+                scheme_name=top_scheme_name,
+                query_type="PERSONAL_ELIGIBILITY",
+                patient_context=effective_patient,
+            )
+            if llm_text:
+                overall_exp = f"{overall_exp}\n\n{llm_text}"
 
         eligibility_result = {
             "query_id": query_id_str,

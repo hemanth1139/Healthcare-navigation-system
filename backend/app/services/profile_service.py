@@ -45,6 +45,43 @@ class ProfileService:
             setattr(profile, field, value)
         return ProfileOut.from_orm(profile)
 
+    @staticmethod
+    async def get_patient_context(db: AsyncSession, user_id: UUID) -> dict:
+        """
+        Extracts structured demographic and clinical context for RAG pipeline eligibility evaluation.
+        """
+        stmt = (
+            select(PatientProfile)
+            .where(PatientProfile.user_id == user_id)
+            .options(
+                selectinload(PatientProfile.chronic_conditions),
+                selectinload(PatientProfile.allergies),
+                selectinload(PatientProfile.medications),
+            )
+        )
+        res = await db.execute(stmt)
+        profile = res.scalar_one_or_none()
+        if not profile:
+            return {}
+
+        age = None
+        if profile.date_of_birth:
+            today = date.today()
+            age = today.year - profile.date_of_birth.year - (
+                (today.month, today.day) < (profile.date_of_birth.month, profile.date_of_birth.day)
+            )
+
+        return {
+            "age": age,
+            "gender": profile.gender,
+            "state": profile.state,
+            "city": profile.city,
+            "date_of_birth": profile.date_of_birth.isoformat() if profile.date_of_birth else None,
+            "conditions": [c.condition_name for c in (profile.chronic_conditions or [])],
+            "medications": [m.medicine_name for m in (profile.medications or [])],
+            "blood_group": profile.blood_group,
+        }
+
     # ─── Allergies ────────────────────────────────────────────────────────────
 
     @staticmethod
