@@ -11,6 +11,7 @@ export interface NearbyHospitalsQueryParams {
   hospitalType?: string;
   maxDistanceKm?: number;
   sortBy?: "distance" | "name" | "rating" | string;
+  maxResults?: number;  // Maximum number of results to return (default 50 for OSM)
 }
 
 /**
@@ -68,6 +69,9 @@ export const hospitalApi = {
     if (params.sortBy) {
       payload.sort_by = params.sortBy;
     }
+    if (params.maxResults) {
+      payload.max_results = params.maxResults;
+    }
 
     const { data } = await api.post<HospitalWithDistance[]>("/hospitals/nearby", payload);
     return Array.isArray(data) ? data : [];
@@ -79,5 +83,56 @@ export const hospitalApi = {
   getHospitalById: async (hospitalId: string): Promise<Hospital> => {
     const { data } = await api.get<Hospital>(`/hospitals/${hospitalId}`);
     return data;
+  },
+
+  /**
+   * Geocode address to coordinates (Nominatim - free)
+   */
+  geocodeAddress: async (address: string): Promise<{ latitude: number; longitude: number; display_name: string } | null> => {
+    try {
+      const { data } = await api.post("/hospitals/geocode", { address });
+      return data;
+    } catch (error) {
+      console.error("[hospitalApi] Geocoding failed:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Reverse geocode coordinates to address (Nominatim - free)
+   */
+  reverseGeocode: async (lat: number, lon: number): Promise<{ display_name: string; address: any } | null> => {
+    try {
+      const { data } = await api.get(`/hospitals/reverse-geocode?lat=${lat}&lon=${lon}`);
+      return data;
+    } catch (error) {
+      console.error("[hospitalApi] Reverse geocoding failed:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get route between two points (OSRM - free)
+   */
+  getRoute: async (
+    startLat: number,
+    startLon: number,
+    endLat: number,
+    endLon: number,
+    profile: string = "driving"
+  ): Promise<{ distance_km: number; duration_minutes: number; geometry?: any } | null> => {
+    try {
+      const { data } = await api.post("/hospitals/route", {
+        start_lat: startLat,
+        start_lon: startLon,
+        end_lat: endLat,
+        end_lon: endLon,
+        profile,
+      });
+      return data;
+    } catch (error) {
+      console.error("[hospitalApi] Routing failed:", error);
+      return null;
+    }
   },
 };

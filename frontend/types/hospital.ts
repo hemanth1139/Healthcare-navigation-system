@@ -14,6 +14,8 @@ export interface Hospital {
   specialties: string[];
   has_emergency_room?: boolean;
   rating?: number;
+  opening_hours?: string;
+  beds?: number;
 }
 
 export interface HospitalRecommendation {

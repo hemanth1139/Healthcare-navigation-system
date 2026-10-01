@@ -28,6 +28,12 @@ class PatientProfile(Base):
     city: Mapped[str | None] = mapped_column(String(100), nullable=True)
     state: Mapped[str | None] = mapped_column(String(100), nullable=True)
     pincode: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    annual_income: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    employment_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    family_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ration_card_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    disability_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    pregnancy_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
     emergency_contact_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     emergency_contact_phone: Mapped[str | None] = mapped_column(String(15), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

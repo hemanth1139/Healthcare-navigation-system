@@ -3,6 +3,7 @@ RAG Pipeline — queries the vector store, aggregates text excerpts from healthc
 and runs Gemini LLM to generate eligibility/benefit explanations and criterion breakdowns.
 Supports single-scheme and multi-scheme eligibility evaluation over 20 supported schemes
 (9 Tamil Nadu + 11 Central Government).
+Includes caching and follow-up suggestions.
 """
 
 import re
@@ -10,11 +11,149 @@ import os
 import json
 import asyncio
 import logging
+import hashlib
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 from app.config import settings
 from app.rag.embeddings import EmbeddingService
 from app.rag.vectorstore import VectorStore, _cosine_similarity
+from app.core.cache import rag_cache
+
+
+def compress_context_with_citations(
+    chunks: List[Tuple[str, Dict[str, Any], float]],
+    max_chunks: int = 5,
+    min_score: float = 0.3
+) -> Tuple[List[str], List[Dict[str, Any]]]:
+    """
+    Compresses retrieved chunks by keeping only the most relevant ones above a threshold.
+    Adds citation information to each chunk.
+    Returns (compressed_chunks, citation_metadata).
+    """
+    # Filter by minimum score
+    filtered = [(text, meta, score) for text, meta, score in chunks if score >= min_score]
+    
+    # Keep top-k chunks
+    top_chunks = filtered[:max_chunks]
+    
+    compressed_texts = []
+    citations = []
+    
+    for idx, (text, meta, score) in enumerate(top_chunks):
+        compressed_texts.append(text)
+        citations.append({
+            "chunk_id": f"chk_{idx+1}",
+            "document_title": meta.get("scheme_name", "Government Scheme"),
+            "page_number": 1,
+            "excerpt": text[:200] + "..." if len(text) > 200 else text,
+            "official_url": meta.get("official_url", ""),
+            "relevance_score": round(score, 3),
+            "source": "hybrid_search"
+        })
+    
+    return compressed_texts, citations
+
+
+def generate_follow_up_suggestions(
+    query_type: str,
+    scheme_name: Optional[str] = None,
+    query_text: str = ""
+) -> List[str]:
+    """
+    Generates relevant follow-up questions based on query type and context.
+    """
+    suggestions = []
+    
+    query_lower = query_text.lower()
+    
+    # Generic suggestions for all query types
+    if query_type == "PERSONAL_ELIGIBILITY":
+        suggestions = [
+            "What documents are required?",
+            "How to apply for this scheme?",
+            "What is the coverage amount?",
+            "Where can I get treatment?",
+        ]
+    elif query_type == "COVERAGE_QUERY":
+        suggestions = [
+            "What treatments are excluded?",
+            "Which hospitals are empanelled?",
+            "Is there a cashless facility?",
+            "What documents are needed?",
+        ]
+    elif query_type == "REQUIREMENTS_QUERY":
+        suggestions = [
+            "How to apply online?",
+            "What is the application process?",
+            "Where to submit documents?",
+            "What is the processing time?",
+        ]
+    elif query_type == "APPLICATION_QUERY":
+        suggestions = [
+            "What are the eligibility criteria?",
+            "What is the coverage amount?",
+            "Which hospitals are empanelled?",
+            "How long does approval take?",
+        ]
+    elif query_type == "RENEWAL_QUERY":
+        suggestions = [
+            "What is the validity period?",
+            "How to check renewal status?",
+            "What if I miss renewal deadline?",
+            "Is there a renewal fee?",
+        ]
+    elif query_type == "HOSPITAL_NETWORK_QUERY":
+        suggestions = [
+            "Is cashless treatment available?",
+            "What documents are needed at hospital?",
+            "How to find empanelled hospitals?",
+            "What is the claim process?",
+        ]
+    elif query_type == "COMPARISON_QUERY":
+        suggestions = [
+            "Which has better coverage?",
+            "What are the eligibility differences?",
+            "Which is easier to apply for?",
+            "Compare benefits side by side",
+        ]
+    elif query_type == "GENERAL_INFORMATION":
+        suggestions = [
+            "Am I eligible for this scheme?",
+            "What documents are required?",
+            "How to apply?",
+            "What treatments are covered?",
+        ]
+    elif query_type == "MULTI_SCHEME_ELIGIBILITY_QUERY":
+        suggestions = [
+            "Compare the top schemes",
+            "What documents are needed?",
+            "How to apply for these schemes?",
+            "Which has the highest coverage?",
+        ]
+    
+    # Context-aware suggestions
+    if scheme_name:
+        scheme_short = scheme_name.split("(")[0].strip() if "(" in scheme_name else scheme_name[:30]
+        if "not pregnant" in query_lower or "pregnancy" in query_lower:
+            suggestions.append("What maternity schemes are available?")
+        if "senior" in query_lower or "70" in query_lower or "elderly" in query_lower:
+            suggestions.append("What other schemes for seniors?")
+        if "disabled" in query_lower or "disability" in query_lower:
+            suggestions.append("What schemes for persons with disabilities?")
+    
+    # Return unique suggestions, max 4
+    return list(dict.fromkeys(suggestions))[:4]
+from app.rag.scheme_rules import (
+    analyze_scheme,
+    assess_coverage_from_json,
+    build_scheme_context_block,
+    determine_intake_questions,
+    evaluate_scheme_from_json,
+    filter_schemes_by_profile,
+    is_tn_scheme,
+    lexical_score,
+    relevance_score,
+)
 
 logger = logging.getLogger("app.rag.pipeline")
 
@@ -55,11 +194,27 @@ def _load_all_schemes() -> List[Dict[str, Any]]:
 
 
 # ─── Gemini LLM Client ──────────────────────────────────────────────────────
-def _get_genai_client():
+def _get_api_keys() -> List[str]:
+    """Get all configured Google API keys for rotation."""
+    keys = []
+    # Primary key
+    primary = getattr(settings, "GOOGLE_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
+    if primary:
+        keys.append(primary)
+    # Secondary keys for rotation
+    for i in range(2, 6):
+        key = os.getenv(f"GOOGLE_API_KEY_{i}", "") or getattr(settings, f"GOOGLE_API_KEY_{i}", "")
+        if key and key not in keys:
+            keys.append(key)
+    return keys
+
+
+def _get_genai_client(api_key: Optional[str] = None):
     """Returns a Google GenAI client using the configured API key."""
     try:
         from google import genai
-        api_key = getattr(settings, "GOOGLE_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
+        if not api_key:
+            api_key = getattr(settings, "GOOGLE_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
         if not api_key:
             return None
         return genai.Client(api_key=api_key)
@@ -77,39 +232,54 @@ async def _generate_llm_response(
 ) -> Optional[str]:
     """
     Calls Gemini LLM with retrieved RAG chunks as context to generate an intelligent,
-    grounded response. Returns None on failure so caller can use template fallback.
+    grounded response. Uses context compression and API key rotation.
+    Returns None on failure so caller can use template fallback.
     """
-    client = _get_genai_client()
-    if not client:
+    api_keys = _get_api_keys()
+    if not api_keys:
+        logger.warning("[RAG] No GOOGLE_API_KEY configured. LLM generation disabled.")
         return None
 
-    context_text = "\n\n---\n\n".join(retrieved_chunks[:8])  # Top 8 chunks
+    # Context compression: Use only top 5 most relevant chunks
+    context_text = "\n\n---\n\n".join(retrieved_chunks[:5])  # Compressed to top 5 chunks
 
     patient_info = ""
     if patient_context:
         parts = []
-        if patient_context.get("age"):
-            parts.append(f"Age: {patient_context['age']}")
-        if patient_context.get("state"):
-            parts.append(f"State: {patient_context['state']}")
-        if patient_context.get("annual_income"):
-            parts.append(f"Annual Income: {patient_context['annual_income']}")
-        if patient_context.get("gender"):
-            parts.append(f"Gender: {patient_context['gender']}")
+        for key, label in [
+            ("age", "Age"),
+            ("state", "State"),
+            ("annual_income", "Annual Income"),
+            ("gender", "Gender"),
+            ("employment_status", "Employment"),
+            ("disability_status", "Disability"),
+            ("pregnancy_status", "Pregnancy"),
+        ]:
+            if patient_context.get(key) not in (None, ""):
+                parts.append(f"{label}: {patient_context[key]}")
         if parts:
             patient_info = f"\n\nPatient Details: {', '.join(parts)}"
 
     system_prompt = (
-        "You are an expert Indian healthcare scheme advisor. You provide accurate, helpful answers "
-        "about government healthcare schemes based ONLY on the official document excerpts provided below. "
-        "Do not invent information. If the excerpts don't contain the answer, say so clearly. "
-        "Be concise but thorough. Use bullet points for lists. Always mention the scheme name."
+        "You are an expert Indian healthcare scheme advisor. Answer ONLY from the official scheme records "
+        "and excerpts provided. Do not invent packages, income limits, or eligibility rules. "
+        "Do not output tool calls, function calls, shell commands, JSON tool syntax, or instructions to run software. "
+        "Write a plain-language answer for the patient. If the records do not contain the answer, say so. "
+        "Use bullet points. Always name the scheme(s) you are discussing. Ignore criteria that do not apply to this patient."
     )
 
     if query_type == "COVERAGE_QUERY":
         task = f"Based on the official excerpts below, answer whether the following treatment/procedure is covered under {scheme_name} and explain the coverage details, limits, and any exclusions."
     elif query_type == "REQUIREMENTS_QUERY":
         task = f"Based on the official excerpts below, list ALL eligibility criteria, required documents, and application process for {scheme_name}. Be specific and thorough."
+    elif query_type == "APPLICATION_QUERY":
+        task = f"Based on the official excerpts below, explain how to apply for {scheme_name}, including the application process, required documents, and contact information."
+    elif query_type == "RENEWAL_QUERY":
+        task = f"Based on the official excerpts below, explain the renewal process, validity period, and duration of benefits for {scheme_name}."
+    elif query_type == "HOSPITAL_NETWORK_QUERY":
+        task = f"Based on the official excerpts below, explain the hospital network, empanelled facilities, and where treatment can be availed under {scheme_name}."
+    elif query_type == "COMPARISON_QUERY":
+        task = f"Based on the official excerpts below, provide a comparison of {scheme_name} with other similar schemes, highlighting key differences in coverage, eligibility, and benefits."
     elif query_type == "GENERAL_INFORMATION":
         task = f"Based on the official excerpts below, provide a comprehensive overview of {scheme_name} including: what it covers, who it's for, coverage amount, and how to apply."
     else:  # PERSONAL_ELIGIBILITY
@@ -126,26 +296,39 @@ User Question: {query_text}
 
 Provide a clear, structured answer:"""
 
-    try:
-        model_name = getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash") or "gemini-2.0-flash"
-        loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config={
-                    "system_instruction": system_prompt,
-                    "temperature": 0.3,
-                    "max_output_tokens": 1024,
-                }
-            )
-        )
-        if response and response.text:
-            return response.text.strip()
-    except Exception as e:
-        logger.warning(f"[RAG] Gemini LLM generation failed: {e}")
+    # Try each API key with rotation
+    for key_idx, api_key in enumerate(api_keys):
+        client = _get_genai_client(api_key)
+        if not client:
+            continue
 
+        try:
+            model_name = getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash") or "gemini-2.0-flash"
+            loop = asyncio.get_running_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config={
+                        "system_instruction": system_prompt,
+                        "temperature": 0.3,
+                        "max_output_tokens": 1024,
+                    }
+                )
+            )
+            if response and response.text:
+                logger.info("[RAG] LLM generation success with API key %d", key_idx + 1)
+                return response.text.strip()
+        except Exception as e:
+            err_str = str(e).lower()
+            # Check for quota exhausted errors
+            if "429" in err_str or "quota" in err_str or "resource_exhausted" in err_str:
+                logger.warning("[RAG] API key %d quota exhausted, trying next key", key_idx + 1)
+                continue  # Try next API key
+            logger.warning("[RAG] LLM generation failed with API key %d: %s", key_idx + 1, e)
+
+    logger.warning("[RAG] All API keys exhausted for LLM generation")
     return None
 
 
@@ -219,6 +402,93 @@ def _parse_age_val(raw_val: Any) -> Optional[int]:
     return None
 
 
+def _parse_employment_val(raw_val: Any) -> Optional[str]:
+    """Extracts employment status from text. More specific labels are matched first."""
+    if not raw_val:
+        return None
+    val_str = str(raw_val).lower().strip()
+    if any(term in val_str for term in ["unemployed", "no job", "homemaker", "housewife"]):
+        return "Unemployed"
+    if any(term in val_str for term in ["student", "studying"]):
+        return "Student"
+    if any(term in val_str for term in ["retired", "pensioner"]):
+        return "Retired/Pensioner"
+    if any(term in val_str for term in ["self-employed", "self employed", "business", "entrepreneur", "freelance"]):
+        return "Self-Employed"
+    if any(term in val_str for term in ["private", "company", "corporate", "mnc", "organised sector", "organized sector"]):
+        return "Private Sector Employee"
+    if any(term in val_str for term in ["government employee", "govt employee", "central govt", "state govt", "public sector", "cghs"]):
+        return "Government Employee"
+    if "government" in val_str and "employee" in val_str:
+        return "Government Employee"
+    return None
+
+
+def _parse_disability_val(raw_val: Any) -> Optional[str]:
+    """Extracts disability status from text."""
+    if not raw_val:
+        return None
+    val_str = str(raw_val).lower().strip()
+    if val_str in {"no", "n", "false", "none"}:
+        return "No"
+    if val_str in {"yes", "y", "true"}:
+        return "Yes"
+    if re.search(r"\b(no|none|without|not)\b.*\b(disabilit|disabled|handicap)", val_str) or val_str in {"normal", "able"}:
+        return "No"
+    if re.search(r"\b(disabled|disability|handicap|special needs|cerebral palsy|autism|udid)\b", val_str):
+        return "Yes"
+    if re.search(r"\byes\b", val_str):
+        return "Yes"
+    if re.search(r"\bno\b", val_str):
+        return "No"
+    return None
+
+
+def _parse_pregnancy_val(raw_val: Any) -> Optional[str]:
+    """Extracts pregnancy status from text."""
+    if not raw_val:
+        return None
+    val_str = str(raw_val).lower().strip()
+    if val_str in {"no", "n", "false"}:
+        return "No"
+    if val_str in {"yes", "y", "true"}:
+        return "Yes"
+    if re.search(r"\b(not pregnant|not expecting|no longer pregnant)\b", val_str) or re.search(r"\bno\b", val_str):
+        return "No"
+    if re.search(r"\b(pregnant|expecting|lactating)\b", val_str) or re.search(r"\byes\b", val_str):
+        return "Yes"
+    return None
+
+
+def _determine_relevant_questions(
+    patient_context: Optional[Dict[str, Any]],
+    additional_info: Optional[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """Ask only state, age, and income for multi-scheme matching."""
+    return determine_intake_questions(patient_context, additional_info)
+
+
+def _filter_schemes_by_basic_criteria(
+    all_schemes: List[Dict[str, Any]],
+    gender: Optional[str],
+    age: Optional[int],
+    employment: Optional[str],
+    disability: Optional[str],
+    pregnancy: Optional[str],
+    state: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Remove schemes the official JSON record makes inapplicable."""
+    return filter_schemes_by_profile(
+        all_schemes,
+        gender=gender,
+        age=age,
+        employment=employment,
+        disability=disability,
+        pregnancy=pregnancy,
+        state=state,
+    )
+
+
 MULTI_SCHEME_PATTERNS = [
     r'\bwhat\s+(?:government\s+|healthcare\s+|medical\s+)?schemes?\s+(?:am\s+i|are\s+we|can\s+i|could\s+i|do\s+i)\s+(?:eligible\s+for|qualify\s+for|apply\s+for|get)\b',
     r'\bwhich\s+(?:government\s+|healthcare\s+|medical\s+)?schemes?\s+(?:can\s+i|could\s+i|am\s+i|are\s+available|apply|do\s+i)\b',
@@ -228,17 +498,27 @@ MULTI_SCHEME_PATTERNS = [
     r'\bam\s+i\s+eligible\s+for\s+(?:any|all)\s+(?:government\s+|healthcare\s+)?schemes?\b',
     r'\bcheck\s+my\s+eligibility\s+for\s+(?:all|available|government)\s+schemes?\b',
     r'\blist\s+(?:all\s+)?(?:eligible|available)\s+schemes?\s+(?:for\s+me)?\b',
+    r'\bschemes?\s+(?:for\s+me|available\s+to\s+me|i\s+can\s+get)\b',
+    r'\bhelp\s+me\s+find\s+(?:healthcare|medical|government)\s+schemes?\b',
+    r'\bwhat\s+benefits?\s+(?:can\s+i|do\s+i)\s+(?:get|qualify\s+for|receive)\b',
+    r'\bsearch\s+(?:for\s+)?(?:healthcare|medical)\s+schemes?\b',
+    r'\beligible\s+schemes?\b',
+    r'\bapply\s+for\s+(?:healthcare|medical)\s+schemes?\b',
 ]
 
 
 def _classify_query_type(query_text: str, scoped_scheme_id: Optional[str] = None) -> str:
     """
-    Classifies the user query into distinct workflow categories:
+    Classifies the user query into distinct workflow categories with enhanced intent detection:
     1. MULTI_SCHEME_ELIGIBILITY_QUERY: Open-ended multi-scheme discovery questions.
     2. COVERAGE_QUERY: Questions about treatments, procedures, package inclusions/exclusions.
     3. REQUIREMENTS_QUERY: Informational questions about eligibility rules, income limits, documents.
-    4. GENERAL_INFORMATION: Overview, benefits, department, general FAQs.
-    5. PERSONAL_ELIGIBILITY: User asking if they personally qualify for a specific scheme.
+    4. APPLICATION_QUERY: Questions about how to apply, enrollment process, contact info.
+    5. RENEWAL_QUERY: Questions about renewal process, validity period.
+    6. HOSPITAL_NETWORK_QUERY: Questions about empanelled hospitals, network facilities.
+    7. COMPARISON_QUERY: Questions comparing schemes.
+    8. GENERAL_INFORMATION: Overview, benefits, department, general FAQs.
+    9. PERSONAL_ELIGIBILITY: User asking if they personally qualify for a specific scheme.
     """
     q = (query_text or "").lower().strip()
 
@@ -251,18 +531,55 @@ def _classify_query_type(query_text: str, scoped_scheme_id: Optional[str] = None
         "am i eligible", "am i qualifying", "can i apply", "can i get", "i am", "my age", "my income", "my family", "my father", "my mother", "we are"
     ])
 
-    # 1. Requirements / Document Queries (Informational, general requirements)
+    # 1. Comparison Queries
+    comparison_patterns = [
+        r'\bcompare\b',
+        r'\bwhich\s+is\s+better\b',
+        r'\bdifference\s+between\b',
+        r'\bvs\b',
+        r'\bversus\b',
+    ]
+    if any(re.search(p, q) for p in comparison_patterns) and not is_personal_intent:
+        return "COMPARISON_QUERY"
+
+    # 2. Application / Enrollment / Contact Queries
+    application_patterns = [
+        r'\b(?:how\s+to\s+apply|application\s+process|enrollment\s+process|where\s+to\s+apply|documents\s+to\s+apply)\b',
+        r'\b(?:contact|helpline|phone|email|address|office)\b',
+        r'\b(?:register|signup|sign\s+up|enroll)\b',
+        r'\b(?:apply\s+online|offline\s+application)\b',
+    ]
+    if any(re.search(p, q) for p in application_patterns) and not is_personal_intent:
+        return "APPLICATION_QUERY"
+
+    # 3. Renewal / Validity Queries
+    renewal_patterns = [
+        r'\b(?:renew|renewal|valid|validity|expire|expiry|duration|period)\b',
+        r'\b(?:how\s+long|valid\s+for|how\s+to\s+renew)\b',
+    ]
+    if any(re.search(p, q) for p in renewal_patterns) and not is_personal_intent:
+        return "RENEWAL_QUERY"
+
+    # 4. Hospital Network Queries
+    hospital_patterns = [
+        r'\b(?:hospital|clinic|facility|network|empanelled|empanel)\b',
+        r'\b(?:where\s+can\s+i|which\s+hospitals|list\s+of\s+hospitals)\b',
+        r'\b(?:near\s+me|nearby|location)\b',
+    ]
+    if any(re.search(p, q) for p in hospital_patterns) and not is_personal_intent:
+        return "HOSPITAL_NETWORK_QUERY"
+
+    # 5. Requirements / Document Queries (Informational, general requirements)
     requirements_indicators = [
         r'\b(?:what\s+are\s+the\s+)?(?:income\s+(?:and|&)\s+document|documents?\s+(?:and|&)\s+income)\s+requirements?\b',
         r'\b(?:documents?|papers?|certificates?|proofs?)\s+(?:required|needed|mandatory|list)\b',
         r'\b(?:what\s+are\s+the\s+)?(?:income\s+limits?|income\s+criteria|income\s+requirements?|eligibility\s+criteria|eligibility\s+rules?|requirements?)\b',
-        r'\b(?:how\s+to\s+apply|application\s+process|enrollment\s+process|where\s+to\s+apply|documents\s+to\s+apply)\b',
         r'\blist\s+of\s+(?:documents?|requirements?|criteria)\b',
     ]
     if any(re.search(p, q) for p in requirements_indicators) and not is_personal_intent:
         return "REQUIREMENTS_QUERY"
 
-    # 2. Coverage / Treatment / Procedure Queries
+    # 6. Coverage / Treatment / Procedure Queries
     coverage_patterns = [
         r'\b(?:is|does|are|can)\b.*\b(?:cover|covered|coverage|included|include|payable|paid|treat|treatment|procedure)\b',
         r'\b(?:cosmetic|aesthetic|tattoo|cataract|cardiac|oncology|surgery|dialysis|chemotherapy|transplant|maternity|dental|opd|emergency)\b',
@@ -272,17 +589,18 @@ def _classify_query_type(query_text: str, scoped_scheme_id: Optional[str] = None
     if any(re.search(p, q) for p in coverage_patterns) and not is_personal_intent:
         return "COVERAGE_QUERY"
 
-    # 3. General Information Queries
+    # 7. General Information Queries
     overview_patterns = [
         r'\bwhat\s+is\s+(?:pm-?jay|cmchis|ayushman|the\s+scheme)\b',
         r'\btell\s+me\s+about\b',
         r'\bwhat\s+(?:benefits|coverage\s+amount|sum\s+insured)\s+(?:does|is)\b',
         r'\boverview\b',
+        r'\b(?:benefits|features|details|information)\b',
     ]
     if any(re.search(p, q) for p in overview_patterns) and not is_personal_intent:
         return "GENERAL_INFORMATION"
 
-    # 4. Default: Personal Eligibility Evaluation
+    # 8. Default: Personal Eligibility Evaluation
     return "PERSONAL_ELIGIBILITY"
 
 
@@ -472,419 +790,31 @@ def _evaluate_scheme_criteria(
     effective_state: Optional[str],
     effective_age: Optional[int],
     effective_income: Optional[float],
+    effective_employment: Optional[str] = None,
+    effective_disability: Optional[str] = None,
+    effective_pregnancy: Optional[str] = None,
+    gender: Optional[str] = None,
     evidence_sources: Optional[List[Dict[str, Any]]] = None,
     state_source: str = "OFFICIAL_RULE",
     age_source: str = "OFFICIAL_RULE",
     income_source: str = "OFFICIAL_RULE",
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """
-    Dynamically evaluates official criteria for a given scheme against patient attributes.
-    Returns (criteria_list, structured_missing_questions).
-    """
-    s_id = scheme.get("scheme_id", "")
-    s_name = scheme.get("scheme_name", "")
-    is_tn = "scheme_TN" in s_id or "Tamil Nadu" in scheme.get("state", "") or scheme.get("category") == "State Government"
-    evidence = (evidence_sources or [])[:1]
+    """Evaluate only criteria present in healthcare_schemes.json."""
+    return evaluate_scheme_from_json(
+        scheme=scheme,
+        effective_state=effective_state,
+        effective_age=effective_age,
+        effective_income=effective_income,
+        effective_employment=effective_employment,
+        effective_disability=effective_disability,
+        effective_pregnancy=effective_pregnancy,
+        gender=gender,
+        evidence_sources=evidence_sources,
+        state_source=state_source,
+        age_source=age_source,
+        income_source=income_source,
+    )
 
-    criteria = []
-    missing_questions = []
-
-    # ── 1. Residency Criterion ───────────────────────────────────────────────
-    if is_tn:
-        if effective_state is not None:
-            tn_pass = (effective_state == "Tamil Nadu")
-            criteria.append({
-                "criterion_id": "cr_residency",
-                "criterion_name": "State Residency & Family Card",
-                "criterion_result": "PASS" if tn_pass else "FAIL",
-                "required": True,
-                "patient_value": effective_state,
-                "required_value": "Resident of Tamil Nadu with Family Ration Card",
-                "explanation": f"Resident of {effective_state}. {'Eligible for Tamil Nadu state health cover.' if tn_pass else 'TN state schemes are strictly for Tamil Nadu residents.'}",
-                "source": state_source,
-                "field_key": "state",
-                "question_prompt": "What is your State of residence?",
-                "input_type": "MCQ",
-                "options": ["Tamil Nadu", "Other State/UT"],
-                "supporting_evidence": evidence,
-                "is_missing_info": False,
-            })
-        else:
-            criteria.append({
-                "criterion_id": "cr_residency",
-                "criterion_name": "State Residency & Family Card",
-                "criterion_result": "UNKNOWN",
-                "required": True,
-                "patient_value": None,
-                "required_value": "Resident of Tamil Nadu with Family Ration Card",
-                "explanation": "State residency verification is mandatory for Tamil Nadu state health schemes.",
-                "source": "UNKNOWN",
-                "field_key": "state",
-                "question_prompt": "What is your State of residence?",
-                "input_type": "MCQ",
-                "options": ["Tamil Nadu", "Other State/UT"],
-                "supporting_evidence": evidence,
-                "is_missing_info": True,
-            })
-            missing_questions.append({
-                "criterion_id": "cr_residency",
-                "field_key": "state",
-                "label": "State of Residence",
-                "question": "What is your State of residence?",
-                "input_type": "MCQ",
-                "options": ["Tamil Nadu", "Other State/UT"],
-                "status": "UNKNOWN",
-                "patient_value": None,
-                "source": "UNKNOWN"
-            })
-    else:
-        criteria.append({
-            "criterion_id": "cr_residency",
-            "criterion_name": "Residency & Citizenship",
-            "criterion_result": "PASS",
-            "required": True,
-            "patient_value": effective_state or "Indian Citizen / Resident",
-            "required_value": "Indian Citizen / Resident with Aadhaar",
-            "explanation": "Universal Pan-India coverage with Aadhaar authentication.",
-            "source": state_source if effective_state else "OFFICIAL_RULE",
-            "field_key": "state",
-            "supporting_evidence": evidence,
-            "is_missing_info": False,
-        })
-
-    # ── 2. Age Criterion ─────────────────────────────────────────────────────
-    if s_id == "scheme_C02":  # Ayushman Vay Vandana (70+ only)
-        if effective_age is not None:
-            age_pass = (effective_age >= 70)
-            criteria.append({
-                "criterion_id": "cr_age_limit",
-                "criterion_name": "Age Group (70+ Senior Citizens)",
-                "criterion_result": "PASS" if age_pass else "FAIL",
-                "required": True,
-                "patient_value": f"{effective_age} years old",
-                "required_value": "70 years and above",
-                "explanation": f"Patient age is {effective_age}. {'Satisfies 70+ requirement.' if age_pass else 'Ayushman Vay Vandana requires age 70 or above.'}",
-                "source": age_source,
-                "field_key": "age",
-                "question_prompt": "What is your current age?",
-                "input_type": "NUMBER",
-                "options": [],
-                "supporting_evidence": evidence,
-                "is_missing_info": False,
-            })
-        else:
-            criteria.append({
-                "criterion_id": "cr_age_limit",
-                "criterion_name": "Age Group (70+ Senior Citizens)",
-                "criterion_result": "UNKNOWN",
-                "required": True,
-                "patient_value": None,
-                "required_value": "70 years and above",
-                "explanation": "Age verification is mandatory for Ayushman Vay Vandana (70+).",
-                "source": "UNKNOWN",
-                "field_key": "age",
-                "question_prompt": "What is your current age?",
-                "input_type": "NUMBER",
-                "options": [],
-                "supporting_evidence": evidence,
-                "is_missing_info": True,
-            })
-            missing_questions.append({
-                "criterion_id": "cr_age_limit",
-                "field_key": "age",
-                "label": "Current Age",
-                "question": "What is your current age?",
-                "input_type": "NUMBER",
-                "options": [],
-                "status": "UNKNOWN",
-                "patient_value": None,
-                "source": "UNKNOWN"
-            })
-    elif s_id == "scheme_TN07":  # Elderly Care TN (60+)
-        if effective_age is not None:
-            age_pass = (effective_age >= 60)
-            criteria.append({
-                "criterion_id": "cr_age_limit",
-                "criterion_name": "Senior Citizen Age (60+)",
-                "criterion_result": "PASS" if age_pass else "FAIL",
-                "required": True,
-                "patient_value": f"{effective_age} years old",
-                "required_value": "60 years and above",
-                "explanation": f"Patient age is {effective_age}. {'Satisfies senior citizen age.' if age_pass else 'Requires age 60 or above.'}",
-                "source": age_source,
-                "field_key": "age",
-                "question_prompt": "What is your current age?",
-                "input_type": "NUMBER",
-                "options": [],
-                "supporting_evidence": evidence,
-                "is_missing_info": False,
-            })
-        else:
-            criteria.append({
-                "criterion_id": "cr_age_limit",
-                "criterion_name": "Senior Citizen Age (60+)",
-                "criterion_result": "UNKNOWN",
-                "required": True,
-                "patient_value": None,
-                "required_value": "60 years and above",
-                "explanation": "Age verification is mandatory for Elderly Healthcare outreach.",
-                "source": "UNKNOWN",
-                "field_key": "age",
-                "question_prompt": "What is your current age?",
-                "input_type": "NUMBER",
-                "options": [],
-                "supporting_evidence": evidence,
-                "is_missing_info": True,
-            })
-            missing_questions.append({
-                "criterion_id": "cr_age_limit",
-                "field_key": "age",
-                "label": "Current Age",
-                "question": "What is your current age?",
-                "input_type": "NUMBER",
-                "options": [],
-                "status": "UNKNOWN",
-                "patient_value": None,
-                "source": "UNKNOWN"
-            })
-    elif s_id == "scheme_C09":  # RBSK (0-18 Children)
-        if effective_age is not None:
-            age_pass = (effective_age <= 18)
-            criteria.append({
-                "criterion_id": "cr_age_limit",
-                "criterion_name": "Child Age Group (0–18 years)",
-                "criterion_result": "PASS" if age_pass else "FAIL",
-                "required": True,
-                "patient_value": f"{effective_age} years old",
-                "required_value": "0 to 18 years",
-                "explanation": f"Patient age is {effective_age}. {'Eligible child cohort.' if age_pass else 'RBSK is dedicated to children and adolescents up to 18 years.'}",
-                "source": age_source,
-                "field_key": "age",
-                "supporting_evidence": evidence,
-                "is_missing_info": False,
-            })
-        else:
-            criteria.append({
-                "criterion_id": "cr_age_limit",
-                "criterion_name": "Child Age Group (0–18 years)",
-                "criterion_result": "PASS",
-                "required": False,
-                "patient_value": None,
-                "required_value": "0 to 18 years",
-                "explanation": "Child screening program for age 0-18.",
-                "source": "OFFICIAL_RULE",
-                "field_key": "age",
-                "supporting_evidence": evidence,
-                "is_missing_info": False,
-            })
-    else:
-        criteria.append({
-            "criterion_id": "cr_age_limit",
-            "criterion_name": "Age Group",
-            "criterion_result": "PASS",
-            "required": True,
-            "patient_value": f"{effective_age} years old" if effective_age is not None else "All Ages",
-            "required_value": "All Ages Eligible",
-            "explanation": "Universal age coverage for eligible family members.",
-            "source": age_source if effective_age is not None else "OFFICIAL_RULE",
-            "field_key": "age",
-            "supporting_evidence": evidence,
-            "is_missing_info": False,
-        })
-
-    # ── 3. Income / Socio-Economic Criterion ─────────────────────────────────
-    if s_id in ["scheme_C02", "scheme_TN02", "scheme_TN03", "scheme_TN05", "scheme_TN06", "scheme_TN07", "scheme_TN08", "scheme_C05", "scheme_C07", "scheme_C08", "scheme_C10", "scheme_C11"]:
-        # Universal schemes with no income ceiling
-        criteria.append({
-            "criterion_id": "cr_income_doc",
-            "criterion_name": "Income / Socio-Economic Category",
-            "criterion_result": "NOT_REQUIRED",
-            "required": False,
-            "patient_value": None,
-            "required_value": "No income ceiling (Universal public health scheme)",
-            "explanation": f"{s_name} is a universal public health scheme with no family income ceiling.",
-            "source": "OFFICIAL_RULE",
-            "field_key": "annual_income",
-            "supporting_evidence": evidence,
-            "is_missing_info": False,
-        })
-    elif s_id == "scheme_TN01":  # TN CMCHIS: Income ceiling <= 1.2 Lakh
-        if effective_income is not None:
-            inc_pass = (effective_income <= 120000.0)
-            criteria.append({
-                "criterion_id": "cr_income_doc",
-                "criterion_name": "Income / Socio-Economic Category",
-                "criterion_result": "PASS" if inc_pass else "FAIL",
-                "required": True,
-                "patient_value": f"₹{int(effective_income):,} / year" if effective_income > 50000 else "BPL / Ration Card",
-                "required_value": "Annual income ≤ ₹1,20,000 / year",
-                "explanation": f"Annual family income of ₹{int(effective_income):,} is {'within' if inc_pass else 'exceeds'} the ₹1,20,000 ceiling.",
-                "source": income_source,
-                "field_key": "annual_income",
-                "question_prompt": "What is your approximate annual household income?",
-                "input_type": "MCQ",
-                "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
-                "supporting_evidence": evidence,
-                "is_missing_info": False,
-            })
-        else:
-            criteria.append({
-                "criterion_id": "cr_income_doc",
-                "criterion_name": "Income / Socio-Economic Category",
-                "criterion_result": "UNKNOWN",
-                "required": True,
-                "patient_value": None,
-                "required_value": "Annual income ≤ ₹1,20,000 / year",
-                "explanation": "Income verification required via official ration card or VAO certificate.",
-                "source": "UNKNOWN",
-                "field_key": "annual_income",
-                "question_prompt": "What is your approximate annual household income?",
-                "input_type": "MCQ",
-                "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
-                "supporting_evidence": evidence,
-                "is_missing_info": True,
-            })
-            missing_questions.append({
-                "criterion_id": "cr_income_doc",
-                "field_key": "annual_income",
-                "label": "Annual Household Income",
-                "question": "What is your approximate annual household income?",
-                "input_type": "MCQ",
-                "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
-                "status": "UNKNOWN",
-                "patient_value": None,
-                "source": "UNKNOWN"
-            })
-    elif s_id == "scheme_C06":  # RAN: BPL Category only
-        if effective_income is not None:
-            inc_pass = (effective_income <= 120000.0)
-            criteria.append({
-                "criterion_id": "cr_income_doc",
-                "criterion_name": "Income Limit (BPL Category)",
-                "criterion_result": "PASS" if inc_pass else "FAIL",
-                "required": True,
-                "patient_value": f"₹{int(effective_income):,} / year",
-                "required_value": "BPL Category (≤ ₹1,20,000 / year)",
-                "explanation": f"Income is {'within' if inc_pass else 'exceeds'} BPL threshold.",
-                "source": income_source,
-                "field_key": "annual_income",
-                "supporting_evidence": evidence,
-                "is_missing_info": False,
-            })
-        else:
-            criteria.append({
-                "criterion_id": "cr_income_doc",
-                "criterion_name": "Income Limit (BPL Category)",
-                "criterion_result": "UNKNOWN",
-                "required": True,
-                "patient_value": None,
-                "required_value": "BPL Category (≤ ₹1,20,000 / year)",
-                "explanation": "BPL documentation is mandatory for financial assistance under RAN.",
-                "source": "UNKNOWN",
-                "field_key": "annual_income",
-                "supporting_evidence": evidence,
-                "is_missing_info": True,
-            })
-            missing_questions.append({
-                "criterion_id": "cr_income_doc",
-                "field_key": "annual_income",
-                "label": "Annual Household Income",
-                "question": "What is your approximate annual household income?",
-                "input_type": "MCQ",
-                "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
-                "status": "UNKNOWN",
-                "patient_value": None,
-                "source": "UNKNOWN"
-            })
-    elif s_id == "scheme_C01":  # PM-JAY: SECC 2011 / Deprivation limit ~5 Lakh
-        if effective_income is not None:
-            inc_pass = (effective_income <= 500000.0)
-            criteria.append({
-                "criterion_id": "cr_income_doc",
-                "criterion_name": "Socio-Economic / Deprivation Category",
-                "criterion_result": "PASS" if inc_pass else "FAIL",
-                "required": True,
-                "patient_value": f"₹{int(effective_income):,} / year" if effective_income > 50000 else "BPL / SECC Listing",
-                "required_value": "SECC 2011 / BPL / Low Income Category",
-                "explanation": f"Income of ₹{int(effective_income):,} {'aligns with' if inc_pass else 'exceeds'} PM-JAY target criteria.",
-                "source": income_source,
-                "field_key": "annual_income",
-                "question_prompt": "Do you hold a BPL Ration Card, or are you listed in the SECC 2011 database?",
-                "input_type": "MCQ",
-                "options": ["Yes, BPL Ration Card / Low Income", "Listed in SECC 2011 Beneficiary List", "Above poverty line / Not BPL", "Not sure / Need to check"],
-                "supporting_evidence": evidence,
-                "is_missing_info": False,
-            })
-        else:
-            criteria.append({
-                "criterion_id": "cr_income_doc",
-                "criterion_name": "Socio-Economic / Deprivation Category",
-                "criterion_result": "UNKNOWN",
-                "required": True,
-                "patient_value": None,
-                "required_value": "SECC 2011 / BPL / Low Income Category",
-                "explanation": "Socio-economic verification required via official SECC listing or Ration Card.",
-                "source": "UNKNOWN",
-                "field_key": "annual_income",
-                "question_prompt": "Do you hold a BPL Ration Card, or are you listed in the SECC 2011 database?",
-                "input_type": "MCQ",
-                "options": ["Yes, BPL Ration Card / Low Income", "Listed in SECC 2011 Beneficiary List", "Above poverty line / Not BPL", "Not sure / Need to check"],
-                "supporting_evidence": evidence,
-                "is_missing_info": True,
-            })
-            missing_questions.append({
-                "criterion_id": "cr_income_doc",
-                "field_key": "annual_income",
-                "label": "Annual Household Income",
-                "question": "Do you hold a BPL Ration Card, or are you listed in the SECC 2011 database?",
-                "input_type": "MCQ",
-                "options": ["Yes, BPL Ration Card / Low Income", "Listed in SECC 2011 Beneficiary List", "Above poverty line / Not BPL", "Not sure / Need to check"],
-                "status": "UNKNOWN",
-                "patient_value": None,
-                "source": "UNKNOWN"
-            })
-    else:
-        if effective_income is not None:
-            criteria.append({
-                "criterion_id": "cr_income_doc",
-                "criterion_name": "Income / Benefit Category",
-                "criterion_result": "PASS",
-                "required": True,
-                "patient_value": f"₹{int(effective_income):,} / year",
-                "required_value": "General / Targeted Healthcare Beneficiary",
-                "explanation": "Income parameters verified against scheme guidelines.",
-                "source": income_source,
-                "field_key": "annual_income",
-                "supporting_evidence": evidence,
-                "is_missing_info": False,
-            })
-        else:
-            criteria.append({
-                "criterion_id": "cr_income_doc",
-                "criterion_name": "Income / Benefit Category",
-                "criterion_result": "UNKNOWN",
-                "required": True,
-                "patient_value": None,
-                "required_value": "General / Targeted Healthcare Beneficiary",
-                "explanation": "Income parameters required for complete assessment.",
-                "source": "UNKNOWN",
-                "field_key": "annual_income",
-                "supporting_evidence": evidence,
-                "is_missing_info": True,
-            })
-            missing_questions.append({
-                "criterion_id": "cr_income_doc",
-                "field_key": "annual_income",
-                "label": "Annual Household Income",
-                "question": "What is your approximate annual household income?",
-                "input_type": "MCQ",
-                "options": ["Up to ₹1,20,000 / year (or valid BPL / Ration Card)", "Above ₹1,20,000 / year", "Prefer not to say"],
-                "status": "UNKNOWN",
-                "patient_value": None,
-                "source": "UNKNOWN"
-            })
-
-    return criteria, missing_questions
 
 
 class RAGPipeline:
@@ -901,13 +831,106 @@ class RAGPipeline:
         """
         Retrieves official scheme document chunks and executes query-type-aware multi-document reasoning.
         Distinguishes MULTI_SCHEME_ELIGIBILITY_QUERY, COVERAGE_QUERY, REQUIREMENTS_QUERY, GENERAL_INFORMATION, and PERSONAL_ELIGIBILITY.
+        Includes caching and follow-up suggestions.
         """
+        # Check cache first (for informational queries only, not personal eligibility)
+        cache_key = f"rag:{hashlib.md5((query_text + str(scoped_scheme_id)).encode()).hexdigest()}"
+        if query_type in ["GENERAL_INFORMATION", "REQUIREMENTS_QUERY", "APPLICATION_QUERY", "RENEWAL_QUERY", "HOSPITAL_NETWORK_QUERY"]:
+            cached = rag_cache.get(cache_key)
+            if cached:
+                logger.info("[RAG] Cache hit for query")
+                return cached
+
         vector_store = _get_vector_store()
         query_type = _classify_query_type(query_text, scoped_scheme_id)
 
         now_iso = datetime.now(timezone.utc).isoformat()
         query_id_str = f"q_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
         q_lower = (query_text or "").lower()
+
+        # Comparisons need evidence for every scheme in the answer. Resolve explicit
+        # names first; otherwise select the most relevant scheme records by lexical match.
+        if query_type == "COMPARISON_QUERY":
+            schemes = _load_all_schemes()
+            named_ids = {
+                scheme_id
+                for scheme_id, scheme in ALL_SCHEMES_MAP.items()
+                if any(alias.lower() in q_lower for alias in [scheme.get("name", ""), *scheme.get("aliases", [])])
+            }
+            named = [
+                s for s in schemes
+                if s.get("scheme_id") in named_ids or s.get("scheme_name", "").lower() in q_lower
+            ]
+            comparison_terms = re.sub(
+                r"\b(compare|comparison|between|against|versus|vs|scheme|schemes|government|healthcare|and|with|the|a|an)\b",
+                " ", query_text, flags=re.IGNORECASE,
+            ).strip()
+            ranked = sorted(
+                schemes,
+                key=lambda s: lexical_score(comparison_terms, " ".join([
+                    s.get("scheme_name", ""), s.get("benefits_summary", ""),
+                    " ".join(s.get("key_covered_conditions") or []),
+                ])),
+                reverse=True,
+            )
+            relevant = [s for s in ranked if lexical_score(comparison_terms, " ".join([
+                s.get("scheme_name", ""), s.get("benefits_summary", ""),
+                " ".join(s.get("key_covered_conditions") or []),
+            ])) > 0]
+            selected = (named + [s for s in relevant if s not in named])[:3]
+            if len(selected) >= 2:
+                cards, comparison_context = [], []
+                for s in selected:
+                    name = s.get("scheme_name", "Government scheme")
+                    conditions = s.get("key_covered_conditions") or []
+                    exclusions = s.get("key_exclusions") or []
+                    criteria = s.get("eligibility_criteria") or {}
+                    docs = criteria.get("required_documents", []) if isinstance(criteria, dict) else []
+                    excerpt = (
+                        f"Scheme: {name}\nCoverage: {s.get('coverage_amount_inr', 'Not specified')}\n"
+                        f"Benefits: {s.get('benefits_summary', 'Not specified')}\n"
+                        f"Covered conditions: {', '.join(conditions) or 'Not specified'}\n"
+                        f"Eligibility: {json.dumps(criteria, ensure_ascii=False)}\n"
+                        f"Required documents: {', '.join(docs) if docs else 'Not specified'}\n"
+                        f"Exclusions: {', '.join(exclusions) or 'Not specified'}"
+                    )
+                    comparison_context.append(excerpt)
+                    cards.append({"chunk_id": f"cmp_{s.get('scheme_id')}",
+                        "scheme_id": s.get("scheme_id"), "scheme_name": name,
+                        "excerpt": excerpt, "official_url": s.get("official_url", "")})
+                answer = "\n\n".join(comparison_context)
+                llm_answer = await _generate_llm_response(
+                    query_text=query_text, retrieved_chunks=comparison_context,
+                    scheme_name="the selected schemes", query_type="COMPARISON_QUERY",
+                    patient_context=patient_context)
+                if llm_answer:
+                    answer = llm_answer
+                evidence = [{"chunk_id": c["chunk_id"], "document_title": c["scheme_name"],
+                    "page_number": None, "excerpt": c["excerpt"], "official_url": c["official_url"],
+                    "relevance_score": 0.75} for c in cards]
+                return {"ai_response": answer, "retrieved_chunks": cards,
+                    "confidence_score": 0.75, "is_low_confidence": False,
+                    "follow_up_suggestions": generate_follow_up_suggestions("COMPARISON_QUERY", None, query_text),
+                    "eligibility_result": {"query_id": query_id_str,
+                        "scheme_id": selected[0].get("scheme_id"), "query_type": "COMPARISON",
+                        "user_question": query_text, "interview_state": "COMPLETED",
+                        "current_question": None, "progress": None, "match_percentage": None,
+                        "overall_status": "INFORMATIONAL", "overall_explanation": answer,
+                        "criteria_breakdown": [], "missing_information": [],
+                        "structured_missing_criteria": [], "all_evidence_sources": evidence,
+                        "queried_at": now_iso}}
+            answer = "Please name at least two healthcare schemes you want to compare so I can use the right scheme records."
+            return {"ai_response": answer, "retrieved_chunks": [],
+                "confidence_score": 0.0, "is_low_confidence": True,
+                "follow_up_suggestions": generate_follow_up_suggestions("COMPARISON_QUERY", None, query_text),
+                "eligibility_result": {"query_id": query_id_str, "scheme_id": None,
+                    "query_type": "COMPARISON", "user_question": query_text,
+                    "interview_state": "QUESTIONS_REQUIRED", "current_question": None,
+                    "progress": None, "match_percentage": None, "overall_status": "INFORMATIONAL",
+                    "overall_explanation": answer, "criteria_breakdown": [],
+                    "missing_information": ["Names of schemes to compare"],
+                    "structured_missing_criteria": [], "all_evidence_sources": [],
+                    "queried_at": now_iso}}
 
         # ─── WORKFLOW 0: MULTI-SCHEME ELIGIBILITY QUERY ───────────────────────
         if query_type == "MULTI_SCHEME_ELIGIBILITY_QUERY":
@@ -933,50 +956,32 @@ class RAGPipeline:
 
             effective_income = _parse_income_val(provided_income_raw)
 
-            # Check if essential demographic info is missing
-            missing_intake = []
-            if effective_state is None:
-                missing_intake.append({
-                    "criterion_id": "cr_intake_state",
-                    "field_key": "state",
-                    "label": "State of Residence",
-                    "question": "What is your State of residence?",
-                    "input_type": "MCQ",
-                    "options": ["Tamil Nadu", "Other State/UT"],
-                    "status": "UNKNOWN",
-                    "patient_value": None,
-                    "source": "UNKNOWN"
-                })
+            # Extract new fields
+            p_employment_raw = patient_context.get("employment_status") if patient_context else None
+            provided_employment_raw = additional_info.get("employment_status") if additional_info else None
+            effective_employment = _parse_employment_val(provided_employment_raw) or _parse_employment_val(p_employment_raw) or _parse_employment_val(query_text)
 
-            if effective_age is None:
-                missing_intake.append({
-                    "criterion_id": "cr_intake_age",
-                    "field_key": "age",
-                    "label": "Current Age",
-                    "question": "What is your current age?",
-                    "input_type": "NUMBER",
-                    "options": [],
-                    "status": "UNKNOWN",
-                    "patient_value": None,
-                    "source": "UNKNOWN"
-                })
+            p_disability_raw = patient_context.get("disability_status") if patient_context else None
+            provided_disability_raw = additional_info.get("disability_status") if additional_info else None
+            effective_disability = _parse_disability_val(provided_disability_raw) or _parse_disability_val(p_disability_raw) or _parse_disability_val(query_text)
 
-            if effective_income is None:
-                missing_intake.append({
-                    "criterion_id": "cr_intake_income",
-                    "field_key": "annual_income",
-                    "label": "Annual Household Income",
-                    "question": "What is your approximate annual household income?",
-                    "input_type": "MCQ",
-                    "options": [
-                        "Up to ₹1,20,000 / year (or BPL / Ration Card)",
-                        "₹1,20,000 to ₹5,00,000",
-                        "Above ₹5,00,000"
-                    ],
-                    "status": "UNKNOWN",
-                    "patient_value": None,
-                    "source": "UNKNOWN"
-                })
+            p_pregnancy_raw = patient_context.get("pregnancy_status") if patient_context else None
+            provided_pregnancy_raw = additional_info.get("pregnancy_status") if additional_info else None
+            effective_pregnancy = _parse_pregnancy_val(provided_pregnancy_raw) or _parse_pregnancy_val(p_pregnancy_raw) or _parse_pregnancy_val(query_text)
+
+            # Build effective context for adaptive questioning
+            effective_context = {
+                "state": effective_state,
+                "age": effective_age,
+                "annual_income": effective_income,
+                "employment_status": effective_employment,
+                "disability_status": effective_disability,
+                "pregnancy_status": effective_pregnancy,
+                "gender": patient_context.get("gender") if patient_context else None,
+            }
+
+            # Use adaptive questioning to determine what's needed
+            missing_intake = _determine_relevant_questions(patient_context, effective_context)
 
             # If any required demographic is missing -> Return PROFILE_DATA_REQUIRED
             if missing_intake:
@@ -997,7 +1002,7 @@ class RAGPipeline:
                         "user_question": query_text,
                         "interview_state": "PROFILE_DATA_REQUIRED",
                         "current_question": missing_intake[0],
-                        "progress": {"answered": 3 - len(missing_intake), "total_required": 3},
+                        "progress": {"answered": 0, "total_required": len(missing_intake)},
                         "match_percentage": None,
                         "overall_status": "PROFILE_DATA_REQUIRED",
                         "overall_explanation": overall_exp,
@@ -1009,11 +1014,19 @@ class RAGPipeline:
                     }
                 }
 
-            # 2. All 3 demographics provided -> Evaluate ALL supported schemes dynamically
+            # 2. All demographics provided -> Apply smart pre-filtering and evaluate relevant schemes
             all_schemes = _load_all_schemes()
+            filtered_schemes = _filter_schemes_by_basic_criteria(
+                all_schemes,
+                gender=effective_context.get("gender"),
+                age=effective_age,
+                employment=effective_employment,
+                disability=effective_disability,
+                pregnancy=effective_pregnancy
+            )
             evaluated_schemes = []
 
-            for s in all_schemes:
+            for s in filtered_schemes:
                 s_id = s.get("scheme_id", "")
                 s_name = s.get("scheme_name", "")
                 s_url = s.get("official_url", "https://pmjay.gov.in")
@@ -1024,6 +1037,10 @@ class RAGPipeline:
                     effective_state=effective_state,
                     effective_age=effective_age,
                     effective_income=effective_income,
+                    effective_employment=effective_employment,
+                    effective_disability=effective_disability,
+                    effective_pregnancy=effective_pregnancy,
+                    gender=effective_context.get("gender"),
                     evidence_sources=[],
                     state_source="USER_PROVIDED_DURING_INTAKE",
                     age_source="USER_PROVIDED_DURING_INTAKE",
@@ -1035,6 +1052,31 @@ class RAGPipeline:
                 pass_cnt = sum(1 for c in applicable if c["criterion_result"] == "PASS")
                 fail_cnt = sum(1 for c in applicable if c["criterion_result"] == "FAIL")
                 s_match_pct = int(round((pass_cnt / len(applicable)) * 100)) if applicable else 100
+
+                # Compute contextual relevance score
+                relevance_score = s_match_pct
+
+                # Boost for schemes matching specific user needs
+                if effective_pregnancy == "Yes" and s_id in ["scheme_C07", "scheme_C08", "scheme_TN02"]:
+                    relevance_score += 20  # Boost maternity schemes for pregnant users
+                if effective_disability == "Yes" and s_id == "scheme_C05":
+                    relevance_score += 20  # Boost Niramaya for disabled users
+                if effective_employment in ["Government Employee", "Retired/Pensioner"] and s_id in ["scheme_C03", "scheme_TN08", "scheme_TN09"]:
+                    relevance_score += 15  # Boost employee schemes for government employees
+                if effective_age and effective_age >= 70 and s_id == "scheme_C02":
+                    relevance_score += 25  # Boost Vay Vandana for seniors 70+
+                if effective_age and effective_age >= 60 and s_id == "scheme_TN07":
+                    relevance_score += 20  # Boost TN elderly scheme for seniors 60+
+
+                # Boost for higher coverage amounts
+                coverage_str = s.get("coverage_amount_inr", "")
+                if "5 lakh" in coverage_str or "₹5,00,000" in coverage_str:
+                    relevance_score += 10
+                if "10 lakh" in coverage_str or "₹10,00,000" in coverage_str:
+                    relevance_score += 15
+
+                # Cap relevance score at 100
+                relevance_score = min(relevance_score, 100)
 
                 if fail_cnt > 0:
                     s_status = "NOT_ELIGIBLE"
@@ -1050,30 +1092,44 @@ class RAGPipeline:
                     "government_level": "Tamil Nadu" if is_tn else "Central Government",
                     "status": s_status,
                     "match_percentage": s_match_pct,
+                    "relevance_score": relevance_score,
                     "coverage_amount": s.get("coverage_amount_inr", "Per official rules"),
                     "official_url": s_url,
                     "criteria": s_criteria,
                 })
 
-            # Sort evaluated schemes: ELIGIBLE first (highest match %), then POSSIBLY_ELIGIBLE, then NOT_ELIGIBLE
+            # Sort evaluated schemes: ELIGIBLE first (highest relevance score), then POSSIBLY_ELIGIBLE, then NOT_ELIGIBLE
             status_order = {"ELIGIBLE": 0, "POSSIBLY_ELIGIBLE": 1, "INSUFFICIENT_INFORMATION": 2, "NOT_ELIGIBLE": 3}
-            evaluated_schemes.sort(key=lambda x: (status_order.get(x["status"], 4), -x["match_percentage"]))
+            evaluated_schemes.sort(key=lambda x: (status_order.get(x["status"], 4), -x["relevance_score"]))
 
             eligible_schemes = [s for s in evaluated_schemes if s["status"] in ["ELIGIBLE", "POSSIBLY_ELIGIBLE"]]
             top_scheme = evaluated_schemes[0] if evaluated_schemes else None
             top_scheme_id = top_scheme["scheme_id"] if top_scheme else "scheme_TN01"
 
             total_schemes_count = len(all_schemes)
+            filtered_count = len(filtered_schemes)
             tn_schemes_count = sum(1 for s in all_schemes if "TN" in s.get("scheme_id", "") or "Tamil Nadu" in s.get("state", ""))
             central_schemes_count = total_schemes_count - tn_schemes_count
 
-            eligible_names_list = [f"- **{s['scheme_name']}** ({s['government_level']}, {s['coverage_amount']}) — {s['match_percentage']}% Match" for s in eligible_schemes]
+            eligible_names_list = [f"- **{s['scheme_name']}** ({s['government_level']}, {s['coverage_amount']}) — {s['match_percentage']}% Match (Relevance: {s['relevance_score']}%)" for s in eligible_schemes]
             names_bulleted = "\n".join(eligible_names_list)
-            
+
+            # Build comprehensive profile summary
+            profile_details = [f"State: {effective_state}"]
+            if effective_age:
+                profile_details.append(f"Age: {effective_age}")
+            if effective_income:
+                profile_details.append(f"Income: ₹{int(effective_income):,}/year")
+            if effective_employment:
+                profile_details.append(f"Employment: {effective_employment}")
+            if effective_disability:
+                profile_details.append(f"Disability: {effective_disability}")
+            if effective_pregnancy:
+                profile_details.append(f"Pregnancy: {effective_pregnancy}")
+
             summary_text = (
-                f"Based on your profile (State: {effective_state}, Age: {effective_age}, "
-                f"Income: ₹{int(effective_income):,}/year), we evaluated all {total_schemes_count} supported healthcare schemes "
-                f"({tn_schemes_count} Tamil Nadu + {central_schemes_count} Central Government).\n\n"
+                f"Based on your profile ({', '.join(profile_details)}), we evaluated {filtered_count} relevant healthcare schemes "
+                f"out of {total_schemes_count} total schemes ({tn_schemes_count} Tamil Nadu + {central_schemes_count} Central Government).\n\n"
                 f"You qualify for **{len(eligible_schemes)} scheme(s)** based on demographic rules:\n"
                 f"{names_bulleted}\n\n"
                 f"Select any scheme below to see full criteria or begin an eligibility check."
@@ -1091,21 +1147,30 @@ class RAGPipeline:
                         "government_level": s["government_level"],
                         "status": s["status"],
                         "match_percentage": s["match_percentage"],
+                        "relevance_score": s["relevance_score"],
                         "coverage_amount": s["coverage_amount"],
-                        "excerpt": f"{s['scheme_name']} ({s['government_level']}): Coverage: {s['coverage_amount']}. Eligibility: {s['status']} ({s['match_percentage']}% Criteria Match).",
+                        "excerpt": f"{s['scheme_name']} ({s['government_level']}): Coverage: {s['coverage_amount']}. Eligibility: {s['status']} ({s['match_percentage']}% Criteria Match, {s['relevance_score']}% Relevance).",
                         "official_url": s["official_url"],
                         "page_number": 1,
-                        "relevance_score": round(s["match_percentage"] / 100.0, 2),
+                        "relevance_score_float": round(s["relevance_score"] / 100.0, 2),
                     })
 
             # Call Gemini LLM to generate intelligent multi-scheme summary if available
-            chunk_excerpts = [s["excerpt"] for s in multi_chunks[:8]]
+            # Context compression: Use only top 5 most relevant chunks
+            chunk_excerpts = [s["excerpt"] for s in multi_chunks[:5]]
             llm_text = await _generate_llm_response(
                 query_text=query_text or "What healthcare schemes am I eligible for?",
                 retrieved_chunks=chunk_excerpts,
                 scheme_name="Government Healthcare Schemes",
                 query_type="GENERAL_INFORMATION",
-                patient_context={"age": effective_age, "state": effective_state, "annual_income": effective_income}
+                patient_context={
+                    "age": effective_age,
+                    "state": effective_state,
+                    "annual_income": effective_income,
+                    "employment_status": effective_employment,
+                    "disability_status": effective_disability,
+                    "pregnancy_status": effective_pregnancy,
+                }
             )
             if llm_text:
                 summary_text = llm_text
@@ -1115,6 +1180,7 @@ class RAGPipeline:
                 "retrieved_chunks": multi_chunks,
                 "confidence_score": 0.95,
                 "is_low_confidence": False,
+                "follow_up_suggestions": generate_follow_up_suggestions("MULTI_SCHEME_ELIGIBILITY_QUERY", top_scheme_name, query_text),
                 "eligibility_result": {
                     "query_id": query_id_str,
                     "scheme_id": top_scheme_id,
@@ -1122,8 +1188,9 @@ class RAGPipeline:
                     "user_question": query_text,
                     "interview_state": "COMPLETED",
                     "current_question": None,
-                    "progress": {"answered": 3, "total_required": 3},
+                    "progress": {"answered": len(missing_intake), "total_required": len(missing_intake)},
                     "match_percentage": top_scheme["match_percentage"] if top_scheme else 100,
+                    "relevance_score": top_scheme["relevance_score"] if top_scheme else 100,
                     "overall_status": "ELIGIBLE" if eligible_schemes else "NOT_ELIGIBLE",
                     "overall_explanation": summary_text,
                     "criteria_breakdown": top_scheme["criteria"] if top_scheme else [],
@@ -1147,23 +1214,32 @@ class RAGPipeline:
         if uploaded_document_id:
             doc_chunks = vector_store.get_chunks_by_document_id(str(uploaded_document_id))
 
-        # 3. Scheme-Filtered Vector Search: retrieve chunks belonging to top_scheme_id
+        # 3. Scheme-Filtered Hybrid Vector Search: retrieve chunks belonging to top_scheme_id
         search_prompt = f"{top_scheme_name} {query_text}"
         query_emb = await EmbeddingService.get_embedding(search_prompt)
 
-        scoped_docs = [
-            doc for doc in vector_store.documents
-            if doc.get("metadata", {}).get("scheme_id") == top_scheme_id
-        ]
-
-        if scoped_docs:
-            scores = [
-                (doc["text"], doc.get("metadata", {}), _cosine_similarity(query_emb, doc["embedding"]))
-                for doc in scoped_docs
+        # Use hybrid search (vector + BM25) with 60% weight on vector, 40% on keywords
+        all_results = vector_store.hybrid_search(query_emb, search_prompt, k=k*2, alpha=0.6)
+        
+        # Filter to only scoped scheme results
+        results = [
+            (text, meta, score) for text, meta, score in all_results
+            if meta.get("scheme_id") == top_scheme_id
+        ][:k]
+        
+        if not results:
+            # Fallback to scheme-specific vector search if hybrid gives no results
+            scoped_docs = [
+                doc for doc in vector_store.documents
+                if doc.get("metadata", {}).get("scheme_id") == top_scheme_id
             ]
-            scores.sort(key=lambda x: x[2], reverse=True)
-            results = scores[:k]
-        else:
+            if scoped_docs:
+                scores = [
+                    (doc["text"], doc["metadata"], _cosine_similarity(query_emb, doc["embedding"]))
+                    for doc in scoped_docs
+                ]
+                scores.sort(key=lambda x: x[2], reverse=True)
+                results = scores[:k]
             all_results = vector_store.similarity_search(query_emb, k=k)
             matched = [r for r in all_results if r[1].get("scheme_id") == top_scheme_id]
             results = matched if matched else all_results
@@ -1339,8 +1415,217 @@ class RAGPipeline:
                 "eligibility_result": eligibility_result,
             }
 
-        # ─── WORKFLOW C: GENERAL_INFORMATION ─────────────────────────────────
+        # ─── WORKFLOW C: APPLICATION_QUERY ───────────────────────────────────
+        if query_type == "APPLICATION_QUERY":
+            overall_status = "INFORMATIONAL"
+            overall_exp = f"Application process and contact information for **{top_scheme_name}**:"
+
+            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
+            llm_text = await _generate_llm_response(
+                query_text=query_text,
+                retrieved_chunks=chunk_texts,
+                scheme_name=top_scheme_name,
+                query_type="APPLICATION_QUERY",
+                patient_context=patient_context,
+            )
+            if llm_text:
+                overall_exp = llm_text
+            
+            eligibility_result = {
+                "query_id": query_id_str,
+                "scheme_id": top_scheme_id,
+                "query_type": "APPLICATION",
+                "user_question": query_text,
+                "interview_state": "COMPLETED",
+                "current_question": None,
+                "progress": None,
+                "match_percentage": None,
+                "overall_status": overall_status,
+                "overall_explanation": overall_exp,
+                "criteria_breakdown": [],
+                "missing_information": [],
+                "structured_missing_criteria": [],
+                "all_evidence_sources": evidence_sources,
+                "queried_at": now_iso,
+            }
+
+            return {
+                "ai_response": overall_exp,
+                "retrieved_chunks": chunks,
+                "confidence_score": round(confidence, 2),
+                "is_low_confidence": confidence < 0.65,
+                "eligibility_result": eligibility_result,
+            }
+
+        # ─── WORKFLOW D: RENEWAL_QUERY ───────────────────────────────────────
+        if query_type == "RENEWAL_QUERY":
+            overall_status = "INFORMATIONAL"
+            overall_exp = f"Renewal and validity information for **{top_scheme_name}**:"
+
+            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
+            llm_text = await _generate_llm_response(
+                query_text=query_text,
+                retrieved_chunks=chunk_texts,
+                scheme_name=top_scheme_name,
+                query_type="RENEWAL_QUERY",
+                patient_context=patient_context,
+            )
+            if llm_text:
+                overall_exp = llm_text
+            
+            eligibility_result = {
+                "query_id": query_id_str,
+                "scheme_id": top_scheme_id,
+                "query_type": "RENEWAL",
+                "user_question": query_text,
+                "interview_state": "COMPLETED",
+                "current_question": None,
+                "progress": None,
+                "match_percentage": None,
+                "overall_status": overall_status,
+                "overall_explanation": overall_exp,
+                "criteria_breakdown": [],
+                "missing_information": [],
+                "structured_missing_criteria": [],
+                "all_evidence_sources": evidence_sources,
+                "queried_at": now_iso,
+            }
+
+            return {
+                "ai_response": overall_exp,
+                "retrieved_chunks": chunks,
+                "confidence_score": round(confidence, 2),
+                "is_low_confidence": confidence < 0.65,
+                "eligibility_result": eligibility_result,
+            }
+
+        # ─── WORKFLOW E: HOSPITAL_NETWORK_QUERY ───────────────────────────────
+        if query_type == "HOSPITAL_NETWORK_QUERY":
+            overall_status = "INFORMATIONAL"
+            overall_exp = f"Hospital network and empanelled facilities for **{top_scheme_name}**:"
+
+            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
+            llm_text = await _generate_llm_response(
+                query_text=query_text,
+                retrieved_chunks=chunk_texts,
+                scheme_name=top_scheme_name,
+                query_type="HOSPITAL_NETWORK_QUERY",
+                patient_context=patient_context,
+            )
+            if llm_text:
+                overall_exp = llm_text
+            
+            eligibility_result = {
+                "query_id": query_id_str,
+                "scheme_id": top_scheme_id,
+                "query_type": "HOSPITAL_NETWORK",
+                "user_question": query_text,
+                "interview_state": "COMPLETED",
+                "current_question": None,
+                "progress": None,
+                "match_percentage": None,
+                "overall_status": overall_status,
+                "overall_explanation": overall_exp,
+                "criteria_breakdown": [],
+                "missing_information": [],
+                "structured_missing_criteria": [],
+                "all_evidence_sources": evidence_sources,
+                "queried_at": now_iso,
+            }
+
+            return {
+                "ai_response": overall_exp,
+                "retrieved_chunks": chunks,
+                "confidence_score": round(confidence, 2),
+                "is_low_confidence": confidence < 0.65,
+                "eligibility_result": eligibility_result,
+            }
+
+        # ─── WORKFLOW F: COMPARISON_QUERY ────────────────────────────────────
+        if query_type == "COMPARISON_QUERY":
+            overall_status = "INFORMATIONAL"
+            overall_exp = f"Comparison of **{top_scheme_name}** with other similar schemes:"
+
+            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
+            llm_text = await _generate_llm_response(
+                query_text=query_text,
+                retrieved_chunks=chunk_texts,
+                scheme_name=top_scheme_name,
+                query_type="COMPARISON_QUERY",
+                patient_context=patient_context,
+            )
+            if llm_text:
+                overall_exp = llm_text
+            
+            eligibility_result = {
+                "query_id": query_id_str,
+                "scheme_id": top_scheme_id,
+                "query_type": "COMPARISON",
+                "user_question": query_text,
+                "interview_state": "COMPLETED",
+                "current_question": None,
+                "progress": None,
+                "match_percentage": None,
+                "overall_status": overall_status,
+                "overall_explanation": overall_exp,
+                "criteria_breakdown": [],
+                "missing_information": [],
+                "structured_missing_criteria": [],
+                "all_evidence_sources": evidence_sources,
+                "queried_at": now_iso,
+            }
+
+            return {
+                "ai_response": overall_exp,
+                "retrieved_chunks": chunks,
+                "confidence_score": round(confidence, 2),
+                "is_low_confidence": confidence < 0.65,
+                "eligibility_result": eligibility_result,
+            }
+
+        # ─── WORKFLOW G: GENERAL_INFORMATION ────────────────────────────────
         if query_type == "GENERAL_INFORMATION":
+            overall_status = "INFORMATIONAL"
+            overall_exp = f"**{top_scheme_name}** provides cashless secondary and tertiary hospitalization cover across public and empanelled private hospitals."
+
+            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
+            llm_text = await _generate_llm_response(
+                query_text=query_text,
+                retrieved_chunks=chunk_texts,
+                scheme_name=top_scheme_name,
+                query_type="GENERAL_INFORMATION",
+                patient_context=patient_context,
+            )
+            if llm_text:
+                overall_exp = llm_text
+            
+            eligibility_result = {
+                "query_id": query_id_str,
+                "scheme_id": top_scheme_id,
+                "query_type": "GENERAL_INFORMATION",
+                "user_question": query_text,
+                "interview_state": "COMPLETED",
+                "current_question": None,
+                "progress": None,
+                "match_percentage": None,
+                "overall_status": overall_status,
+                "overall_explanation": overall_exp,
+                "criteria_breakdown": [],
+                "missing_information": [],
+                "structured_missing_criteria": [],
+                "all_evidence_sources": evidence_sources,
+                "queried_at": now_iso,
+            }
+
+            return {
+                "ai_response": overall_exp,
+                "retrieved_chunks": chunks,
+                "confidence_score": round(confidence, 2),
+                "is_low_confidence": confidence < 0.65,
+                "eligibility_result": eligibility_result,
+            }
+
+        # ─── WORKFLOW H: PERSONAL_ELIGIBILITY (DYNAMIC MCQ INTERVIEW) ───────────
             overall_status = "INFORMATIONAL"
             overall_exp = f"**{top_scheme_name}** provides cashless secondary and tertiary hospitalization cover across public and empanelled private hospitals."
 
@@ -1525,10 +1810,17 @@ class RAGPipeline:
             "queried_at": now_iso,
         }
 
-        return {
+        result = {
             "ai_response": overall_exp,
             "retrieved_chunks": chunks,
             "confidence_score": round(confidence, 2),
             "is_low_confidence": confidence < 0.65,
+            "follow_up_suggestions": generate_follow_up_suggestions(query_type, top_scheme_name, query_text),
             "eligibility_result": eligibility_result,
         }
+
+        # Cache informational queries
+        if query_type in ["GENERAL_INFORMATION", "REQUIREMENTS_QUERY", "APPLICATION_QUERY", "RENEWAL_QUERY", "HOSPITAL_NETWORK_QUERY"]:
+            rag_cache.set(cache_key, result, ttl_seconds=86400)
+
+        return result

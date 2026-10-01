@@ -39,9 +39,9 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
 
     // Default center: userCoords or first hospital or Chennai
     const initialLat =
-      userCoords?.latitude || (hospitals.length > 0 ? hospitals[0].latitude : 13.0827);
+      userCoords?.latitude ?? (hospitals.length > 0 ? hospitals[0].latitude : 13.0827);
     const initialLng =
-      userCoords?.longitude || (hospitals.length > 0 ? hospitals[0].longitude : 80.2707);
+      userCoords?.longitude ?? (hospitals.length > 0 ? hospitals[0].longitude : 80.2707);
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLng],
@@ -49,7 +49,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
       zoomControl: false,
     });
 
-    // Add OpenStreetMap tile layer
+    // Add OpenStreetMap standard tiles (most reliable, no API key)
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -87,7 +87,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
     }
 
       // Plot User location if available
-      if (userCoords?.latitude && userCoords?.longitude) {
+      if (userCoords?.latitude != null && userCoords?.longitude != null) {
         const userIcon = L.divIcon({
           className: "user-location-marker",
           html: `
@@ -116,7 +116,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
 
       const bounds = L.latLngBounds([]);
 
-      if (userCoords?.latitude && userCoords?.longitude) {
+      if (userCoords?.latitude != null && userCoords?.longitude != null) {
         bounds.extend([userCoords.latitude, userCoords.longitude]);
       }
 
@@ -228,7 +228,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
         return;
       }
     }
-    if (userCoords?.latitude && userCoords?.longitude) {
+    if (userCoords?.latitude != null && userCoords?.longitude != null) {
       mapInstanceRef.current.setView([userCoords.latitude, userCoords.longitude], 13);
     }
   };

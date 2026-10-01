@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Calendar, User, Ruler, Weight, MapPin, Phone, ShieldAlert, Save, X } from "lucide-react";
+import { Calendar, User, Ruler, Weight, MapPin, Phone, ShieldAlert, Save, X, Briefcase, IndianRupee, Users, Accessibility, Baby } from "lucide-react";
 
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -38,6 +38,19 @@ const profileSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || pincodeRegex.test(val), "Pincode must be exactly 6 digits"),
+  annual_income: z
+    .number()
+    .min(0, "Income cannot be negative")
+    .optional(),
+  employment_status: z.enum(["Government Employee", "Private Sector Employee", "Self-Employed", "Unemployed/Homemaker", "Retired/Pensioner", "Student"] as const).optional(),
+  family_size: z
+    .number()
+    .min(1, "Family size must be at least 1")
+    .max(20, "Family size cannot exceed 20")
+    .optional(),
+  ration_card_type: z.enum(["BPL", "APL", "None"] as const).optional(),
+  disability_status: z.enum(["Yes", "No"] as const).optional(),
+  pregnancy_status: z.enum(["Yes", "No"] as const).optional(),
   emergency_contact_name: z.string().optional(),
   emergency_contact_phone: z
     .string()
@@ -57,6 +70,7 @@ export const PersonalDetailsForm: React.FC<{
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
+    watch,
   } = useForm<PersonalDetailsFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -70,10 +84,18 @@ export const PersonalDetailsForm: React.FC<{
       city: initialData.city || "",
       state: initialData.state || "",
       pincode: initialData.pincode || "",
+      annual_income: initialData.annual_income || undefined,
+      employment_status: initialData.employment_status || "Private Sector Employee",
+      family_size: initialData.family_size || undefined,
+      ration_card_type: initialData.ration_card_type || "None",
+      disability_status: initialData.disability_status || "No",
+      pregnancy_status: initialData.pregnancy_status || "No",
       emergency_contact_name: initialData.emergency_contact_name || "",
       emergency_contact_phone: initialData.emergency_contact_phone || "",
     },
   });
+
+  const gender = watch("gender");
 
   const onSubmit = async (data: PersonalDetailsFormData) => {
     try {
@@ -207,7 +229,87 @@ export const PersonalDetailsForm: React.FC<{
         </div>
       </div>
 
-      {/* 3. Emergency Contact Sub-section */}
+      {/* 3. Socio-Economic Information */}
+      <div className="flex flex-col gap-4 border-b border-[#F0FDFA] pb-6">
+        <h3 className="font-heading font-bold text-base text-[#0F172A]">
+          Socio-Economic Information
+        </h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label="Annual Household Income (₹)"
+            type="number"
+            placeholder="e.g. 500000"
+            leftIcon={<IndianRupee className="w-4 h-4" />}
+            error={errors.annual_income?.message}
+            {...register("annual_income", { valueAsNumber: true })}
+          />
+
+          <Input
+            label="Family Size"
+            type="number"
+            placeholder="Number of family members"
+            leftIcon={<Users className="w-4 h-4" />}
+            error={errors.family_size?.message}
+            {...register("family_size", { valueAsNumber: true })}
+          />
+
+          <div className="flex flex-col gap-1.5 w-full">
+            <label className="text-sm font-medium text-[#0F172A]">Employment Status</label>
+            <select
+              className="w-full font-body text-sm text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl px-3.5 py-2.5 focus-ring"
+              {...register("employment_status")}
+            >
+              <option value="Government Employee">Government Employee</option>
+              <option value="Private Sector Employee">Private Sector Employee</option>
+              <option value="Self-Employed">Self-Employed</option>
+              <option value="Unemployed/Homemaker">Unemployed/Homemaker</option>
+              <option value="Retired/Pensioner">Retired/Pensioner</option>
+              <option value="Student">Student</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5 w-full">
+            <label className="text-sm font-medium text-[#0F172A]">Ration Card Type</label>
+            <select
+              className="w-full font-body text-sm text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl px-3.5 py-2.5 focus-ring"
+              {...register("ration_card_type")}
+            >
+              <option value="None">None</option>
+              <option value="BPL">BPL (Below Poverty Line)</option>
+              <option value="APL">APL (Above Poverty Line)</option>
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5 w-full">
+            <label className="text-sm font-medium text-[#0F172A]">Disability Status</label>
+            <select
+              className="w-full font-body text-sm text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl px-3.5 py-2.5 focus-ring"
+              {...register("disability_status")}
+            >
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+            <p className="text-xs text-[#64748B]">Required for Niramaya scheme eligibility</p>
+          </div>
+
+          {gender === "Female" && (
+            <div className="flex flex-col gap-1.5 w-full">
+              <label className="text-sm font-medium text-[#0F172A]">Pregnancy Status</label>
+              <select
+                className="w-full font-body text-sm text-[#0F172A] bg-white border border-[#F0FDFA] rounded-xl px-3.5 py-2.5 focus-ring"
+                {...register("pregnancy_status")}
+              >
+                <option value="No">No</option>
+                <option value="Yes">Yes</option>
+              </select>
+              <p className="text-xs text-[#64748B]">Required for maternity scheme eligibility</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 4. Emergency Contact Sub-section */}
       <div id="emergency-contact" className="flex flex-col gap-4 bg-[#F0FDFA]/40 p-4 sm:p-5 rounded-2xl border border-[#0D9488]/20">
         <div className="flex items-center gap-2">
           <ShieldAlert className="w-5 h-5 text-[#0D9488]" />

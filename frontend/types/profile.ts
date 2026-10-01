@@ -11,6 +11,20 @@ export type BloodGroupOption =
   | "AB-"
   | "Unknown";
 
+export type EmploymentStatusOption =
+  | "Government Employee"
+  | "Private Sector Employee"
+  | "Self-Employed"
+  | "Unemployed/Homemaker"
+  | "Retired/Pensioner"
+  | "Student";
+
+export type RationCardTypeOption = "BPL" | "APL" | "None";
+
+export type DisabilityStatusOption = "Yes" | "No";
+
+export type PregnancyStatusOption = "Yes" | "No";
+
 export type AllergySeverity = "Mild" | "Moderate" | "Severe";
 
 export interface PatientProfile {
@@ -25,6 +39,12 @@ export interface PatientProfile {
   city?: string;
   state?: string;
   pincode?: string;
+  annual_income?: number;
+  employment_status?: EmploymentStatusOption;
+  family_size?: number;
+  ration_card_type?: RationCardTypeOption;
+  disability_status?: DisabilityStatusOption;
+  pregnancy_status?: PregnancyStatusOption;
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
 }

@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SchemeQuery } from "@/types/scheme";
 import { schemeApi } from "@/lib/schemeApi";
+import { api, USE_MOCK_API } from "@/lib/api";
+import { profileApi } from "@/lib/mockProfileData";
 import { Button } from "@/components/ui/Button";
 import { Sparkles, HelpCircle, ArrowRight, ClipboardCheck } from "lucide-react";
 import { QuickEligibilityIntakeCard, QuickIntakeData } from "./QuickEligibilityIntakeCard";
@@ -28,6 +30,20 @@ export const SchemeQueryPanel: React.FC<SchemeQueryPanelProps> = ({
   const [question, setQuestion] = useState("");
   const [isQuerying, setIsQuerying] = useState(false);
   const [showIntake, setShowIntake] = useState(false);
+  const [gender, setGender] = useState<string | undefined>();
+
+  useEffect(() => {
+    let active = true;
+    const loadGender = USE_MOCK_API
+      ? profileApi.getRecord().then((record) => record.profile.gender)
+      : api.get("/profile").then(({ data }) => data.gender ?? data.gender_identity);
+    loadGender
+      .then((profileGender) => {
+        if (active && profileGender) setGender(profileGender);
+      })
+      .catch((error) => console.warn("Unable to load profile gender for scheme intake:", error));
+    return () => { active = false; };
+  }, []);
 
   const isOpenEndedQuery = (text: string) => {
     const lower = text.toLowerCase().trim();
@@ -72,6 +88,9 @@ export const SchemeQueryPanel: React.FC<SchemeQueryPanelProps> = ({
       state: intakeData.state,
       age: intakeData.age,
       annual_income: intakeData.annual_income,
+      employment_status: intakeData.employment_status,
+      disability_status: intakeData.disability_status,
+      pregnancy_status: intakeData.pregnancy_status,
     });
   };
 
@@ -130,6 +149,7 @@ export const SchemeQueryPanel: React.FC<SchemeQueryPanelProps> = ({
             isLoading={isQuerying}
             onSubmit={handleIntakeSubmit}
             onCancel={() => setShowIntake(false)}
+            gender={gender}
           />
         </div>
       )}

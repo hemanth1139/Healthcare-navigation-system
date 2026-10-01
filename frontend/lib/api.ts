@@ -15,7 +15,7 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 30000,
+  timeout: 120000, // Increased to 2 minutes for RAG processing
 });
 
 // Request Interceptor: Attach Bearer Authorization token

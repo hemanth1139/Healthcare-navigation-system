@@ -24,16 +24,18 @@ CANDIDATE_MODELS: List[str] = [
     "gemini-1.5-pro",          # Secondary baseline fallback
 ]
 
-# Configured API keys (supports optional secondary keys for multi-environment reliability)
+# Configured API keys (supports up to 5 keys for rotation to manage free tier quotas)
 def _get_api_keys() -> List[str]:
     keys = []
+    # Primary key
     primary = getattr(settings, "GOOGLE_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "")
     if primary:
         keys.append(primary)
-    # Optional secondary credentials if configured in environment
-    secondary = os.getenv("GOOGLE_API_KEY_2", "") or getattr(settings, "GOOGLE_API_KEY_2", None)
-    if secondary and secondary not in keys:
-        keys.append(secondary)
+    # Secondary keys for rotation
+    for i in range(2, 6):
+        key = os.getenv(f"GOOGLE_API_KEY_{i}", "") or getattr(settings, f"GOOGLE_API_KEY_{i}", "")
+        if key and key not in keys:
+            keys.append(key)
     return keys
 
 

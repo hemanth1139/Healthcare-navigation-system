@@ -16,6 +16,7 @@ class HospitalNearbyRequest(BaseModel):
     hospital_type: Optional[str] = Field(None, alias="hospitalType")
     max_distance_km: Optional[float] = Field(None, alias="maxDistanceKm")
     sort_by: Optional[str] = Field("distance", alias="sortBy")
+    max_results: Optional[int] = Field(50, alias="maxResults")
 
     model_config = {"populate_by_name": True}
 
@@ -38,6 +39,8 @@ class HospitalOut(BaseModel):
     rating: Optional[float] = None
     distance_km: float = Field(..., alias="distance_km")
     estimated_time: str = Field(..., alias="estimated_time")
+    opening_hours: Optional[str] = None
+    beds: Optional[int] = None
 
     model_config = {"populate_by_name": True, "from_attributes": True}
 
@@ -73,5 +76,7 @@ class HospitalOut(BaseModel):
             has_emergency_room=data.get("has_emergency_room", True),
             rating=float(data["rating"]) if data.get("rating") else None,
             distance_km=float(data.get("distance_km", 0.0)),
-            estimated_time=str(data.get("estimated_time", "5 mins drive"))
+            estimated_time=str(data.get("estimated_time", "5 mins drive")),
+            opening_hours=data.get("opening_hours"),
+            beds=data.get("beds")
         )

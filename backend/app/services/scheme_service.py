@@ -3,7 +3,7 @@ Government Scheme service — seeds scheme tables, manages search queries,
 and links RAG query results to database history logs.
 """
 
-from uuid import UUID
+from uuid import UUID, uuid4
 from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, desc
@@ -116,13 +116,18 @@ class SchemeService:
         )
 
         # 2. Correlate top match chunk back to a database scheme
-        scheme_id = payload.scoped_scheme_id or (
-            rag_res.get("eligibility_result", {}).get("scheme_id") if rag_res.get("eligibility_result") else None
-        )
-        if not scheme_id and rag_res.get("retrieved_chunks"):
-            scheme_id = rag_res["retrieved_chunks"][0].get("scheme_id")
-        if not scheme_id:
-            scheme_id = "scheme_C01"
+        # For MULTI_SCHEME_ELIGIBILITY_QUERY, use the scheme_id from eligibility_result if available
+        query_type = rag_res.get("eligibility_result", {}).get("query_type", "")
+        if query_type == "MULTI_SCHEME_ELIGIBILITY_QUERY":
+            scheme_id = rag_res.get("eligibility_result", {}).get("scheme_id")
+        else:
+            scheme_id = payload.scoped_scheme_id or (
+                rag_res.get("eligibility_result", {}).get("scheme_id") if rag_res.get("eligibility_result") else None
+            )
+            if not scheme_id and rag_res.get("retrieved_chunks"):
+                scheme_id = rag_res["retrieved_chunks"][0].get("scheme_id")
+            if not scheme_id:
+                scheme_id = "scheme_C01"
 
         # Parse conversation_id if valid UUID
         conv_uuid = None
@@ -133,14 +138,21 @@ class SchemeService:
                 conv_uuid = None
 
         # 3. Save query log to DB
+        q_id = uuid4()
+        elig_res = rag_res.get("eligibility_result")
+        if elig_res and isinstance(elig_res, dict):
+            elig_res["query_id"] = str(q_id)
+            elig_res["queryId"] = str(q_id)
+
         q_log = SchemeQuery(
+            query_id=q_id,
             profile_id=profile.profile_id if profile else None,
             conversation_id=conv_uuid,
             scheme_id=scheme_id,
             user_question=payload.query_text,
             ai_response=rag_res["ai_response"],
             retrieved_chunks=rag_res["retrieved_chunks"],
-            eligibility_result=rag_res.get("eligibility_result"),
+            eligibility_result=elig_res,
             confidence_score=rag_res["confidence_score"]
         )
         db.add(q_log)
@@ -175,13 +187,20 @@ class SchemeService:
             uploaded_document_id=payload.uploaded_document_id,
         )
 
+        q_id = uuid4()
+        elig_res = rag_res.get("eligibility_result")
+        if elig_res and isinstance(elig_res, dict):
+            elig_res["query_id"] = str(q_id)
+            elig_res["queryId"] = str(q_id)
+
         q_log = SchemeQuery(
+            query_id=q_id,
             profile_id=profile.profile_id,
             scheme_id=scheme_id,
             user_question=q_text,
             ai_response=rag_res["ai_response"],
             retrieved_chunks=rag_res["retrieved_chunks"],
-            eligibility_result=rag_res.get("eligibility_result"),
+            eligibility_result=elig_res,
             confidence_score=rag_res["confidence_score"]
         )
         db.add(q_log)
@@ -198,20 +217,54 @@ class SchemeService:
         """Continues an existing eligibility inquiry by supplying missing criteria / uploaded documents."""
         profile = await _get_profile(db, current_user)
         
+        target_uuid = None
         try:
-            target_uuid = UUID(payload.query_id)
-        except ValueError:
-            raise NotFoundError(f"Eligibility query '{payload.query_id}'")
+            target_uuid = UUID(str(payload.query_id).strip())
+        except (ValueError, AttributeError):
+            target_uuid = None
 
-        res = await db.execute(
-            select(SchemeQuery).where(
-                SchemeQuery.query_id == target_uuid,
-                SchemeQuery.profile_id == profile.profile_id
+        q_log = None
+        if target_uuid:
+            res = await db.execute(
+                select(SchemeQuery).where(
+                    SchemeQuery.query_id == target_uuid,
+                    or_(
+                        SchemeQuery.profile_id == profile.profile_id,
+                        SchemeQuery.profile_id == None
+                    )
+                )
             )
-        )
-        q_log = res.scalar_one_or_none()
+            q_log = res.scalar_one_or_none()
+
+        if not q_log:
+            # Fallback 1: Look up by query_id in recent queries
+            res = await db.execute(
+                select(SchemeQuery)
+                .where(
+                    or_(
+                        SchemeQuery.profile_id == profile.profile_id,
+                        SchemeQuery.profile_id == None
+                    )
+                )
+                .order_by(desc(SchemeQuery.created_at))
+                .limit(10)
+            )
+            recent_queries = res.scalars().all()
+            for rq in recent_queries:
+                if rq.eligibility_result and isinstance(rq.eligibility_result, dict):
+                    if rq.eligibility_result.get("query_id") == payload.query_id or rq.eligibility_result.get("queryId") == payload.query_id:
+                        q_log = rq
+                        break
+
+            # Fallback 2: If query_id is an ephemeral string like "q_..." and still not matched, link to the most recent query
+            if not q_log and recent_queries and str(payload.query_id).startswith("q_"):
+                q_log = recent_queries[0]
+
         if not q_log:
             raise NotFoundError(f"Eligibility query '{payload.query_id}'")
+
+        if not q_log.profile_id:
+            q_log.profile_id = profile.profile_id
 
         patient_ctx = await ProfileService.get_patient_context(db, current_user.user_id)
 
@@ -247,6 +300,31 @@ class SchemeService:
                     merged_info["annual_income"] = "250000"
                 else:
                     merged_info["annual_income"] = ans
+            elif "employment" in c_id:
+                if "government" in ans.lower():
+                    merged_info["employment_status"] = "Government Employee"
+                elif "private" in ans.lower():
+                    merged_info["employment_status"] = "Private Sector Employee"
+                elif "self" in ans.lower():
+                    merged_info["employment_status"] = "Self-Employed"
+                elif "unemployed" in ans.lower() or "homemaker" in ans.lower():
+                    merged_info["employment_status"] = "Unemployed/Homemaker"
+                elif "retired" in ans.lower() or "pensioner" in ans.lower():
+                    merged_info["employment_status"] = "Retired/Pensioner"
+                elif "student" in ans.lower():
+                    merged_info["employment_status"] = "Student"
+                else:
+                    merged_info["employment_status"] = ans
+            elif "disability" in c_id:
+                if any(kw in ans.lower() for kw in ["yes", "disabled", "autism", "cerebral", "disability"]):
+                    merged_info["disability_status"] = "Yes"
+                else:
+                    merged_info["disability_status"] = "No"
+            elif "pregnancy" in c_id:
+                if any(kw in ans.lower() for kw in ["yes", "pregnant", "expecting"]):
+                    merged_info["pregnancy_status"] = "Yes"
+                else:
+                    merged_info["pregnancy_status"] = "No"
             else:
                 merged_info[payload.criterion_id] = ans
 
@@ -262,10 +340,15 @@ class SchemeService:
         )
 
         # Update existing query log
+        elig_res = rag_res.get("eligibility_result")
+        if elig_res and isinstance(elig_res, dict):
+            elig_res["query_id"] = str(q_log.query_id)
+            elig_res["queryId"] = str(q_log.query_id)
+
         q_log.user_question = combined_text
         q_log.ai_response = rag_res["ai_response"]
         q_log.retrieved_chunks = rag_res["retrieved_chunks"]
-        q_log.eligibility_result = rag_res.get("eligibility_result")
+        q_log.eligibility_result = elig_res
         q_log.confidence_score = rag_res["confidence_score"]
 
         await db.flush()

@@ -7,6 +7,7 @@ import { MultiDocEligibilityCard } from "@/components/schemes/MultiDocEligibilit
 import { SchemeFilterChips } from "@/components/schemes/SchemeFilterChips";
 import { SchemeSearchBar } from "@/components/schemes/SchemeSearchBar";
 import { SchemeList } from "@/components/schemes/SchemeList";
+import { FollowUpSuggestions } from "@/components/schemes/FollowUpSuggestions";
 import { Spinner } from "@/components/ui/Spinner";
 import { Card } from "@/components/ui/Card";
 import {
@@ -58,6 +59,7 @@ export default function SchemesLandingPage() {
   const [queryLoading, setQueryLoading] = useState(false);
   const [eligibilityResult, setEligibilityResult] = useState<MultiDocEligibilityResult | null>(null);
   const [activeQueryId, setActiveQueryId] = useState<string | null>(null);
+  const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
 
   // Intake card state — shown when user types an open-ended query
   const [showIntakeCard, setShowIntakeCard] = useState(false);
@@ -103,11 +105,16 @@ export default function SchemesLandingPage() {
     setQueryLoading(true);
     setEligibilityResult(null);
     setActiveQueryId(null);
+    setFollowUpSuggestions([]);
     try {
       const { query, eligibilityResult: result } = await schemeApi.querySchemeEligibility(text, undefined, additionalInfo);
       setEligibilityResult(result);
+      // Capture follow-up suggestions
+      if (query?.follow_up_suggestions) {
+        setFollowUpSuggestions(query.follow_up_suggestions);
+      }
       // Track the query_id so we can continue the interview
-      const qId = result?.query_id || query?.query_id || null;
+      const qId = query?.query_id || (query as any)?.queryId || result?.query_id || (result as any)?.queryId || null;
       setActiveQueryId(qId);
       loadHistory();
     } catch (err: any) {
@@ -266,6 +273,16 @@ export default function SchemesLandingPage() {
             result={eligibilityResult}
             onContinue={activeQueryId ? handleContinueInterview : undefined}
           />
+          {/* Follow-up Suggestions */}
+          {followUpSuggestions.length > 0 && (
+            <FollowUpSuggestions
+              suggestions={followUpSuggestions}
+              onSelect={(suggestion) => {
+                setQuestion(suggestion);
+                handleQuery(suggestion);
+              }}
+            />
+          )}
         </div>
       )}
 

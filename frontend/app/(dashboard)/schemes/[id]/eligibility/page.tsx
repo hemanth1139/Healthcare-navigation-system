@@ -258,47 +258,54 @@ export default function SchemeEligibilityResultPage({ params }: { params: Promis
               {/* MCQ Options or Input field */}
               {activeResult.current_question.options && activeResult.current_question.options.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {activeResult.current_question.options.map((option, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        const fKey = activeResult.current_question?.field_key || "additional_info";
-                        handleContinueMissing({ [fKey]: option });
-                      }}
-                      disabled={isSubmittingMissing}
-                      className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-teal-500 dark:hover:border-teal-400 bg-white dark:bg-slate-900 hover:bg-teal-50/50 dark:hover:bg-teal-950/30 text-left transition-all flex items-center justify-between group cursor-pointer"
-                    >
-                      <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-300">
-                        {option}
-                      </span>
-                      <span className="w-6 h-6 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-400 group-hover:border-teal-500 group-hover:text-teal-600 shrink-0">
-                        {String.fromCharCode(65 + idx)}
-                      </span>
-                    </button>
-                  ))}
+                  {activeResult.current_question.options.map((option, idx) => {
+                    const fKey = activeResult.current_question?.field_key || (activeResult.current_question as any)?.fieldKey || activeResult.current_question?.criterion_id || "additional_info";
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          handleContinueMissing({ [fKey]: option });
+                        }}
+                        disabled={isSubmittingMissing}
+                        className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-teal-500 dark:hover:border-teal-400 bg-white dark:bg-slate-900 hover:bg-teal-50/50 dark:hover:bg-teal-950/30 text-left transition-all flex items-center justify-between group cursor-pointer"
+                      >
+                        <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-300">
+                          {option}
+                        </span>
+                        <span className="w-6 h-6 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-400 group-hover:border-teal-500 group-hover:text-teal-600 shrink-0">
+                          {String.fromCharCode(65 + idx)}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
-                  <input
-                    type="text"
-                    placeholder="Provide your answer..."
-                    value={missingInputs[activeResult.current_question.field_key] || ""}
-                    onChange={(e) =>
-                      setMissingInputs((prev) => ({
-                        ...prev,
-                        [activeResult.current_question!.field_key]: e.target.value,
-                      }))
-                    }
-                    className="w-full text-xs sm:text-sm border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
-                  />
-                  <button
-                    onClick={() => handleContinueMissing(missingInputs)}
-                    disabled={isSubmittingMissing || !missingInputs[activeResult.current_question.field_key]?.trim()}
-                    className="self-end px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all"
-                  >
-                    Submit Answer
-                  </button>
-                </div>
+                (() => {
+                  const fKey = activeResult.current_question?.field_key || (activeResult.current_question as any)?.fieldKey || activeResult.current_question?.criterion_id || "additional_info";
+                  return (
+                    <div className="flex flex-col gap-2">
+                      <input
+                        type="text"
+                        placeholder="Provide your answer..."
+                        value={missingInputs[fKey] || ""}
+                        onChange={(e) =>
+                          setMissingInputs((prev) => ({
+                            ...prev,
+                            [fKey]: e.target.value,
+                          }))
+                        }
+                        className="w-full text-xs sm:text-sm border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600"
+                      />
+                      <button
+                        onClick={() => handleContinueMissing(missingInputs)}
+                        disabled={isSubmittingMissing || !missingInputs[fKey]?.trim()}
+                        className="self-end px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all"
+                      >
+                        Submit Answer
+                      </button>
+                    </div>
+                  );
+                })()
               )}
 
               {/* Privacy note */}

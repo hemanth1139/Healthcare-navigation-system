@@ -27,9 +27,9 @@ class GovernmentScheme(Base):
     official_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_updated: Mapped[date | None] = mapped_column(Date, nullable=True)
     eligibility_criteria: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    key_covered_conditions: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    key_exclusions: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    chunks: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    key_covered_conditions: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    key_exclusions: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    chunks: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     queries: Mapped[list["SchemeQuery"]] = relationship(
         "SchemeQuery", back_populates="scheme"

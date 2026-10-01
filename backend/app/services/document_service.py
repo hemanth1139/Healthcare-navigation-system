@@ -6,6 +6,7 @@ with strict user-profile ownership and authorization checks.
 """
 
 import os
+import re
 from uuid import UUID
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -155,22 +156,43 @@ class DocumentService:
         if not raw_text or len(raw_text) < 10:
             raw_text = f"DOCUMENT: {file_name}\nCategory: {category}\nVerified patient document for healthcare and scheme eligibility."
 
-        # Chunk text into ~400 char overlapping segments
-        chunks = []
-        chunk_size = 400
-        overlap = 50
-        start = 0
-        while start < len(raw_text):
-            end = min(start + chunk_size, len(raw_text))
-            chunk_str = raw_text[start:end].strip()
-            if chunk_str:
-                chunks.append(chunk_str)
-            if end == len(raw_text):
-                break
-            start += (chunk_size - overlap)
+        # Group complete sentences/paragraphs into approximately 300-500 token
+        # chunks, with one sentence of overlap to preserve local context.
+        units = [u.strip() for u in re.split(r"(?<=[.!?])\s+|\n{2,}", raw_text) if u.strip()]
+        max_chars = 1800  # roughly 450 tokens for typical document text
+        bounded_units = []
+        for unit in units:
+            if len(unit) <= max_chars:
+                bounded_units.append(unit)
+                continue
+            # A malformed scan or long table row may contain no sentence breaks.
+            # Split such units at word boundaries so chunk size remains bounded.
+            fragment = []
+            fragment_size = 0
+            for word in unit.split():
+                if fragment and fragment_size + len(word) + 1 > max_chars:
+                    bounded_units.append(" ".join(fragment))
+                    fragment = []
+                    fragment_size = 0
+                fragment.append(word)
+                fragment_size += len(word) + (1 if len(fragment) > 1 else 0)
+            if fragment:
+                bounded_units.append(" ".join(fragment))
 
+        chunks = []
+        current = []
+        current_size = 0
+        for unit in bounded_units:
+            if current and current_size + len(unit) > max_chars:
+                chunks.append(" ".join(current).strip())
+                current = current[-1:] if current and len(current[-1]) + len(unit) <= max_chars else []
+                current_size = sum(len(part) for part in current)
+            current.append(unit)
+            current_size += len(unit)
+        if current:
+            chunks.append(" ".join(current).strip())
         if not chunks:
-            chunks = [raw_text[:400]]
+            chunks = [raw_text[:1800]]
 
         # Compute embeddings and store
         from app.rag.embeddings import EmbeddingService

@@ -81,8 +81,13 @@ export const schemeApi = {
       });
 
       const rawEligibility = data.eligibility_result || data.eligibilityResult;
+      const backendQueryId = data.query_id || data.queryId;
+      if (rawEligibility && backendQueryId) {
+        rawEligibility.query_id = backendQueryId;
+        rawEligibility.queryId = backendQueryId;
+      }
       const query: SchemeQuery = {
-        query_id: data.query_id || data.queryId || `q_${Date.now()}`,
+        query_id: backendQueryId || `q_${Date.now()}`,
         profile_id: data.profile_id || data.profileId,
         conversation_id: data.conversation_id || data.conversationId,
         scheme_id: data.scheme_id || data.schemeId || schemeId,
@@ -140,8 +145,13 @@ export const schemeApi = {
       });
 
       const rawEligibility = data.eligibility_result || data.eligibilityResult;
+      const backendQueryId = data.query_id || data.queryId;
+      if (rawEligibility && backendQueryId) {
+        rawEligibility.query_id = backendQueryId;
+        rawEligibility.queryId = backendQueryId;
+      }
       const query: SchemeQuery = {
-        query_id: data.query_id || data.queryId || `q_${Date.now()}`,
+        query_id: backendQueryId || `q_${Date.now()}`,
         profile_id: data.profile_id || data.profileId,
         conversation_id: data.conversation_id || data.conversationId,
         scheme_id: data.scheme_id || data.schemeId || schemeId,
@@ -222,8 +232,13 @@ export const schemeApi = {
       });
 
       const rawEligibility = data.eligibility_result || data.eligibilityResult;
+      const backendQueryId = data.query_id || data.queryId;
+      if (rawEligibility && backendQueryId) {
+        rawEligibility.query_id = backendQueryId;
+        rawEligibility.queryId = backendQueryId;
+      }
       const query: SchemeQuery = {
-        query_id: data.query_id || data.queryId || queryId,
+        query_id: backendQueryId || queryId,
         profile_id: data.profile_id || data.profileId,
         conversation_id: data.conversation_id || data.conversationId,
         scheme_id: data.scheme_id || data.schemeId,

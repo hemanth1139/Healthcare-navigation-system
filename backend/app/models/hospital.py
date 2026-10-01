@@ -30,6 +30,8 @@ class Hospital(Base):
     hospital_type: Mapped[str | None] = mapped_column(String(50), nullable=True, default="Private")
     specialties: Mapped[str | None] = mapped_column(Text, nullable=True, default="General Medicine")
     has_emergency_room: Mapped[bool] = mapped_column(default=True)
+    opening_hours: Mapped[str | None] = mapped_column(Text, nullable=True)
+    beds: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     recommendations: Mapped[list["HospitalRecommendation"]] = relationship(
         "HospitalRecommendation", back_populates="hospital"

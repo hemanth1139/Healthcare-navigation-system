@@ -3,21 +3,28 @@
 import React, { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Sparkles, MapPin, Calendar, IndianRupee, ArrowRight, ShieldCheck } from "lucide-react";
+import { Sparkles, MapPin, Calendar, IndianRupee, ArrowRight, ShieldCheck, Briefcase, Accessibility, Baby } from "lucide-react";
 
 export interface QuickIntakeData {
   state: string;
   age: number;
   annual_income: string;
+  employment_status?: string;
+  disability_status?: string;
+  pregnancy_status?: string;
 }
 
 export interface QuickEligibilityIntakeCardProps {
   initialState?: string;
   initialAge?: number;
   initialIncome?: string;
+  initialEmployment?: string;
+  initialDisability?: string;
+  initialPregnancy?: string;
   isLoading?: boolean;
   onSubmit: (data: QuickIntakeData) => void;
   onCancel?: () => void;
+  gender?: string; // For conditional pregnancy question
 }
 
 const INDIAN_STATES = [
@@ -45,9 +52,13 @@ export const QuickEligibilityIntakeCard: React.FC<QuickEligibilityIntakeCardProp
   initialState = "Tamil Nadu",
   initialAge,
   initialIncome,
+  initialEmployment,
+  initialDisability,
+  initialPregnancy,
   isLoading = false,
   onSubmit,
   onCancel,
+  gender,
 }) => {
   const [selectedState, setSelectedState] = useState<string>(initialState);
   const [age, setAge] = useState<string>(initialAge ? String(initialAge) : "");
@@ -58,6 +69,9 @@ export const QuickEligibilityIntakeCard: React.FC<QuickEligibilityIntakeCardProp
       ? "ABOVE_BPL"
       : "BPL"
   );
+  const [employmentStatus, setEmploymentStatus] = useState<string>(initialEmployment || "Private Sector Employee");
+  const [disabilityStatus, setDisabilityStatus] = useState<string>(initialDisability || "No");
+  const [pregnancyStatus, setPregnancyStatus] = useState<string>(initialPregnancy || "No");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,6 +93,9 @@ export const QuickEligibilityIntakeCard: React.FC<QuickEligibilityIntakeCardProp
       state: selectedState,
       age: parsedAge,
       annual_income: incomeTier === "BPL" ? "50000" : "250000",
+      employment_status: employmentStatus,
+      disability_status: disabilityStatus,
+      pregnancy_status: gender === "Female" ? pregnancyStatus : undefined,
     });
   };
 
@@ -218,6 +235,62 @@ export const QuickEligibilityIntakeCard: React.FC<QuickEligibilityIntakeCardProp
             </button>
           </div>
         </div>
+
+        {/* 4. Employment Status */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <Briefcase className="w-3.5 h-3.5 text-[#0D9488]" />
+            <span>Employment Status</span>
+          </label>
+          <select
+            value={employmentStatus}
+            onChange={(e) => setEmploymentStatus(e.target.value)}
+            className="text-xs sm:text-sm border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-[#0D9488]"
+          >
+            <option value="Government Employee">Government Employee</option>
+            <option value="Private Sector Employee">Private Sector Employee</option>
+            <option value="Self-Employed">Self-Employed</option>
+            <option value="Unemployed/Homemaker">Unemployed/Homemaker</option>
+            <option value="Retired/Pensioner">Retired/Pensioner</option>
+            <option value="Student">Student</option>
+          </select>
+        </div>
+
+        {/* 5. Disability Status */}
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <Accessibility className="w-3.5 h-3.5 text-[#0D9488]" />
+            <span>Disability Status</span>
+          </label>
+          <select
+            value={disabilityStatus}
+            onChange={(e) => setDisabilityStatus(e.target.value)}
+            className="text-xs sm:text-sm border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-[#0D9488]"
+          >
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+          </select>
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Required for Niramaya scheme eligibility</p>
+        </div>
+
+        {/* 6. Pregnancy Status (only for females) */}
+        {gender === "Female" && (
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <Baby className="w-3.5 h-3.5 text-[#0D9488]" />
+              <span>Pregnancy Status</span>
+            </label>
+            <select
+              value={pregnancyStatus}
+              onChange={(e) => setPregnancyStatus(e.target.value)}
+              className="text-xs sm:text-sm border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-[#0D9488]"
+            >
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Required for maternity scheme eligibility</p>
+          </div>
+        )}
 
         {/* Action Button */}
         <div className="flex items-center justify-between pt-2">

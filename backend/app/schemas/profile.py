@@ -20,6 +20,12 @@ class ProfileUpdateRequest(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     pincode: Optional[str] = None
+    annual_income: Optional[float] = Field(None, alias="annualIncome")
+    employment_status: Optional[str] = Field(None, alias="employmentStatus")
+    family_size: Optional[int] = Field(None, alias="familySize")
+    ration_card_type: Optional[str] = Field(None, alias="rationCardType")
+    disability_status: Optional[str] = Field(None, alias="disabilityStatus")
+    pregnancy_status: Optional[str] = Field(None, alias="pregnancyStatus")
     emergency_contact_name: Optional[str] = Field(None, alias="emergencyContactName")
     emergency_contact_phone: Optional[str] = Field(None, alias="emergencyContactPhone")
 
@@ -38,6 +44,12 @@ class ProfileOut(BaseModel):
     city: Optional[str] = None
     state: Optional[str] = None
     pincode: Optional[str] = None
+    annual_income: Optional[float] = Field(None, alias="annualIncome")
+    employment_status: Optional[str] = Field(None, alias="employmentStatus")
+    family_size: Optional[int] = Field(None, alias="familySize")
+    ration_card_type: Optional[str] = Field(None, alias="rationCardType")
+    disability_status: Optional[str] = Field(None, alias="disabilityStatus")
+    pregnancy_status: Optional[str] = Field(None, alias="pregnancyStatus")
     emergency_contact_name: Optional[str] = Field(None, alias="emergencyContactName")
     emergency_contact_phone: Optional[str] = Field(None, alias="emergencyContactPhone")
     created_at: str = Field(..., alias="createdAt")
@@ -59,6 +71,12 @@ class ProfileOut(BaseModel):
             city=profile.city,
             state=profile.state,
             pincode=profile.pincode,
+            annualIncome=float(profile.annual_income) if profile.annual_income else None,
+            employmentStatus=profile.employment_status,
+            familySize=profile.family_size,
+            rationCardType=profile.ration_card_type,
+            disabilityStatus=profile.disability_status,
+            pregnancyStatus=profile.pregnancy_status,
             emergencyContactName=profile.emergency_contact_name,
             emergencyContactPhone=profile.emergency_contact_phone,
             createdAt=profile.created_at.isoformat(),

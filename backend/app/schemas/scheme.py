@@ -159,6 +159,7 @@ class SchemeQueryOut(BaseModel):
     retrieved_chunks: List[RetrievedChunkOut] = Field(default_factory=list, alias="retrievedChunks")
     confidence_score: float = Field(..., alias="confidenceScore")
     is_low_confidence: bool = Field(False, alias="isLowConfidence")
+    follow_up_suggestions: Optional[List[str]] = Field(None, alias="followUpSuggestions")
     eligibility_result: Optional[MultiDocEligibilityResultOut] = Field(None, alias="eligibilityResult")
     created_at: Optional[str] = Field(None, alias="createdAt")
 
@@ -181,7 +182,10 @@ class SchemeQueryOut(BaseModel):
         elig_res = None
         if getattr(q, "eligibility_result", None):
             try:
-                elig_res = MultiDocEligibilityResultOut(**q.eligibility_result)
+                elig_dict = dict(q.eligibility_result)
+                elig_dict["query_id"] = str(q.query_id)
+                elig_dict["queryId"] = str(q.query_id)
+                elig_res = MultiDocEligibilityResultOut(**elig_dict)
             except Exception:
                 elig_res = None
 

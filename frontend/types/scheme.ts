@@ -15,11 +15,17 @@ export type CriterionResult = "PASS" | "FAIL" | "UNKNOWN" | "NOT_REQUIRED";
 export interface EvidenceSource {
   chunk_id: string;
   document_title: string;          // e.g. "PM-JAY Master Operational Guidelines 2024"
+  scheme_id?: string;
   scheme_name?: string;
-  page_number?: number;
+  government_level?: string;      // "Central Government" or "Tamil Nadu"
+  status?: string;                 // "ELIGIBLE", "POSSIBLY_ELIGIBLE", etc.
+  match_percentage?: number;       // Criteria match percentage
+  relevance_score?: number;        // Contextual relevance score (0-100)
+  coverage_amount?: string;
   excerpt: string;                 // Relevant text chunk retrieved from ChromaDB
   official_url: string;
-  relevance_score?: number;        // 0.0 to 1.0
+  page_number?: number;
+  relevance_score_float?: number; // 0.0 to 1.0 (for backward compat)
 }
 
 export type InformationSource =
@@ -31,15 +37,19 @@ export type InformationSource =
   | "UNKNOWN";
 
 export interface MissingCriterionItem {
-  criterion_id: string;
-  field_key: string;
-  label: string;
-  question: string;
-  input_type: "MCQ" | "BOOLEAN" | "NUMBER" | "DATE" | "TEXT" | "MULTI_SELECT" | "text" | "currency" | "number" | "select";
+  criterion_id?: string;
+  criterionId?: string;
+  field_key?: string;
+  fieldKey?: string;
+  label?: string;
+  question?: string;
+  input_type?: "MCQ" | "BOOLEAN" | "NUMBER" | "DATE" | "TEXT" | "MULTI_SELECT" | "text" | "currency" | "number" | "select" | string;
+  inputType?: string;
   options?: string[];
-  status: "UNKNOWN" | "PROVIDED" | "PASS" | "FAIL" | "NOT_REQUIRED";
+  status?: "UNKNOWN" | "PROVIDED" | "PASS" | "FAIL" | "NOT_REQUIRED" | string;
   patient_value?: string;
-  source: InformationSource;
+  patientValue?: string;
+  source?: InformationSource;
 }
 
 export interface EligibilityCriterion {
@@ -63,7 +73,7 @@ export interface MultiDocEligibilityResult {
   query_id: string;
   consultation_id?: string;
   scheme_id?: string;
-  query_type?: "PERSONAL_ELIGIBILITY" | "COVERAGE" | "REQUIREMENTS" | "GENERAL_INFORMATION" | "COVERAGE_QUERY" | "REQUIREMENTS_QUERY" | string;
+  query_type?: "PERSONAL_ELIGIBILITY" | "COVERAGE" | "REQUIREMENTS" | "GENERAL_INFORMATION" | "COVERAGE_QUERY" | "REQUIREMENTS_QUERY" | "MULTI_SCHEME_ELIGIBILITY_QUERY" | string;
   user_question: string;
   interview_state?: "QUESTIONS_REQUIRED" | "COMPLETED" | "INITIAL" | string;
   current_question?: MissingCriterionItem | null;
@@ -72,6 +82,7 @@ export interface MultiDocEligibilityResult {
     total_required: number;
   } | null;
   match_percentage?: number | null; // e.g. 100, 80
+  relevance_score?: number | null; // Contextual relevance score (0-100)
   overall_status: EligibilityStatus;
   overall_explanation: string;
   criteria_breakdown: EligibilityCriterion[];
@@ -123,6 +134,7 @@ export interface SchemeQuery {
   retrieved_chunks: RetrievedChunk[];
   confidence_score: number;
   is_low_confidence?: boolean;
+  follow_up_suggestions?: string[]; // Follow-up questions based on query type
   eligibility_result?: MultiDocEligibilityResult; // Phase 1: full decomposed result
   created_at?: string;
 }

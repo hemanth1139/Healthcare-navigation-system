@@ -144,9 +144,11 @@ export default function HospitalsPage() {
       );
 
       setHospitals(tnOnly);
-      if (tnOnly.length > 0 && !selectedHospitalId) {
-        setSelectedHospitalId(tnOnly[0].hospital_id);
-      }
+      setSelectedHospitalId((selectedId) =>
+        tnOnly.some((hospital) => hospital.hospital_id === selectedId)
+          ? selectedId
+          : tnOnly[0]?.hospital_id ?? null
+      );
     } catch (err: any) {
       console.error("[HospitalPage] Error fetching Tamil Nadu hospitals:", err);
       setFetchError(

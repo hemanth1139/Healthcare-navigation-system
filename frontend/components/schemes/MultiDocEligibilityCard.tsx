@@ -28,6 +28,9 @@ import {
   MapPin,
   Calendar,
   IndianRupee,
+  Briefcase,
+  Accessibility,
+  Baby,
 } from "lucide-react";
 
 interface MultiDocEligibilityCardProps {
@@ -332,8 +335,13 @@ const InterviewAnswerPanel: React.FC<{
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const allAnswered = questions.every((q) => {
-    const val = answers[q.field_key];
+  const getQuestionKey = (q: any, idx: number): string => {
+    return q?.field_key || q?.fieldKey || q?.criterion_id || q?.criterionId || `question_${idx}`;
+  };
+
+  const allAnswered = questions.every((q, idx) => {
+    const key = getQuestionKey(q, idx);
+    const val = answers[key];
     return val !== undefined && val.trim() !== "";
   });
 
@@ -354,13 +362,23 @@ const InterviewAnswerPanel: React.FC<{
     }
   };
 
-  const getIcon = (fieldKey: string) => {
-    if (fieldKey.includes("state") || fieldKey.includes("residency"))
+  const getIcon = (fieldKey?: string) => {
+    if (!fieldKey || typeof fieldKey !== "string") {
+      return <HelpCircle className="w-3.5 h-3.5 text-[#0D9488]" />;
+    }
+    const lowerKey = fieldKey.toLowerCase();
+    if (lowerKey.includes("state") || lowerKey.includes("residency"))
       return <MapPin className="w-3.5 h-3.5 text-[#0D9488]" />;
-    if (fieldKey.includes("age"))
+    if (lowerKey.includes("age") || lowerKey.includes("dob") || lowerKey.includes("birth"))
       return <Calendar className="w-3.5 h-3.5 text-[#0D9488]" />;
-    if (fieldKey.includes("income") || fieldKey.includes("salary"))
+    if (lowerKey.includes("income") || lowerKey.includes("salary") || lowerKey.includes("financial"))
       return <IndianRupee className="w-3.5 h-3.5 text-[#0D9488]" />;
+    if (lowerKey.includes("employment") || lowerKey.includes("job") || lowerKey.includes("work"))
+      return <Briefcase className="w-3.5 h-3.5 text-[#0D9488]" />;
+    if (lowerKey.includes("disability") || lowerKey.includes("disabled"))
+      return <Accessibility className="w-3.5 h-3.5 text-[#0D9488]" />;
+    if (lowerKey.includes("pregnancy") || lowerKey.includes("pregnant"))
+      return <Baby className="w-3.5 h-3.5 text-[#0D9488]" />;
     return <HelpCircle className="w-3.5 h-3.5 text-[#0D9488]" />;
   };
 
@@ -388,27 +406,29 @@ const InterviewAnswerPanel: React.FC<{
       )}
 
       <div className="flex flex-col gap-3">
-        {questions.map((q) => {
-          const inputType = q.input_type?.toUpperCase();
-          const currentVal = answers[q.field_key] ?? "";
+        {questions.map((q: any, idx: number) => {
+          const key = getQuestionKey(q, idx);
+          const inputType = (q.input_type || q.inputType || "TEXT")?.toUpperCase();
+          const currentVal = answers[key] ?? "";
+          const options: string[] = q.options || [];
 
           return (
-            <div key={q.criterion_id} className="flex flex-col gap-1.5">
+            <div key={q.criterion_id || q.criterionId || key} className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                {getIcon(q.field_key)}
+                {getIcon(key)}
                 <span>{q.label || q.question}</span>
               </label>
               <p className="text-[11px] text-slate-500 -mt-0.5">{q.question}</p>
 
               {/* MCQ / SELECT */}
-              {(inputType === "MCQ" || inputType === "SELECT") && q.options && q.options.length > 0 ? (
-                q.options.length <= 4 ? (
+              {(inputType === "MCQ" || inputType === "SELECT") && options.length > 0 ? (
+                options.length <= 4 ? (
                   <div className="flex flex-col gap-2">
-                    {q.options.map((opt) => (
+                    {options.map((opt) => (
                       <button
                         key={opt}
                         type="button"
-                        onClick={() => setAnswers((prev) => ({ ...prev, [q.field_key]: opt }))}
+                        onClick={() => setAnswers((prev) => ({ ...prev, [key]: opt }))}
                         className={`p-3 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer text-xs ${
                           currentVal === opt
                             ? "bg-teal-500/10 border-[#0D9488] text-teal-900 dark:text-teal-200 ring-2 ring-teal-500/20 font-semibold"
@@ -429,23 +449,23 @@ const InterviewAnswerPanel: React.FC<{
                 ) : (
                   <select
                     value={currentVal}
-                    onChange={(e) => setAnswers((prev) => ({ ...prev, [q.field_key]: e.target.value }))}
+                    onChange={(e) => setAnswers((prev) => ({ ...prev, [key]: e.target.value }))}
                     className="text-xs border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-[#0D9488]"
                   >
                     <option value="">Select an option...</option>
-                    {q.options.map((opt) => (
+                    {options.map((opt) => (
                       <option key={opt} value={opt}>{opt}</option>
                     ))}
                   </select>
                 )
-              ) : inputType === "NUMBER" || inputType === "number" ? (
+              ) : inputType === "NUMBER" ? (
                 <input
                   type="number"
                   min="0"
                   max="125"
                   placeholder="Enter a number"
                   value={currentVal}
-                  onChange={(e) => setAnswers((prev) => ({ ...prev, [q.field_key]: e.target.value }))}
+                  onChange={(e) => setAnswers((prev) => ({ ...prev, [key]: e.target.value }))}
                   className="text-xs border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-[#0D9488]"
                 />
               ) : (
@@ -453,7 +473,7 @@ const InterviewAnswerPanel: React.FC<{
                   type="text"
                   placeholder={q.question}
                   value={currentVal}
-                  onChange={(e) => setAnswers((prev) => ({ ...prev, [q.field_key]: e.target.value }))}
+                  onChange={(e) => setAnswers((prev) => ({ ...prev, [key]: e.target.value }))}
                   className="text-xs border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-[#0D9488]"
                 />
               )}
@@ -638,12 +658,13 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {evidenceSources.map((source: any, idx: number) => {
-              const sId = source.scheme_id || `s_${idx}`;
-              const sName = source.scheme_name || source.document_title || "Healthcare Scheme";
-              const sGov = source.government_level || (sId.includes("TN") ? "Tamil Nadu" : "Central Government");
-              const sMatch = source.match_percentage ?? (source.relevance_score ? Math.round(source.relevance_score * 100) : 100);
-              const sCoverage = source.coverage_amount || "Per official guidelines";
-              const sUrl = source.official_url;
+              const sId = String(source.scheme_id || source.schemeId || `s_${idx}`);
+              const sName = source.scheme_name || source.schemeName || source.document_title || source.documentTitle || "Healthcare Scheme";
+              const sGov = String(source.government_level || source.governmentLevel || (sId.includes("TN") ? "Tamil Nadu" : "Central Government"));
+              const sMatch = source.match_percentage ?? source.matchPercentage ?? (source.relevance_score ? Math.round(source.relevance_score * 100) : 100);
+              const sRelevance = source.relevance_score ?? source.relevanceScore ?? sMatch;
+              const sCoverage = source.coverage_amount || source.coverageAmount || "Per official guidelines";
+              const sUrl = source.official_url || source.officialUrl;
 
               return (
                 <div
@@ -660,6 +681,11 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
                         {sMatch}% Match
                       </span>
+                      {sRelevance !== sMatch && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-300">
+                          {sRelevance}% Relevance
+                        </span>
+                      )}
                     </div>
 
                     <h4 className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors">
@@ -726,8 +752,8 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
             <div>
               <p className="font-semibold mb-1">Please provide the following to complete your assessment:</p>
               <ul className="list-disc list-inside space-y-0.5">
-                {structuredMissingCriteria.map((q) => (
-                  <li key={q.criterion_id}>{q.label}</li>
+                {structuredMissingCriteria.map((q: any, idx: number) => (
+                  <li key={q.criterion_id || q.criterionId || idx}>{q.label || q.question}</li>
                 ))}
               </ul>
             </div>
