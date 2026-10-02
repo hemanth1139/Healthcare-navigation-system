@@ -15,7 +15,6 @@ from app.models.conversation import Conversation, ConversationMessage
 from app.models.prediction import DiseasePrediction, SeverityAssessment, SpecialistRecommendation
 from app.models.hospital import Hospital, HospitalRecommendation
 from app.models.scheme import GovernmentScheme, SchemeQuery
-from app.models.record import MedicalRecord
 from app.schemas.dashboard import (
     PatientSummary,
     LatestAssessment,
@@ -238,14 +237,6 @@ class DashboardService:
         )
         total_convs = tot_conv_res.scalar() or 0
 
-        # Total medical records
-        tot_rec_res = await db.execute(
-            select(func.count(MedicalRecord.record_id)).where(
-                MedicalRecord.profile_id == profile.profile_id
-            )
-        )
-        total_recs = tot_rec_res.scalar() or 0
-
         # Total active government schemes
         tot_schemes_res = await db.execute(select(func.count(GovernmentScheme.scheme_id)))
         active_schemes_count = int(tot_schemes_res.scalar() or 0)
@@ -260,7 +251,6 @@ class DashboardService:
 
         metrics = DashboardMetrics(
             totalConsultations=total_convs,
-            totalRecords=total_recs,
             totalSchemesChecked=total_schemes_checked,
             emergencyAlertsCount=emergency_alerts_count,
             activeSchemesCount=active_schemes_count,

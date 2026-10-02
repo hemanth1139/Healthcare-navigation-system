@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { GovernmentScheme, SchemeQuery, MultiDocEligibilityResult } from "@/types/scheme";
 import { schemeApi } from "@/lib/schemeApi";
+import { api } from "@/lib/api";
 import { MultiDocEligibilityCard } from "@/components/schemes/MultiDocEligibilityCard";
 import { SchemeFilterChips } from "@/components/schemes/SchemeFilterChips";
 import { SchemeSearchBar } from "@/components/schemes/SchemeSearchBar";
@@ -22,6 +23,8 @@ import {
   ChevronRight,
   Sparkles,
   ClipboardList,
+  AlertTriangle,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
@@ -68,6 +71,9 @@ export default function SchemesLandingPage() {
   const [pastQueries, setPastQueries] = useState<SchemeQuery[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  // Profile completion check
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
+
   const fetchSchemes = async () => {
     setLoading(true);
     try {
@@ -98,6 +104,30 @@ export default function SchemesLandingPage() {
 
   useEffect(() => {
     loadHistory();
+  }, []);
+
+  // Check profile completion
+  useEffect(() => {
+    const checkProfile = async () => {
+      try {
+        const profileRes = await api.get("/profile");
+        const profile = profileRes.data;
+        const hasRequiredFields = Boolean(
+          profile.gender &&
+          profile.dateOfBirth &&
+          profile.bloodGroup &&
+          (profile.city || profile.state) &&
+          profile.address &&
+          profile.annualIncome &&
+          profile.occupation &&
+          profile.familySize
+        );
+        setIsProfileComplete(hasRequiredFields);
+      } catch (err) {
+        console.warn("Could not check profile completion:", err);
+      }
+    };
+    checkProfile();
   }, []);
 
   /** Core query function — submits to the RAG pipeline */
@@ -180,6 +210,32 @@ export default function SchemesLandingPage() {
           </div>
         </div>
       </div>
+
+      {/* Profile Incomplete Warning Banner */}
+      {!isProfileComplete && (
+        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-heading text-sm font-bold text-amber-900">
+                Complete Your Profile for Accurate Eligibility Check
+              </h3>
+              <p className="text-xs text-amber-700 mt-1">
+                Your profile is missing required information (age, location, etc.) needed to evaluate government scheme eligibility accurately.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/profile"
+            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-2 shrink-0"
+          >
+            <User className="w-4 h-4" />
+            <span>Complete Profile</span>
+          </Link>
+        </div>
+      )}
 
       {/* Multi-Document Eligibility Query Panel */}
       <Card className="p-5 flex flex-col gap-4 border-2 border-teal-500/20 bg-gradient-to-br from-teal-500/5 via-white to-slate-50 dark:from-slate-900 dark:to-slate-950">

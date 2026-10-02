@@ -11,7 +11,6 @@ import {
   Building,
   FileText,
   Clock,
-  Folder,
   HeartPulse,
   Settings,
   ChevronLeft,
@@ -36,7 +35,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Hospitals", href: "/hospitals", icon: Building },
   { label: "Government Schemes", href: "/schemes", icon: FileText, badge: "RAG" },
   { label: "History", href: "/history", icon: Clock },
-  { label: "Medical Records", href: "/records", icon: Folder },
   { label: "Health Tips", href: "/health-tips", icon: HeartPulse },
   { label: "Settings", href: "/settings", icon: Settings },
   { label: "Patient Profile", href: "/profile", icon: User },
@@ -55,7 +53,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   },
   {
     title: "Patient Data",
-    items: [NAV_ITEMS[7], NAV_ITEMS[8], NAV_ITEMS[9], NAV_ITEMS[10]],
+    items: [NAV_ITEMS[7], NAV_ITEMS[8], NAV_ITEMS[9]],
   },
 ];
 

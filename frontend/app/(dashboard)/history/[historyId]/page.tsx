@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
@@ -11,8 +11,8 @@ import { api } from "@/lib/api";
 import { SeverityUrgencyAssessment } from "@/types/assessment";
 import { Spinner } from "@/components/ui/Spinner";
 
-export default function HistoryDetailPage({ params }: { params: { historyId: string } }) {
-  const { historyId } = params;
+export default function HistoryDetailPage({ params }: { params: Promise<{ historyId: string }> }) {
+  const { historyId } = use(params);
   const router = useRouter();
 
   const [assessment, setAssessment] = useState<SeverityUrgencyAssessment | null>(null);

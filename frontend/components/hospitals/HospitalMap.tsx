@@ -75,43 +75,61 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
     const map = mapInstanceRef.current;
 
     // Close any open popups before removing markers to prevent _leaflet_pos error
-    map.closePopup();
+    try {
+      map.closePopup();
+    } catch (e) {
+      // Ignore popup close errors
+    }
 
     // Clear previous hospital markers
-    Object.values(markersRef.current).forEach((marker) => marker.remove());
+    Object.values(markersRef.current).forEach((marker) => {
+      try {
+        marker.remove();
+      } catch (e) {
+        // Ignore marker removal errors
+      }
+    });
     markersRef.current = {};
 
     if (userMarkerRef.current) {
-      userMarkerRef.current.remove();
+      try {
+        userMarkerRef.current.remove();
+      } catch (e) {
+        // Ignore marker removal errors
+      }
       userMarkerRef.current = null;
     }
 
       // Plot User location if available
       if (userCoords?.latitude != null && userCoords?.longitude != null) {
-        const userIcon = L.divIcon({
-          className: "user-location-marker",
-          html: `
-            <div style="position: relative; width: 24px; height: 24px;">
-              <div style="position: absolute; inset: 0; background: rgba(13, 148, 136, 0.3); border-radius: 50%; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-              <div style="position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; background: #0D9488; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>
+        try {
+          const userIcon = L.divIcon({
+            className: "user-location-marker",
+            html: `
+              <div style="position: relative; width: 24px; height: 24px;">
+                <div style="position: absolute; inset: 0; background: rgba(13, 148, 136, 0.3); border-radius: 50%; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                <div style="position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; background: #0D9488; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>
+              </div>
+            `,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          });
+
+          const userMarker = L.marker([userCoords.latitude, userCoords.longitude], {
+            icon: userIcon,
+            zIndexOffset: 1000,
+          }).addTo(map);
+
+          userMarker.bindPopup(`
+            <div style="font-family: inherit; font-size: 12px; font-weight: bold; color: #0F172A; text-align: center;">
+              📍 Your Current Location
             </div>
-          `,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-        });
+          `);
 
-        const userMarker = L.marker([userCoords.latitude, userCoords.longitude], {
-          icon: userIcon,
-          zIndexOffset: 1000,
-        }).addTo(map);
-
-        userMarker.bindPopup(`
-          <div style="font-family: inherit; font-size: 12px; font-weight: bold; color: #0F172A; text-align: center;">
-            📍 Your Current Location
-          </div>
-        `);
-
-        userMarkerRef.current = userMarker;
+          userMarkerRef.current = userMarker;
+        } catch (e) {
+          console.warn("[HospitalMap] Failed to add user marker:", e);
+        }
       }
 
       const bounds = L.latLngBounds([]);
@@ -122,50 +140,51 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
 
       // Add Hospital markers
       hospitals.forEach((hosp) => {
-        const isSelected = hosp.hospital_id === selectedHospitalId;
-        const isGovt =
-          hosp.hospital_type?.toLowerCase().includes("govt") ||
-          hosp.hospital_type?.toLowerCase().includes("government");
+        try {
+          const isSelected = hosp.hospital_id === selectedHospitalId;
+          const isGovt =
+            hosp.hospital_type?.toLowerCase().includes("govt") ||
+            hosp.hospital_type?.toLowerCase().includes("government");
 
-        const pinColor = isSelected ? "#0D9488" : isGovt ? "#059669" : "#2563EB";
-        const pinScale = isSelected ? 1.25 : 1.0;
+          const pinColor = isSelected ? "#0D9488" : isGovt ? "#059669" : "#2563EB";
+          const pinScale = isSelected ? 1.25 : 1.0;
 
-        const customIcon = L.divIcon({
-          className: "hospital-pin-marker",
-          html: `
-            <div style="
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: ${isSelected ? 36 : 30}px;
-              height: ${isSelected ? 36 : 30}px;
-              background: ${pinColor};
-              color: #ffffff;
-              border: 2.5px solid #ffffff;
-              border-radius: 50% 50% 50% 0;
-              transform: rotate(-45deg) scale(${pinScale});
-              box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-              transition: all 0.2s ease;
-            ">
-              <span style="transform: rotate(45deg); font-size: ${isSelected ? 14 : 11}px; font-weight: bold;">+</span>
-            </div>
-          `,
-          iconSize: [isSelected ? 36 : 30, isSelected ? 36 : 30],
-          iconAnchor: [isSelected ? 18 : 15, isSelected ? 36 : 30],
-        });
+          const customIcon = L.divIcon({
+            className: "hospital-pin-marker",
+            html: `
+              <div style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: ${isSelected ? 36 : 30}px;
+                height: ${isSelected ? 36 : 30}px;
+                background: ${pinColor};
+                color: #ffffff;
+                border: 2.5px solid #ffffff;
+                border-radius: 50% 50% 50% 0;
+                transform: rotate(-45deg) scale(${pinScale});
+                box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+                transition: all 0.2s ease;
+              ">
+                <span style="transform: rotate(45deg); font-size: ${isSelected ? 14 : 11}px; font-weight: bold;">+</span>
+              </div>
+            `,
+            iconSize: [isSelected ? 36 : 30, isSelected ? 36 : 30],
+            iconAnchor: [isSelected ? 18 : 15, isSelected ? 36 : 30],
+          });
 
-        const marker = L.marker([hosp.latitude, hosp.longitude], {
-          icon: customIcon,
-          zIndexOffset: isSelected ? 900 : 100,
-        }).addTo(map);
+          const marker = L.marker([hosp.latitude, hosp.longitude], {
+            icon: customIcon,
+            zIndexOffset: isSelected ? 900 : 100,
+          }).addTo(map);
 
-        const popupContent = `
-          <div style="font-family: inherit; font-size: 12px; max-width: 220px; line-height: 1.4;">
-            <div style="font-weight: 700; color: #0F172A; font-size: 13px; margin-bottom: 2px;">
-              ${hosp.hospital_name}
-            </div>
-            <div style="color: #64748B; font-size: 11px; margin-bottom: 6px;">
-              ${hosp.hospital_type || "Hospital"} • <b>${
+          const popupContent = `
+            <div style="font-family: inherit; font-size: 12px; max-width: 220px; line-height: 1.4;">
+              <div style="font-weight: 700; color: #0F172A; font-size: 13px; margin-bottom: 2px;">
+                ${hosp.hospital_name}
+              </div>
+              <div style="color: #64748B; font-size: 11px; margin-bottom: 6px;">
+                ${hosp.hospital_type || "Hospital"} • <b>${
           hosp.distance_km < 1
             ? Math.round(hosp.distance_km * 1000) + " m"
             : hosp.distance_km.toFixed(1) + " km"
@@ -192,29 +211,44 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
           </div>
         `;
 
-        marker.bindPopup(popupContent);
+          marker.bindPopup(popupContent);
 
-        marker.on("click", () => {
-          onSelectHospital(hosp);
-        });
+          marker.on("click", () => {
+            onSelectHospital(hosp);
+          });
 
-        markersRef.current[hosp.hospital_id] = marker;
-        bounds.extend([hosp.latitude, hosp.longitude]);
+          markersRef.current[hosp.hospital_id] = marker;
+          bounds.extend([hosp.latitude, hosp.longitude]);
+        } catch (e) {
+          console.warn("[HospitalMap] Failed to add marker for hospital:", hosp.hospital_name, e);
+        }
       });
 
       // If a hospital is selected, center on it and open its popup
       if (selectedHospitalId && markersRef.current[selectedHospitalId]) {
         const targetHosp = hospitals.find((h) => h.hospital_id === selectedHospitalId);
         if (targetHosp) {
-          map.setView([targetHosp.latitude, targetHosp.longitude], 14, { animate: true });
-          setTimeout(() => {
-            if (markersRef.current[selectedHospitalId]) {
-              markersRef.current[selectedHospitalId].openPopup();
-            }
-          }, 100);
+          try {
+            map.setView([targetHosp.latitude, targetHosp.longitude], 14, { animate: true });
+            setTimeout(() => {
+              if (markersRef.current[selectedHospitalId]) {
+                try {
+                  markersRef.current[selectedHospitalId].openPopup();
+                } catch (e) {
+                  console.warn("[HospitalMap] Failed to open popup:", e);
+                }
+              }
+            }, 100);
+          } catch (e) {
+            console.warn("[HospitalMap] Failed to set view on selected hospital:", e);
+          }
         }
       } else if (bounds.isValid() && hospitals.length > 0) {
-        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        try {
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        } catch (e) {
+          console.warn("[HospitalMap] Failed to fit bounds:", e);
+        }
       }
   }, [hospitals, selectedHospitalId, userCoords, isMapReady]);
 

@@ -12,7 +12,7 @@ const PUBLIC_PATHS = [
   '/privacy',
 ];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Allow Next.js static files, images, APIs, and public assets

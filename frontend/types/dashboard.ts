@@ -72,7 +72,6 @@ export interface HospitalSummaryItem {
 
 export interface DashboardMetrics {
   totalConsultations: number;
-  totalRecords: number;
   totalSchemesChecked: number;
   emergencyAlertsCount: number;
   activeSchemesCount: number;

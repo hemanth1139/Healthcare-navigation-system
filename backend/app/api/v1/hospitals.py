@@ -8,7 +8,7 @@ from typing import List
 from pydantic import BaseModel
 
 from app.dependencies import DBSession, CurrentUser
-from app.schemas.hospital import HospitalNearbyRequest, HospitalOut
+from app.schemas.hospital import HospitalNearbyRequest, HospitalOut, HospitalSearchResponse
 from app.services.hospital_service import HospitalService
 from app.utils.maps import NominatimService, OSRMService
 
@@ -27,7 +27,7 @@ class RouteRequest(BaseModel):
     profile: str = "driving"  # driving, cycling, walking
 
 
-@router.post("/nearby", response_model=List[HospitalOut])
+@router.post("/nearby", response_model=HospitalSearchResponse)
 async def get_nearby_hospitals(
     payload: HospitalNearbyRequest, db: DBSession
 ):

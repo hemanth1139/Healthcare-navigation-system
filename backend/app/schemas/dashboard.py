@@ -92,7 +92,6 @@ class HospitalSummaryItem(BaseModel):
 
 class DashboardMetrics(BaseModel):
     total_consultations: int = Field(0, alias="totalConsultations")
-    total_records: int = Field(0, alias="totalRecords")
     total_schemes_checked: int = Field(0, alias="totalSchemesChecked")
     emergency_alerts_count: int = Field(0, alias="emergencyAlertsCount")
     active_schemes_count: int = Field(0, alias="activeSchemesCount")

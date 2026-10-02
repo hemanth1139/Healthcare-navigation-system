@@ -80,3 +80,15 @@ class HospitalOut(BaseModel):
             opening_hours=data.get("opening_hours"),
             beds=data.get("beds")
         )
+
+
+class HospitalSearchResponse(BaseModel):
+    """Enhanced response with search status metadata."""
+    hospitals: List[HospitalOut]
+    status: str = "success"  # success, partial, fallback, error
+    message: Optional[str] = None
+    requested_radius_km: Optional[float] = None
+    actual_radius_km: Optional[float] = None
+    data_source: str = "live"  # live, cached, fallback
+
+    model_config = {"populate_by_name": True}

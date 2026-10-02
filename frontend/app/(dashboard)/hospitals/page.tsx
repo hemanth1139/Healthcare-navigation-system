@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { HospitalWithDistance } from "@/types/hospital";
-import { hospitalApi, normalizeSpecialty } from "@/lib/hospitalApi";
+import { hospitalApi, normalizeSpecialty, HospitalSearchResponse } from "@/lib/hospitalApi";
 import { HospitalSearchBar } from "@/components/hospitals/HospitalSearchBar";
 import { HospitalFilterBar } from "@/components/hospitals/HospitalFilterBar";
 import { HospitalList } from "@/components/hospitals/HospitalList";
@@ -67,6 +67,7 @@ export default function HospitalsPage() {
   const [hospitals, setHospitals] = useState<HospitalWithDistance[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [searchStatus, setSearchStatus] = useState<{ status: string; message?: string } | null>(null);
   const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(null);
   const [detailModalHospital, setDetailModalHospital] = useState<HospitalWithDistance | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "map">("list");
@@ -125,9 +126,10 @@ export default function HospitalsPage() {
   const fetchHospitals = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
+    setSearchStatus(null);
 
     try {
-      const data = await hospitalApi.getNearbyHospitals({
+      const response = await hospitalApi.getNearbyHospitals({
         latitude: isUsingGps && userCoords ? userCoords.latitude : undefined,
         longitude: isUsingGps && userCoords ? userCoords.longitude : undefined,
         locationQuery: !isUsingGps ? locationName : undefined,
@@ -138,8 +140,16 @@ export default function HospitalsPage() {
         sortBy: sortBy,
       });
 
+      // Handle search status messages
+      if (response.status && response.status !== "success") {
+        setSearchStatus({
+          status: response.status,
+          message: response.message
+        });
+      }
+
       // Filter out any anomalous non-Tamil Nadu response defensively
-      const tnOnly = data.filter(
+      const tnOnly = response.hospitals.filter(
         (h) => (h.state || "").toLowerCase() === "tamil nadu" || !h.state
       );
 
@@ -385,6 +395,31 @@ export default function HospitalsPage() {
           >
             <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
             <span>Try Again</span>
+          </Button>
+        </div>
+      )}
+
+      {/* Search Status Banner (Fallback/Partial Results) */}
+      {searchStatus && searchStatus.status !== "success" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div className="flex flex-col">
+              <span className="font-bold text-sm">
+                {searchStatus.status === "fallback" ? "Using cached hospital data" : "Partial search results"}
+              </span>
+              <span className="text-xs text-amber-700">{searchStatus.message || "Live data unavailable. Showing results from database."}</span>
+            </div>
+          </div>
+          <Button
+            type="button"
+            onClick={fetchHospitals}
+            variant="secondary"
+            size="sm"
+            className="rounded-xl border-amber-200 text-amber-800 hover:bg-amber-100 font-bold shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+            <span>Retry</span>
           </Button>
         </div>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { GovernmentScheme, SchemeQuery, MultiDocEligibilityResult } from "@/types/scheme";
 import { schemeApi } from "@/lib/schemeApi";
@@ -25,12 +25,13 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-export default function SchemeEligibilityResultPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function SchemeEligibilityResultPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
 
   const [scheme, setScheme] = useState<GovernmentScheme | null>(null);
   const [patientProfile, setPatientProfile] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
 
   const [question, setQuestion] = useState("");
   const [evaluating, setEvaluating] = useState(false);
@@ -55,6 +56,19 @@ export default function SchemeEligibilityResultPage({ params }: { params: { id: 
         }
         if (profileRes.status === "fulfilled" && profileRes.value?.data) {
           setPatientProfile(profileRes.value.data);
+          // Check if profile is complete for scheme eligibility
+          const profile = profileRes.value.data;
+          const hasRequiredFields = Boolean(
+            profile.gender &&
+            profile.dateOfBirth &&
+            profile.bloodGroup &&
+            (profile.city || profile.state) &&
+            profile.address &&
+            profile.annualIncome &&
+            profile.occupation &&
+            profile.familySize
+          );
+          setIsProfileComplete(hasRequiredFields);
         }
       } catch (err) {
         console.error("Initialization error:", err);
@@ -137,6 +151,32 @@ export default function SchemeEligibilityResultPage({ params }: { params: { id: 
         </p>
       </div>
 
+      {/* Profile Incomplete Warning Banner */}
+      {!isProfileComplete && (
+        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-heading text-sm font-bold text-amber-900">
+                Complete Your Profile for Accurate Eligibility Check
+              </h3>
+              <p className="text-xs text-amber-700 mt-1">
+                Your profile is missing required information (age, location, etc.) needed to evaluate government scheme eligibility accurately.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/profile"
+            className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-2 shrink-0"
+          >
+            <User className="w-4 h-4" />
+            <span>Complete Profile</span>
+          </Link>
+        </div>
+      )}
+
       {/* Patient Profile Context Badge Card */}
       <Card className="p-4 bg-teal-50/40 dark:bg-teal-950/20 border border-teal-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -160,8 +200,9 @@ export default function SchemeEligibilityResultPage({ params }: { params: { id: 
 
         <button
           onClick={() => handleEvaluate(question || `Evaluate my eligibility for ${scheme.scheme_name}`)}
-          disabled={evaluating}
+          disabled={evaluating || !isProfileComplete}
           className="px-4 py-2 rounded-xl bg-[#0D9488] hover:bg-[#0F766E] disabled:opacity-50 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 shrink-0"
+          title={!isProfileComplete ? "Complete your profile first" : "Evaluate eligibility"}
         >
           {evaluating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
           <span>1-Click Auto Evaluate</span>

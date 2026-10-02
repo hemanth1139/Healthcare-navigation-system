@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 
 from app.models.hospital import Hospital, HospitalRecommendation
-from app.schemas.hospital import HospitalNearbyRequest, HospitalOut
+from app.schemas.hospital import HospitalNearbyRequest, HospitalOut, HospitalSearchResponse
 from app.utils.maps import NominatimService, OpenStreetMapService
 from app.core.exceptions import NotFoundError
 
@@ -21,10 +21,10 @@ class HospitalService:
     @staticmethod
     async def get_nearby_hospitals(
         db: AsyncSession, payload: HospitalNearbyRequest
-    ) -> List[HospitalOut]:
+    ) -> HospitalSearchResponse:
         """
         Query nearby hospitals using OpenStreetMap Overpass API (free),
-        update database cache, and return results.
+        update database cache, and return results with status metadata.
         """
         # Resolve manual locations instead of silently searching around Chennai.
         latitude, longitude = payload.latitude, payload.longitude
@@ -72,6 +72,12 @@ class HospitalService:
         if is_statewide and not payload.max_distance_km:
             radius_km = 250
 
+        requested_radius = radius_km
+        actual_radius = radius_km
+        status = "success"
+        message = None
+        data_source = "live"
+
         # 1. Fetch hospitals from OpenStreetMap Overpass API
         hospitals_raw = await OpenStreetMapService.search_hospitals(
             lat=latitude,
@@ -86,6 +92,9 @@ class HospitalService:
 
         # If external OSM query failed or returned empty (e.g. rate limit 429), fall back to local DB / primary TN hospitals
         if not hospitals_raw:
+            status = "fallback"
+            message = "Unable to fetch live hospital data. Showing cached results from database."
+            data_source = "fallback"
             from app.utils.maps import haversine_distance
             stmt = select(Hospital).where(Hospital.state == "Tamil Nadu")
             db_res = await db.execute(stmt)
@@ -380,7 +389,14 @@ class HospitalService:
         else:
             results.sort(key=lambda hospital: hospital.distance_km)
 
-        return results
+        return HospitalSearchResponse(
+            hospitals=results,
+            status=status,
+            message=message,
+            requested_radius_km=requested_radius,
+            actual_radius_km=actual_radius,
+            data_source=data_source
+        )
 
     @staticmethod
     async def get_hospital_by_id(db: AsyncSession, hospital_id: UUID) -> Hospital:

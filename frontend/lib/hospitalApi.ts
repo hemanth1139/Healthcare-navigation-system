@@ -14,6 +14,15 @@ export interface NearbyHospitalsQueryParams {
   maxResults?: number;  // Maximum number of results to return (default 50 for OSM)
 }
 
+export interface HospitalSearchResponse {
+  hospitals: HospitalWithDistance[];
+  status: "success" | "partial" | "fallback" | "error";
+  message?: string;
+  requested_radius_km?: number;
+  actual_radius_km?: number;
+  data_source: "live" | "cached" | "fallback";
+}
+
 /**
  * Maps clinician/specialist titles (e.g. "Cardiologist (Emergency Medicine)")
  * to standard hospital department values (e.g. "Cardiology").
@@ -39,7 +48,7 @@ export const hospitalApi = {
   /**
    * Fetch nearby hospitals from real backend
    */
-  getNearbyHospitals: async (params: NearbyHospitalsQueryParams): Promise<HospitalWithDistance[]> => {
+  getNearbyHospitals: async (params: NearbyHospitalsQueryParams): Promise<HospitalSearchResponse> => {
     const payload: Record<string, any> = {};
 
     if (params.latitude !== undefined && params.latitude !== null) {
@@ -73,8 +82,18 @@ export const hospitalApi = {
       payload.max_results = params.maxResults;
     }
 
-    const { data } = await api.post<HospitalWithDistance[]>("/hospitals/nearby", payload);
-    return Array.isArray(data) ? data : [];
+    const { data } = await api.post<HospitalSearchResponse>("/hospitals/nearby", payload);
+
+    // Handle legacy response format (array) for backward compatibility
+    if (Array.isArray(data)) {
+      return {
+        hospitals: data,
+        status: "success",
+        data_source: "live"
+      };
+    }
+
+    return data;
   },
 
   /**
