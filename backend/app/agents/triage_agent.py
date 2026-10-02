@@ -65,9 +65,10 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
 
     # 2. Adaptive Follow-Up Questioning Based on Presenting Symptom Domain
     user_turns = sum(1 for m in messages if m.get("sender") == "user")
+    negative_findings = cumulative.get("negative_findings", [])
 
     # ── DOMAIN A: Knee Pain & Musculoskeletal ──
-    if "knee_pain" in symptoms or "joint_pain" in symptoms or "knee" in history_text:
+    if "knee_pain" in symptoms or "joint_pain" in symptoms:
         # Check what dimensions have already been addressed:
         has_injury_info = any(w in history_text for w in ["fall", "fell", "twist", "injury", "sports", "accident", "hit", "trauma", "gradual", "overuse", "started without injury", "no injury", "no fall"])
         has_weight_bearing_info = any(w in history_text for w in ["bear weight", "weight", "walk", "walking", "stand", "step", "limp", "cannot bear", "can walk", "unable to walk"])
@@ -122,7 +123,7 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
         }
 
     # ── DOMAIN B: Chest Discomfort / Cardiorespiratory ──
-    if "chest_pain" in symptoms or "chest" in history_text:
+    if "chest_pain" in symptoms:
         has_radiation = any(w in history_text for w in ["arm", "jaw", "neck", "shoulder", "back", "radiat", "no radiation", "only in chest"])
         if not has_radiation and user_turns <= 1:
             return {
@@ -146,7 +147,7 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
         }
 
     # ── DOMAIN C: Headache / Neurological ──
-    if "headache" in symptoms or "head" in history_text:
+    if "headache" in symptoms or "thunderclap_headache" in symptoms:
         has_red_flags = any(w in history_text for w in ["stiff neck", "neck", "fever", "thunderclap", "sudden", "vomiting", "vision", "no neck pain", "no fever"])
         if not has_red_flags and user_turns <= 1:
             return {
@@ -171,7 +172,7 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
         }
 
     # ── DOMAIN D: Fever / Systemic ──
-    if "fever" in symptoms or "temperature" in history_text:
+    if "fever" in symptoms or "high_fever" in symptoms:
         has_fever_focus = any(w in history_text for w in ["cough", "throat", "urine", "burning", "rash", "rigors", "shivering", "stomach", "body aches"])
         if not has_fever_focus and user_turns <= 1:
             return {
@@ -183,6 +184,20 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
                     {"id": "opt2", "label": "Cough & breathlessness", "value": "Cough and breathlessness"},
                     {"id": "opt3", "label": "Burning during urination", "value": "Burning sensation during urination"},
                     {"id": "opt4", "label": "Generalized fatigue and chills only", "value": "Generalized fatigue and chills only"},
+                ],
+                "symptoms": symptoms,
+            }
+
+        has_neuro_fever_check = any(w in history_text for w in ["headache", "neck", "stiff", "light", "confusion", "rash"])
+        if not has_neuro_fever_check and user_turns <= 2:
+            return {
+                "needs_more_info": True,
+                "is_emergency": False,
+                "question": "Do you also have a severe headache, neck stiffness, unusual rash, or sensitivity to bright light?",
+                "options": [
+                    {"id": "opt1", "label": "Yes, severe headache & stiff neck", "value": "Severe headache and stiff neck"},
+                    {"id": "opt2", "label": "Mild headache only", "value": "Mild headache only"},
+                    {"id": "opt3", "label": "No headache or neck stiffness", "value": "No headache or neck stiffness"},
                 ],
                 "symptoms": symptoms,
             }
