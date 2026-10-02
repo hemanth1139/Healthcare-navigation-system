@@ -833,6 +833,9 @@ class RAGPipeline:
         Distinguishes MULTI_SCHEME_ELIGIBILITY_QUERY, COVERAGE_QUERY, REQUIREMENTS_QUERY, GENERAL_INFORMATION, and PERSONAL_ELIGIBILITY.
         Includes caching and follow-up suggestions.
         """
+        vector_store = _get_vector_store()
+        query_type = _classify_query_type(query_text, scoped_scheme_id)
+
         # Check cache first (for informational queries only, not personal eligibility)
         cache_key = f"rag:{hashlib.md5((query_text + str(scoped_scheme_id)).encode()).hexdigest()}"
         if query_type in ["GENERAL_INFORMATION", "REQUIREMENTS_QUERY", "APPLICATION_QUERY", "RENEWAL_QUERY", "HOSPITAL_NETWORK_QUERY"]:
@@ -840,9 +843,6 @@ class RAGPipeline:
             if cached:
                 logger.info("[RAG] Cache hit for query")
                 return cached
-
-        vector_store = _get_vector_store()
-        query_type = _classify_query_type(query_text, scoped_scheme_id)
 
         now_iso = datetime.now(timezone.utc).isoformat()
         query_id_str = f"q_{int(datetime.now(timezone.utc).timestamp() * 1000)}"
@@ -1174,6 +1174,10 @@ class RAGPipeline:
             )
             if llm_text:
                 summary_text = llm_text
+
+            top_scheme = evaluated_schemes[0] if evaluated_schemes else None
+            top_scheme_name = top_scheme["scheme_name"] if top_scheme else "Government Healthcare Schemes"
+            top_scheme_id = top_scheme["scheme_id"] if top_scheme else "all_schemes"
 
             return {
                 "ai_response": summary_text,

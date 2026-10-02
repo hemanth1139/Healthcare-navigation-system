@@ -71,7 +71,11 @@ class RuleBasedPredictionService:
         patient_context_summary = ctx.get("context_summary", "")
 
         # 1. Run Generative AI prediction (strictly bounded by deterministic Python Rule Engine)
-        prediction_result = await predict_disease_generative(symptoms, patient_context_summary)
+        prediction_result = await predict_disease_generative(
+            symptoms=symptoms,
+            patient_context_summary=patient_context_summary,
+            cumulative_data=cumulative_metadata,
+        )
 
         # 2. Check if a prediction already exists for this conversation (Idempotency)
         existing_pred_res = await db.execute(
@@ -95,6 +99,15 @@ class RuleBasedPredictionService:
             [format_symptom_title(s) for s in canonical_list]
         )
 
+        positive_findings = prediction_result.get("positive_findings", formatted_list)
+        negative_findings = prediction_result.get("negative_findings", [])
+        unknown_findings = prediction_result.get("unknown_findings", [])
+        limitations = prediction_result.get("limitations", [])
+        original_complaint = prediction_result.get("original_complaint", "")
+        qa_history = prediction_result.get("qa_history", [])
+        disclaimer = prediction_result.get("disclaimer", "")
+        recommended_action = prediction_result.get("recommended_action", "")
+
         differential_json = json.dumps(prediction_result.get("differential", []))
         symptom_vector_json = json.dumps({
             "primary_symptom": primary_sym,
@@ -103,6 +116,14 @@ class RuleBasedPredictionService:
             "canonical_symptoms": canonical_list,
             "formatted_symptoms": formatted_list,
             "triggered_rules": prediction_result.get("triggered_rules", []),
+            "positive_findings": positive_findings,
+            "negative_findings": negative_findings,
+            "unknown_findings": unknown_findings,
+            "limitations": limitations,
+            "original_complaint": original_complaint,
+            "qa_history": qa_history,
+            "disclaimer": disclaimer,
+            "recommended_action": recommended_action,
         })
 
         if disease_pred:
@@ -213,6 +234,14 @@ class RuleBasedPredictionService:
             "primary_symptom": primary_sym,
             "associated_symptoms": associated_syms,
             "symptoms_used": formatted_list,
+            "positive_findings": positive_findings,
+            "negative_findings": negative_findings,
+            "unknown_findings": unknown_findings,
+            "limitations": limitations,
+            "original_complaint": original_complaint,
+            "qa_history": qa_history,
+            "disclaimer": disclaimer,
+            "recommended_action": recommended_action,
         }
 
     @staticmethod
@@ -280,6 +309,14 @@ class RuleBasedPredictionService:
 
         symptoms_used = []
         triggered_rules = []
+        positive_findings = []
+        negative_findings = []
+        unknown_findings = []
+        limitations = []
+        original_complaint = ""
+        qa_history = []
+        disclaimer = ""
+        recommended_action = ""
         primary_sym = "General Assessment"
         associated_syms = []
 
@@ -291,10 +328,19 @@ class RuleBasedPredictionService:
                     associated_syms = vector_data.get("associated_symptoms", [])
                     symptoms_used = vector_data.get("formatted_symptoms") or vector_data.get("raw_symptoms", [])
                     triggered_rules = vector_data.get("triggered_rules", [])
+                    positive_findings = vector_data.get("positive_findings", symptoms_used)
+                    negative_findings = vector_data.get("negative_findings", [])
+                    unknown_findings = vector_data.get("unknown_findings", [])
+                    limitations = vector_data.get("limitations", [])
+                    original_complaint = vector_data.get("original_complaint", "")
+                    qa_history = vector_data.get("qa_history", [])
+                    disclaimer = vector_data.get("disclaimer", "")
+                    recommended_action = vector_data.get("recommended_action", "")
                 elif isinstance(vector_data, list):
                     symptoms_used = [format_symptom_title(s) for s in vector_data]
                     primary_sym = symptoms_used[0] if symptoms_used else "General Assessment"
                     associated_syms = symptoms_used[1:] if len(symptoms_used) > 1 else []
+                    positive_findings = symptoms_used
             except Exception:
                 symptoms_used = []
 
@@ -321,5 +367,13 @@ class RuleBasedPredictionService:
             "primary_symptom": primary_sym,
             "associated_symptoms": associated_syms,
             "symptoms_used": symptoms_used,
+            "positive_findings": positive_findings,
+            "negative_findings": negative_findings,
+            "unknown_findings": unknown_findings,
+            "limitations": limitations,
+            "original_complaint": original_complaint,
+            "qa_history": qa_history,
+            "disclaimer": disclaimer,
+            "recommended_action": recommended_action,
             "predicted_at": pred.predicted_at.isoformat(),
         }

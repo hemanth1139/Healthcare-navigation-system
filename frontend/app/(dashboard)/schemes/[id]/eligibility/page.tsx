@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { GovernmentScheme, SchemeQuery, MultiDocEligibilityResult } from "@/types/scheme";
 import { schemeApi } from "@/lib/schemeApi";
@@ -25,8 +25,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-export default function SchemeEligibilityResultPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function SchemeEligibilityResultPage({ params }: { params: { id: string } }) {
+  const { id } = params;
 
   const [scheme, setScheme] = useState<GovernmentScheme | null>(null);
   const [patientProfile, setPatientProfile] = useState<any | null>(null);

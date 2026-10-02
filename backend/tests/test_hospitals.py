@@ -12,19 +12,21 @@ pytestmark = pytest.mark.asyncio
 
 async def _get_auth_headers(ac: AsyncClient) -> dict:
     """Helper to register/login a user and get auth header."""
+    import uuid
+    rand = uuid.uuid4().hex[:6]
     reg_payload = {
         "fullName": "Hospital Test User",
-        "email": "hosp_tester_tn@example.com",
-        "phone": "+15553334444",
-        "password": "hosptestpassword123",
+        "email": f"hosp_tester_{rand}@example.com",
+        "phone": f"+9198{rand[:8]}",
+        "password": "Password123!",
     }
     res = await ac.post("/api/v1/auth/register", json=reg_payload)
     if res.status_code == 201:
         token = res.json()["tokens"]["accessToken"]
     else:
         login_payload = {
-            "email": "hosp_tester_tn@example.com",
-            "password": "hosptestpassword123",
+            "email": f"hosp_tester_{rand}@example.com",
+            "password": "Password123!",
         }
         res_login = await ac.post("/api/v1/auth/login", json=login_payload)
         token = res_login.json()["tokens"]["accessToken"]

@@ -79,8 +79,25 @@ def parse_income_ceiling(income_limit: str) -> Optional[float]:
     return None
 
 
+def _get_full_scheme_record(scheme_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        from app.rag.pipeline import _load_all_schemes
+        for s in _load_all_schemes():
+            if s.get("scheme_id") == scheme_id:
+                return s
+    except Exception:
+        pass
+    return None
+
+
 def analyze_scheme(scheme: Dict[str, Any]) -> Dict[str, Any]:
     """Machine-usable flags and limits taken from the scheme JSON record."""
+    scheme_id = scheme.get("scheme_id")
+    if scheme_id and not scheme.get("eligibility_criteria"):
+        full = _get_full_scheme_record(scheme_id)
+        if full:
+            scheme = {**full, **scheme}
+
     ec = scheme.get("eligibility_criteria") or {}
     age_group = str(ec.get("age_group") or "")
     income_raw = str(ec.get("income_limit_per_annum_inr") or "")
@@ -451,6 +468,14 @@ def evaluate_scheme_from_json(
                 "patient_value": None,
                 "source": "UNKNOWN",
             })
+    else:
+        criteria.append(_crit(
+            "cr_income_doc", "Income / Socio-Economic Category",
+            "NOT_REQUIRED", False,
+            "Not applicable", "Universal / No income ceiling",
+            "This scheme has no income ceiling or income restriction.",
+            "OFFICIAL_RULE", "annual_income", evidence,
+        ))
 
     # Employment only for employee/pensioner schemes
     if flags["employment_restricted"]:

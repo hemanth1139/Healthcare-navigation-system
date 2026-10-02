@@ -1,10 +1,10 @@
 "use client";
 
-import React, { use } from "react";
+import React from "react";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 
-export default function ActiveChatPage({ params }: { params: Promise<{ conversationId: string }> }) {
-  const { conversationId } = use(params);
+export default function ActiveChatPage({ params }: { params: { conversationId: string } }) {
+  const { conversationId } = params;
 
   return (
     <div className="py-2">

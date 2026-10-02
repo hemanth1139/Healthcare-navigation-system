@@ -94,7 +94,7 @@ class OpenStreetMapService:
                 "https://overpass-api.de/api/interpreter",
                 "https://overpass.kumi.systems/api/interpreter",
             )
-            async with httpx.AsyncClient(timeout=25.0) as client:
+            async with httpx.AsyncClient(timeout=6.0) as client:
                 for query_radius in radii:
                     # amenity=hospital is the canonical hospital tag; nwr still
                     # covers nodes, mapped building outlines, and relations.
@@ -107,6 +107,7 @@ class OpenStreetMapService:
                         "[OpenStreetMap] Querying hospitals at lat=%s lon=%s radius=%sm",
                         lat, lon, query_radius,
                     )
+                    conn_failed = False
                     for endpoint in endpoints:
                         try:
                             response = await client.post(
@@ -128,11 +129,13 @@ class OpenStreetMapService:
                                 and endpoint_error.response.status_code == 429
                             ):
                                 rate_limited = True
+                            elif isinstance(endpoint_error, (httpx.ConnectError, httpx.ConnectTimeout)):
+                                conn_failed = True
                     if data is not None:
                         break
-                    if rate_limited:
+                    if rate_limited or conn_failed:
                         logger.warning(
-                            "[OpenStreetMap] Stopping radius retries after HTTP 429 to avoid adding load"
+                            "[OpenStreetMap] Stopping radius retries after network failure/rate limit"
                         )
                         break
 
@@ -237,7 +240,7 @@ class OpenStreetMapService:
                 "hospital_name": tags.get("name", tags.get("alt_name", "Hospital")),
                 "address": address,
                 "city": tags.get("addr:city", tags.get("city", "")),
-                "state": tags.get("addr:state", tags.get("state", "")),
+                "state": tags.get("addr:state", tags.get("state", "")) or "Tamil Nadu",
                 "latitude": lat,
                 "longitude": lon,
                 "phone": tags.get("phone", tags.get("contact:phone", "")),

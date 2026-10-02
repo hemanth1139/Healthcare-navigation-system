@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Sparkles,
@@ -8,15 +8,25 @@ import {
   Stethoscope,
   Building2,
   CheckCircle2,
+  XCircle,
+  HelpCircle,
   Activity,
   Tag,
   ChevronRight,
   ArrowLeft,
   ShieldAlert,
+  MessageSquare,
+  FileText,
+  Info,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { normalizeSpecialty } from "@/lib/hospitalApi";
 import { Spinner } from "@/components/ui/Spinner";
+
+interface QAItem {
+  question: string;
+  answer: string;
+}
 
 interface PredictionReport {
   prediction_id: string;
@@ -44,11 +54,19 @@ interface PredictionReport {
   primary_symptom?: string;
   associated_symptoms?: string[];
   symptoms_used?: string[];
+  positive_findings?: string[];
+  negative_findings?: string[];
+  unknown_findings?: string[];
+  limitations?: string[];
+  original_complaint?: string;
+  qa_history?: QAItem[];
+  disclaimer?: string;
+  recommended_action?: string;
   predicted_at?: string;
 }
 
-export default function PredictionResultPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function PredictionResultPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const [report, setReport] = useState<PredictionReport | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -237,61 +255,127 @@ export default function PredictionResultPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {/* SECTION 2 — Structured Patient Symptoms Breakdown */}
-      <div className="card-clinical p-6 flex flex-col gap-4">
-        <h3 className="font-heading text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Tag className="w-5 h-5 text-[#0D9488]" />
-          <span>Reported Symptoms Breakdown</span>
-        </h3>
+      {/* SECTION 1B — Patient's Original Words & Triage Q&A History */}
+      {(report.original_complaint || (report.qa_history && report.qa_history.length > 0)) && (
+        <div className="card-clinical p-6 flex flex-col gap-4">
+          <h3 className="font-heading text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-[#0D9488]" />
+            <span>Intake Record & Conversational History</span>
+          </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Primary Symptom */}
-          <div className="p-4 rounded-2xl bg-teal-500/5 border border-teal-500/20">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 block mb-1">
-              Primary Symptom
-            </span>
-            <span className="text-sm font-bold text-slate-900 dark:text-white">
-              {report.primary_symptom || (report.symptoms_used && report.symptoms_used[0]) || "General Inquiry"}
-            </span>
-          </div>
+          {report.original_complaint && (
+            <div className="p-4 rounded-2xl bg-teal-500/5 border border-teal-500/20">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-teal-800 dark:text-teal-300 block mb-1">
+                Initial Complaint (Patient&apos;s Own Words)
+              </span>
+              <p className="text-xs sm:text-sm italic text-slate-800 dark:text-slate-200">
+                &ldquo;{report.original_complaint}&rdquo;
+              </p>
+            </div>
+          )}
 
-          {/* Associated Symptoms */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
-              Associated Symptoms
-            </span>
-            {report.associated_symptoms && report.associated_symptoms.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {report.associated_symptoms.map((sym, idx) => (
-                  <span
-                    key={idx}
-                    className="px-2.5 py-0.5 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium"
-                  >
-                    • {sym}
-                  </span>
+          {report.qa_history && report.qa_history.length > 0 && (
+            <div className="flex flex-col gap-3 mt-1">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Adaptive Follow-Up Questions & Answers:
+              </span>
+              <div className="space-y-2.5">
+                {report.qa_history.map((qa, idx) => (
+                  <div key={idx} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
+                    <div className="text-slate-500 dark:text-slate-400 font-semibold mb-1">
+                      Q{idx + 1}: {qa.question}
+                    </div>
+                    <div className="text-slate-900 dark:text-slate-100 font-medium pl-3 border-l-2 border-[#0D9488]">
+                      A: {qa.answer}
+                    </div>
+                  </div>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SECTION 2 — Positive, Negative & Unknown Findings Matrix */}
+      <div className="card-clinical p-6 flex flex-col gap-5">
+        <h3 className="font-heading text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <Tag className="w-5 h-5 text-[#0D9488]" />
+          <span>Structured Clinical Findings Matrix</span>
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Confirmed Positive Findings */}
+          <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20 flex flex-col gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              Confirmed Positive Findings
+            </span>
+            {report.positive_findings && report.positive_findings.length > 0 ? (
+              <ul className="space-y-1.5 mt-1">
+                {report.positive_findings.map((f, i) => (
+                  <li key={i} className="text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <span className="text-xs text-slate-400">None reported</span>
+              <span className="text-xs text-slate-400">None detected</span>
+            )}
+          </div>
+
+          {/* Explicitly Denied / Negative Findings */}
+          <div className="p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+              <XCircle className="w-4 h-4 text-slate-500" />
+              Explicitly Denied (Negative)
+            </span>
+            {report.negative_findings && report.negative_findings.length > 0 ? (
+              <ul className="space-y-1.5 mt-1">
+                {report.negative_findings.map((f, i) => (
+                  <li key={i} className="text-xs text-slate-600 dark:text-slate-400 line-through flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-xs text-slate-400">No symptoms explicitly denied</span>
+            )}
+          </div>
+
+          {/* Unknown / Missing Information */}
+          <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex flex-col gap-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400 flex items-center gap-1.5">
+              <HelpCircle className="w-4 h-4 text-amber-600" />
+              Not Evaluated / Missing Details
+            </span>
+            {report.unknown_findings && report.unknown_findings.length > 0 ? (
+              <ul className="space-y-1.5 mt-1">
+                {report.unknown_findings.map((f, i) => (
+                  <li key={i} className="text-xs text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-xs text-slate-400">All key dimensions covered</span>
             )}
           </div>
         </div>
 
-        {/* All Extracted Clinical Symptoms Chips */}
-        {report.symptoms_used && report.symptoms_used.length > 0 && (
-          <div className="mt-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
-              All Extracted Clinical Symptoms:
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {report.symptoms_used.map((sym, idx) => (
-                <span
-                  key={idx}
-                  className="px-3 py-1.5 rounded-xl bg-teal-500/10 text-[#0D9488] dark:text-[#14B8A6] font-bold text-xs border border-teal-500/20"
-                >
-                  #{sym}
-                </span>
-              ))}
+        {/* Limitations Notice */}
+        {report.limitations && report.limitations.length > 0 && (
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold block mb-0.5">Triage Limitations:</span>
+              <ul className="list-disc list-inside space-y-0.5">
+                {report.limitations.map((lim, i) => (
+                  <li key={i}>{lim}</li>
+                ))}
+              </ul>
             </div>
           </div>
         )}
@@ -421,6 +505,15 @@ export default function PredictionResultPage({ params }: { params: Promise<{ id:
           </Link>
         </div>
       )}
+
+      {/* SECTION 6 — Clinical Disclaimer */}
+      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center">
+        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+          {report.disclaimer || (
+            "Clinical Triage Notice: This assessment provides automated triage decision support based on reported findings. It is not a definitive medical diagnosis. For severe or rapidly worsening symptoms, seek emergency medical care immediately."
+          )}
+        </p>
+      </div>
     </div>
   );
 }

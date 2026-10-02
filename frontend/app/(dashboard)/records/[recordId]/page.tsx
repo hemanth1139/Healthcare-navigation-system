@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { MedicalRecord, RecordCategory, FhirResourceType } from "@/types/record";
 import { api } from "@/lib/api";
 import { RecordPreview } from "@/components/records/RecordPreview";
 import { Spinner } from "@/components/ui/Spinner";
 
-export default function RecordDetailPage({ params }: { params: Promise<{ recordId: string }> }) {
-  const { recordId } = use(params);
+export default function RecordDetailPage({ params }: { params: { recordId: string } }) {
+  const { recordId } = params;
   const router = useRouter();
 
   const [record, setRecord] = useState<MedicalRecord | null>(null);

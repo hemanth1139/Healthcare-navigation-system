@@ -15,13 +15,11 @@ from app.config import settings
 logger = logging.getLogger("app.core.llm")
 
 # ─── Normalized Gemini Model Roster ──────────────────────────────────────────
-# Standard official Google GenAI model IDs (no broken 'models/' prefix or '-latest' aliases)
+# Standard official Google GenAI model IDs
 CANDIDATE_MODELS: List[str] = [
-    "gemini-2.5-flash",        # Primary fast multimodal reasoning model
-    "gemini-2.5-flash-lite",   # High-throughput low-latency fallback
-    "gemini-2.5-pro",          # Deep clinical reasoning fallback
-    "gemini-1.5-flash",        # Stable baseline fallback
-    "gemini-1.5-pro",          # Secondary baseline fallback
+    "gemini-2.0-flash",        # Primary fast multimodal reasoning model
+    "gemini-1.5-flash",        # Stable high-throughput fallback
+    "gemini-1.5-pro",          # Deep reasoning fallback
 ]
 
 # Configured API keys (supports up to 5 keys for rotation to manage free tier quotas)

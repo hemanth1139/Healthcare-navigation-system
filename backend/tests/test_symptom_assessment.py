@@ -281,3 +281,88 @@ async def test_conversation_isolation_between_sessions(client: AsyncClient):
     pred_a_recheck = (await client.get(f"/api/v1/predictions/{conv_a}", headers=headers)).json()
     assert pred_a_recheck["primary_symptom"] == "Throat Pain"
 
+
+@pytest.mark.asyncio
+async def test_knee_pain_urgent_inability_to_bear_weight_escalation(client: AsyncClient):
+    """
+    Test adaptive multi-turn flow:
+    1. User reports knee pain.
+    2. Agent asks about onset/weight bearing.
+    3. User states they cannot bear weight on the knee.
+    Verify:
+    - Urgency is URGENT (not ROUTINE).
+    - Specialist is Orthopedic Specialist.
+    - Positive findings include Inability to Bear Weight.
+    """
+    import uuid
+    rand = uuid.uuid4().hex[:6]
+    reg_res = await client.post("/api/v1/auth/register", json={
+        "email": f"knee_urgent_{rand}@example.com",
+        "password": "Password123!",
+        "fullName": "Knee Urgent Patient",
+        "phone": f"98765{rand[:5]}"
+    })
+    token = reg_res.json()["tokens"]["accessToken"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    conv_res = await client.post("/api/v1/conversations", json={"language": "en", "input_type": "text"}, headers=headers)
+    conv_id = conv_res.json()["conversationId"]
+
+    # Msg 1: Knee pain
+    m1 = await client.post(f"/api/v1/conversations/{conv_id}/messages", json={"message": "I have severe pain in my left knee"}, headers=headers)
+    assert m1.status_code == 200
+
+    # Msg 2: Inability to bear weight
+    m2 = await client.post(f"/api/v1/conversations/{conv_id}/messages", json={"message": "I twisted it and cannot bear weight on it at all"}, headers=headers)
+    assert m2.status_code == 200
+
+    # Verify prediction report
+    pred_res = await client.get(f"/api/v1/predictions/{conv_id}", headers=headers)
+    assert pred_res.status_code == 200
+    pred = pred_res.json()
+    assert pred["primary_symptom"] == "Knee Pain"
+    assert pred["severity"]["urgency_level"] == "URGENT"
+    assert "Orthopedic" in pred["specialist"]["specialist"]
+    assert any("Weight" in f for f in pred["positive_findings"])
+    assert pred["original_complaint"] == "I have severe pain in my left knee"
+    assert len(pred["qa_history"]) >= 1
+
+
+@pytest.mark.asyncio
+async def test_emergency_chest_pain_immediate_escalation(client: AsyncClient):
+    """
+    Verify immediate emergency escalation when crushing chest pain with radiation is reported.
+    """
+    import uuid
+    rand = uuid.uuid4().hex[:6]
+    reg_res = await client.post("/api/v1/auth/register", json={
+        "email": f"chest_emerg_{rand}@example.com",
+        "password": "Password123!",
+        "fullName": "Emergency Patient",
+        "phone": f"98765{rand[:5]}"
+    })
+    token = reg_res.json()["tokens"]["accessToken"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    conv_res = await client.post("/api/v1/conversations", json={"language": "en", "input_type": "text"}, headers=headers)
+    conv_id = conv_res.json()["conversationId"]
+
+    # Send emergency complaint
+    m1 = await client.post(f"/api/v1/conversations/{conv_id}/messages", json={
+        "message": "I have crushing chest pain radiating to my left arm and I am breathless"
+    }, headers=headers)
+    assert m1.status_code == 200
+    m_data = m1.json()
+
+    assert m_data["isEmergencyAlert"] is True
+    assert m_data["completed"] is True
+
+    # Check prediction
+    pred_res = await client.get(f"/api/v1/predictions/{conv_id}", headers=headers)
+    assert pred_res.status_code == 200
+    pred = pred_res.json()
+    assert pred["severity"]["urgency_level"] == "EMERGENCY"
+    assert pred["severity"]["emergency_flag"] is True
+    assert "Cardiologist" in pred["specialist"]["specialist"]
+
+
