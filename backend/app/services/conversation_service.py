@@ -138,6 +138,10 @@ class ConversationService:
         needs_more_info = triage_state.get("needs_more_info", True)
         is_emergency = triage_state.get("is_emergency", False)
 
+        user_turns = sum(1 for m in history if m.get("sender") == "user")
+        if user_turns <= 1 and not is_emergency:
+            needs_more_info = True
+
         # 5. Extract cumulative symptoms across ALL messages in history
         cumulative_data = extract_cumulative_symptoms(
             history,
@@ -164,7 +168,13 @@ class ConversationService:
             conv.status = "completed"
             conv.ended_at = datetime.now(timezone.utc)
         else:
-            reply_text = triage_state.get("question") or "Can you provide a bit more detail about when this started and how it feels?"
+            reply_text = triage_state.get("question")
+            if not reply_text:
+                from app.agents.triage_agent import _get_mock_triage_response
+                fallback_mock = _get_mock_triage_response(history, context_summary)
+                reply_text = fallback_mock.get("question") or "Can you describe when these symptoms began and if you have any associated pain or fever?"
+                if not triage_state.get("options"):
+                    triage_state["options"] = fallback_mock.get("options")
 
         # Save assistant message
         agent_msg = ConversationMessage(

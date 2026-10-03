@@ -34,23 +34,18 @@ async def run_prediction(
     """
     symptoms = (payload.symptoms if payload else None) or []
 
+    cumulative_metadata = None
     if not symptoms:
-        # Pull messages from conversation to extract symptom keywords
         from app.models.conversation import ConversationMessage
         from sqlalchemy import select
+        from app.ml.rule_based_predictor import extract_cumulative_symptoms
         msg_res = await db.execute(
-            select(ConversationMessage).where(ConversationMessage.conversation_id == conversation_id)
+            select(ConversationMessage).where(ConversationMessage.conversation_id == conversation_id).order_by(ConversationMessage.created_at.asc())
         )
         messages = msg_res.scalars().all()
-        combined_text = " ".join([m.message for m in messages]).lower()
-        
-        # Simple extraction from conversation text
-        common_symptoms = [
-            "chest_pain", "chest pain", "fever", "cough", "shortness_of_breath",
-            "shortness of breath", "headache", "fatigue", "nausea", "vomiting",
-            "joint_pain", "joint pain", "rash", "dizziness", "chills", "stiff_neck", "stiff neck"
-        ]
-        symptoms = [s for s in common_symptoms if s in combined_text]
+        history = [{"sender": m.sender, "content": m.message} for m in messages]
+        cumulative_metadata = extract_cumulative_symptoms(history)
+        symptoms = cumulative_metadata.get("all_symptoms", [])
         if not symptoms:
             symptoms = ["general_discomfort"]
 
@@ -59,6 +54,7 @@ async def run_prediction(
         user=current_user,
         conversation_id=conversation_id,
         symptoms=symptoms,
+        cumulative_metadata=cumulative_metadata,
     )
     await db.commit()
     return result
@@ -72,7 +68,7 @@ async def get_prediction(
 ):
     """
     Retrieve the stored prediction report for a given conversation.
-    Returns 404 if no prediction has been run yet.
+    If intake is in progress, computes provisional prediction from current message history.
     """
     result = await RuleBasedPredictionService.get_prediction_by_conversation(
         db=db,
@@ -80,5 +76,25 @@ async def get_prediction(
         conversation_id=conversation_id,
     )
     if not result:
+        from app.models.conversation import ConversationMessage
+        from sqlalchemy import select
+        from app.ml.rule_based_predictor import extract_cumulative_symptoms
+        msg_res = await db.execute(
+            select(ConversationMessage).where(ConversationMessage.conversation_id == conversation_id).order_by(ConversationMessage.created_at.asc())
+        )
+        messages = msg_res.scalars().all()
+        if messages:
+            history = [{"sender": m.sender, "content": m.message} for m in messages]
+            cumulative_metadata = extract_cumulative_symptoms(history)
+            symptoms = cumulative_metadata.get("all_symptoms", []) or ["general_discomfort"]
+            result = await RuleBasedPredictionService.run_prediction(
+                db=db,
+                user=current_user,
+                conversation_id=conversation_id,
+                symptoms=symptoms,
+                cumulative_metadata=cumulative_metadata,
+            )
+            await db.commit()
+            return result
         raise NotFoundError("Prediction for this conversation")
     return result

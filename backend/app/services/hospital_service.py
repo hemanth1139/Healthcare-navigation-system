@@ -13,8 +13,41 @@ from typing import List, Optional
 
 from app.models.hospital import Hospital, HospitalRecommendation
 from app.schemas.hospital import HospitalNearbyRequest, HospitalOut, HospitalSearchResponse
-from app.utils.maps import NominatimService, OpenStreetMapService
+from app.utils.maps import NominatimService, OpenStreetMapService, haversine_distance, OSRMService, resolve_tamil_nadu_district
 from app.core.exceptions import NotFoundError
+
+SPECIALTY_TAXONOMY = {
+    "cardiology": ["cardio", "cardiac", "heart", "coronary", "vascular"],
+    "neurology": ["neuro", "brain", "stroke", "spine", "neurosurgery"],
+    "orthopedics": ["ortho", "orthopedic", "orthopaedics", "bone", "joint", "trauma", "arthroscopy"],
+    "urology": ["uro", "urology", "urological", "nephrology", "kidney", "renal", "bladder", "prostate"],
+    "pulmonology": ["pulmon", "pulmonary", "respiratory", "chest", "lung", "asthma"],
+    "ent": ["ent", "ear", "nose", "throat", "otolaryngology", "head and neck"],
+    "gastroenterology": ["gastro", "gastroenterology", "digestive", "liver", "endoscopy", "stomach"],
+    "pediatrics": ["pediatr", "paediatr", "child", "infant", "neonat"],
+    "oncology": ["oncol", "cancer", "tumor", "radiation oncology", "chemotherapy"],
+    "emergency": ["emerg", "trauma", "casualty", "critical care", "icu"],
+    "general_medicine": ["general", "physician", "internal medicine", "family medicine", "medicine"],
+}
+
+def match_specialty(spec_filter: str, hospital_specs: str, hospital_name: str) -> bool:
+    if not spec_filter or spec_filter.lower().strip() in ["all", "any", ""]:
+        return True
+    
+    sf = spec_filter.lower().strip()
+    target_text = f"{hospital_specs} {hospital_name}".lower()
+    
+    # Direct substring match
+    if sf in target_text:
+        return True
+
+    # Taxonomy keyword match
+    for category, keywords in SPECIALTY_TAXONOMY.items():
+        if any(k in sf for k in [category] + keywords):
+            if any(k in target_text for k in keywords):
+                return True
+
+    return False
 
 
 class HospitalService:
@@ -48,11 +81,12 @@ class HospitalService:
             "dindigul": (10.3673, 77.9803),
             "kanchipuram": (12.8342, 79.7036),
             "chengalpattu": (12.6922, 79.9770),
+            "tiruvallur": (13.1438, 79.9083),
         }
 
         if latitude is None or longitude is None:
             if location_query and not is_statewide:
-                lq_clean = location_query.lower().strip()
+                lq_clean = location_query.lower().split(",")[0].strip()
                 if lq_clean in TN_DISTRICT_COORDS:
                     latitude, longitude = TN_DISTRICT_COORDS[lq_clean]
                 else:
@@ -66,15 +100,13 @@ class HospitalService:
             else:
                 latitude, longitude = 13.0827, 80.2707
 
-        # Ensure search center is within Tamil Nadu geographic boundaries (Lat: 8.0-13.6, Lon: 76.0-80.4)
-        if latitude < 8.0 or latitude > 13.6 or longitude < 76.0 or longitude > 80.4:
+        # Ensure search center is within Tamil Nadu geographic boundaries (Lat: 8.0-13.75, Lon: 76.0-80.4)
+        if latitude < 8.0 or latitude > 13.75 or longitude < 76.0 or longitude > 80.4:
             latitude, longitude = 13.0827, 80.2707
 
-        radius_km = payload.max_distance_km if payload.max_distance_km and payload.max_distance_km > 0 else 15
+        radius_km = payload.max_distance_km if payload.max_distance_km and payload.max_distance_km > 0 else 25
         if is_statewide and not payload.max_distance_km:
-            radius_km = 300
-
-        from app.utils.maps import haversine_distance, OSRMService
+            radius_km = 400
 
         # 1. Primary Query: Local Database Catalogue
         stmt = select(Hospital).where(Hospital.state == "Tamil Nadu")
@@ -96,15 +128,18 @@ class HospitalService:
             h_gpid = h.google_place_id or f"local_{h_id}"
             h_state_val = h.state or "Tamil Nadu"
 
-            # Distance / Location Filtering
+            # Strict Geographic & District Isolation
             if location_query and not is_statewide:
-                loc_l = location_query.lower()
-                city_l = h_city.lower()
-                addr_l = h_addr.lower()
-                name_l = h_name.lower()
-                # If specific district name matches city/address, allow it; otherwise apply radius
-                if not (loc_l in city_l or loc_l in addr_l or loc_l in name_l) and dist > radius_km:
-                    continue
+                loc_clean = location_query.lower().split(",")[0].strip()
+                if loc_clean in TN_DISTRICT_COORDS:
+                    district_match = (h_city.lower() == loc_clean) or (loc_clean in h_addr.lower())
+                    if not district_match:
+                        continue
+                    if dist > radius_km:
+                        continue
+                else:
+                    if dist > radius_km:
+                        continue
             elif not is_statewide and dist > radius_km:
                 continue
 
@@ -112,19 +147,10 @@ class HospitalService:
             if payload.hospital_type and payload.hospital_type.lower() not in h_type.lower():
                 continue
 
-            # Specialty Filtering
+            # Specialty Filtering using Centralized Taxonomy
             spec_filter = payload.specialty or payload.specialist
-            if spec_filter:
-                sf_lower = spec_filter.lower().strip()
-                specs_l = h_specs.lower()
-                name_l = h_name.lower()
-                cardio_match = (
-                    ("cardio" in sf_lower or "cardiac" in sf_lower or "heart" in sf_lower)
-                    and ("cardio" in specs_l or "cardiac" in specs_l or "heart" in specs_l or "cardio" in name_l or "heart" in name_l)
-                )
-                direct_match = sf_lower in specs_l or sf_lower in name_l
-                if not (direct_match or cardio_match):
-                    continue
+            if spec_filter and not match_specialty(spec_filter, h_specs, h_name):
+                continue
 
             # Free-text search filtering
             if payload.search and payload.search.strip():
@@ -154,21 +180,31 @@ class HospitalService:
                 "beds": h.beds,
             })
 
-        # 2. Supplementary Discovery via OpenStreetMap if local DB matches are insufficient (< 3 results)
-        if len(local_matched) < 3 and not is_statewide:
+        # 2. Supplementary Discovery via OpenStreetMap if local DB matches are insufficient (< 3 results) and no specialty filter is active
+        if len(local_matched) < 3 and not is_statewide and not (payload.specialty or payload.specialist):
             hospitals_raw = await OpenStreetMapService.search_hospitals(
                 lat=latitude,
                 lon=longitude,
                 radius=int(radius_km * 1000),
                 max_results=payload.max_results or 50,
                 hospital_type=payload.hospital_type,
-                specialty=payload.specialty or payload.specialist,
+                specialty=None,
             )
 
             for h_raw in hospitals_raw:
                 # Deduplicate with existing local_matched
                 if any(m["google_place_id"] == h_raw["google_place_id"] or m["hospital_name"].lower() == h_raw["hospital_name"].lower() for m in local_matched):
                     continue
+
+                raw_lat = float(h_raw.get("latitude") or latitude)
+                raw_lon = float(h_raw.get("longitude") or longitude)
+                resolved_city = resolve_tamil_nadu_district(raw_lat, raw_lon, h_raw.get("address", ""), h_raw.get("hospital_name", ""))
+
+                # District Isolation Check for discovered hospitals
+                if location_query and not is_statewide:
+                    loc_clean = location_query.lower().split(",")[0].strip()
+                    if loc_clean in TN_DISTRICT_COORDS and resolved_city.lower() != loc_clean:
+                        continue
 
                 # Cache newly discovered hospital into local DB
                 stmt_find = select(Hospital).where(Hospital.google_place_id == h_raw["google_place_id"])
@@ -180,10 +216,10 @@ class HospitalService:
                         google_place_id=h_raw["google_place_id"],
                         hospital_name=h_raw["hospital_name"],
                         address=h_raw.get("address"),
-                        city=h_raw.get("city") or "Chennai",
+                        city=resolved_city,
                         state="Tamil Nadu",
-                        latitude=h_raw.get("latitude"),
-                        longitude=h_raw.get("longitude"),
+                        latitude=raw_lat,
+                        longitude=raw_lon,
                         phone=h_raw.get("phone"),
                         website=h_raw.get("website"),
                         google_maps_url=h_raw.get("google_maps_url"),
@@ -208,10 +244,10 @@ class HospitalService:
                     "google_place_id": h_raw["google_place_id"],
                     "hospital_name": h_raw["hospital_name"],
                     "address": h_raw.get("address", ""),
-                    "city": h_raw.get("city", "Chennai"),
+                    "city": resolved_city,
                     "state": "Tamil Nadu",
-                    "latitude": float(h_raw.get("latitude") or latitude),
-                    "longitude": float(h_raw.get("longitude") or longitude),
+                    "latitude": raw_lat,
+                    "longitude": raw_lon,
                     "phone": h_raw.get("phone"),
                     "website": h_raw.get("website"),
                     "google_maps_url": h_raw.get("google_maps_url"),
@@ -232,16 +268,6 @@ class HospitalService:
         else:
             local_matched.sort(key=lambda item: item["distance_km"])
 
-<<<<<<< HEAD
-        return HospitalSearchResponse(
-            hospitals=results,
-            status=status,
-            message=message,
-            requested_radius_km=requested_radius,
-            actual_radius_km=actual_radius,
-            data_source=data_source
-        )
-=======
         capped_results = local_matched[:(payload.max_results or 50)]
 
         # 4. Attach Genuine OSRM Travel Times
@@ -255,7 +281,6 @@ class HospitalService:
         # 5. Format to HospitalOut Schema
         results = [HospitalOut.from_dict(h, h["hospital_id"]) for h in capped_results]
         return results
->>>>>>> f48805d (feat: complete Tamil Nadu nearby hospitals module, government scheme RAG, and clinical triage pipeline 6)
 
     @staticmethod
     async def get_hospital_by_id(db: AsyncSession, hospital_id: UUID) -> Hospital:

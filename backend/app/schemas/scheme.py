@@ -54,7 +54,7 @@ class EvidenceSourceOut(BaseModel):
     official_url: str = Field(..., alias="officialUrl")
     relevance_score: Optional[float] = Field(None, alias="relevanceScore")
 
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
 
 class MissingCriterionItem(BaseModel):
@@ -68,7 +68,7 @@ class MissingCriterionItem(BaseModel):
     patient_value: Optional[str] = Field(None, alias="patientValue")
     source: str = Field("UNKNOWN", alias="source") # "UNKNOWN" | "USER_PROVIDED_DURING_INTERVIEW" | "DOCUMENT_VERIFIED" | "PROFILE_CONTEXT" | "OFFICIAL_RULE"
 
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
 
 class EligibilityCriterionOut(BaseModel):
@@ -87,7 +87,7 @@ class EligibilityCriterionOut(BaseModel):
     supporting_evidence: List[EvidenceSourceOut] = Field(default_factory=list, alias="supportingEvidence")
     is_missing_info: Optional[bool] = Field(False, alias="isMissingInfo")
 
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
 
 class MultiDocEligibilityResultOut(BaseModel):
@@ -112,7 +112,7 @@ class MultiDocEligibilityResultOut(BaseModel):
     schemes: Optional[List[Dict[str, Any]]] = Field(None, alias="schemes")
     queried_at: str = Field(..., alias="queriedAt")
 
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
 
 class RetrievedChunkOut(BaseModel):
@@ -121,7 +121,7 @@ class RetrievedChunkOut(BaseModel):
     excerpt: str
     official_url: str = Field(..., alias="officialUrl")
 
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
 
 class SchemeQueryRequest(BaseModel):
@@ -130,7 +130,7 @@ class SchemeQueryRequest(BaseModel):
     scoped_scheme_id: Optional[str] = Field(None, alias="scopedSchemeId")
     additional_info: Optional[Dict[str, Any]] = Field(None, alias="additionalInfo")
 
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
 
 class EligibilityEvaluationRequest(BaseModel):
@@ -140,7 +140,7 @@ class EligibilityEvaluationRequest(BaseModel):
     additional_info: Optional[Dict[str, Any]] = Field(None, alias="additionalInfo")
     uploaded_document_id: Optional[str] = Field(None, alias="uploadedDocumentId")
 
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
 
 class EligibilityContinueRequest(BaseModel):
@@ -150,7 +150,7 @@ class EligibilityContinueRequest(BaseModel):
     criterion_id: Optional[str] = Field(None, alias="criterionId")
     answer: Optional[str] = Field(None, alias="answer")
 
-    model_config = {"populate_by_name": True}
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
 
 class SchemeQueryOut(BaseModel):
@@ -171,21 +171,22 @@ class SchemeQueryOut(BaseModel):
     schemes: Optional[List[Dict[str, Any]]] = Field(None, alias="schemes")
     created_at: Optional[str] = Field(None, alias="createdAt")
 
-    model_config = {"populate_by_name": True, "from_attributes": True}
+    model_config = {"populate_by_name": True, "from_attributes": True, "extra": "ignore"}
 
     @classmethod
     def from_orm(cls, q, chunks: List[dict] = None) -> "SchemeQueryOut":
         ret_chunks = []
-        raw_chunks = chunks or q.retrieved_chunks or []
+        raw_chunks = chunks or getattr(q, "retrieved_chunks", None) or []
         for c in raw_chunks:
-            ret_chunks.append(
-                RetrievedChunkOut(
-                    chunkId=c.get("chunk_id", ""),
-                    schemeName=c.get("scheme_name", ""),
-                    excerpt=c.get("excerpt", ""),
-                    officialUrl=c.get("official_url", "")
+            if isinstance(c, dict):
+                ret_chunks.append(
+                    RetrievedChunkOut(
+                        chunkId=str(c.get("chunk_id", c.get("chunkId", "chk_1"))),
+                        schemeName=str(c.get("scheme_name", c.get("schemeName", "Government Scheme"))),
+                        excerpt=str(c.get("excerpt", "")),
+                        officialUrl=str(c.get("official_url", c.get("officialUrl", "")) or "https://pmjay.gov.in")
+                    )
                 )
-            )
 
         elig_res = None
         prof_complete = None
@@ -193,14 +194,16 @@ class SchemeQueryOut(BaseModel):
         prof_status = None
         schemes_list = None
 
-        if getattr(q, "eligibility_result", None):
+        raw_elig = getattr(q, "eligibility_result", None)
+        if raw_elig and isinstance(raw_elig, dict):
             try:
-                elig_dict = dict(q.eligibility_result)
-                elig_dict["query_id"] = str(q.query_id)
-                elig_dict["queryId"] = str(q.query_id)
+                elig_dict = dict(raw_elig)
+                q_id_str = str(getattr(q, "query_id", "q_unknown"))
+                elig_dict["query_id"] = str(elig_dict.get("query_id") or elig_dict.get("queryId") or q_id_str)
+                elig_dict["queryId"] = elig_dict["query_id"]
                 
                 # Extract profile completeness info
-                prof_complete = elig_dict.get("profile_complete") or elig_dict.get("profileComplete")
+                prof_complete = elig_dict.get("profile_complete") if elig_dict.get("profile_complete") is not None else elig_dict.get("profileComplete")
                 missing_fields = elig_dict.get("missing_required_fields") or elig_dict.get("missingRequiredFields") or elig_dict.get("missing_information") or []
                 prof_status = elig_dict.get("profile_completion_status") or elig_dict.get("profileCompletionStatus")
                 if prof_complete is None and prof_status:
@@ -209,24 +212,44 @@ class SchemeQueryOut(BaseModel):
                     prof_status = "complete" if prof_complete else "incomplete"
                 
                 schemes_list = elig_dict.get("schemes")
+                
+                # Ensure mandatory fields have valid fallbacks
+                if "user_question" not in elig_dict or not elig_dict["user_question"]:
+                    elig_dict["user_question"] = getattr(q, "user_question", "Scheme Query")
+                if "overall_status" not in elig_dict or not elig_dict["overall_status"]:
+                    elig_dict["overall_status"] = "INFORMATIONAL"
+                if "overall_explanation" not in elig_dict or not elig_dict["overall_explanation"]:
+                    elig_dict["overall_explanation"] = getattr(q, "ai_response", "") or ""
+                if "queried_at" not in elig_dict or not elig_dict["queried_at"]:
+                    elig_dict["queried_at"] = datetime.now(timezone.utc).isoformat()
+                    
                 elig_res = MultiDocEligibilityResultOut(**elig_dict)
             except Exception:
                 elig_res = None
 
         created_iso = None
         if getattr(q, "created_at", None):
-            created_iso = q.created_at.isoformat()
+            try:
+                created_iso = q.created_at.isoformat()
+            except Exception:
+                created_iso = str(q.created_at)
+
+        conf_raw = getattr(q, "confidence_score", 0.0)
+        try:
+            conf_score = float(conf_raw) if conf_raw is not None else 0.0
+        except (ValueError, TypeError):
+            conf_score = 0.0
 
         return cls(
-            queryId=str(q.query_id),
+            queryId=str(getattr(q, "query_id", "q_unknown")),
             profileId=str(q.profile_id) if getattr(q, "profile_id", None) else None,
-            conversationId=str(q.conversation_id) if q.conversation_id else None,
-            schemeId=str(q.scheme_id) if q.scheme_id else None,
-            userQuestion=q.user_question,
-            aiResponse=q.ai_response or "",
+            conversationId=str(q.conversation_id) if getattr(q, "conversation_id", None) else None,
+            schemeId=str(q.scheme_id) if getattr(q, "scheme_id", None) else None,
+            userQuestion=str(getattr(q, "user_question", "") or ""),
+            aiResponse=str(getattr(q, "ai_response", "") or ""),
             retrievedChunks=ret_chunks,
-            confidenceScore=float(q.confidence_score) if q.confidence_score else 0.0,
-            isLowConfidence=float(q.confidence_score) < 0.65 if q.confidence_score else True,
+            confidenceScore=conf_score,
+            isLowConfidence=conf_score < 0.65,
             followUpSuggestions=getattr(q, "follow_up_suggestions", None),
             eligibilityResult=elig_res,
             profileComplete=prof_complete,

@@ -30,6 +30,83 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return R * c
 
 
+def resolve_tamil_nadu_district(
+    lat: Optional[float], lon: Optional[float], address: str = "", name: str = ""
+) -> str:
+    """
+    Deterministically resolves and validates the Tamil Nadu district / city
+    based on coordinates and explicit address / hospital name keywords.
+    """
+    text = f"{name} {address}".lower()
+    if any(k in text for k in ["vellore", "katpadi", "sathuvachari", "bagayam", "karigiri", "naruvi"]):
+        return "Vellore"
+    if any(k in text for k in ["tiruvallur", "thiruvallur", "avadi"]):
+        return "Tiruvallur"
+    if any(k in text for k in ["kanchipuram", "kancheepuram"]):
+        return "Kanchipuram"
+    if any(k in text for k in ["chengalpattu", "chengalpet", "maraimalai nagar"]):
+        return "Chengalpattu"
+    if any(k in text for k in ["coimbatore", "peelamedu", "rs puram", "gandhipuram", "singanallur"]):
+        return "Coimbatore"
+    if any(k in text for k in ["madurai", "goripalayam"]):
+        return "Madurai"
+    if "salem" in text:
+        return "Salem"
+    if any(k in text for k in ["tiruchirappalli", "trichy", "thillai nagar"]):
+        return "Tiruchirappalli"
+    if any(k in text for k in ["thanjavur", "tanjore"]):
+        return "Thanjavur"
+    if any(k in text for k in ["tirunelveli", "palayamkottai"]):
+        return "Tirunelveli"
+    if any(k in text for k in ["thoothukudi", "tuticorin"]):
+        return "Thoothukudi"
+    if any(k in text for k in ["erode", "perundurai"]):
+        return "Erode"
+    if any(k in text for k in ["tiruppur", "tirupur"]):
+        return "Tiruppur"
+    if any(k in text for k in ["ooty", "nilgiris"]):
+        return "The Nilgiris"
+    if "dindigul" in text:
+        return "Dindigul"
+
+    # Precise coordinate bounding box checks for Tamil Nadu
+    if lat is not None and lon is not None:
+        if 12.75 <= lat <= 13.20 and 78.85 <= lon <= 79.45:
+            return "Vellore"
+        if 12.65 <= lat <= 12.98 and 79.55 <= lon <= 79.95:
+            return "Kanchipuram"
+        if 13.05 <= lat <= 13.55 and 79.75 <= lon <= 80.10:
+            return "Tiruvallur"
+        if 12.45 <= lat <= 12.85 and 79.85 <= lon <= 80.20:
+            return "Chengalpattu"
+        if 10.80 <= lat <= 11.30 and 76.80 <= lon <= 77.25:
+            return "Coimbatore"
+        if 11.30 <= lat <= 11.60 and 76.60 <= lon <= 76.90:
+            return "The Nilgiris"
+        if 11.00 <= lat <= 11.35 and 77.20 <= lon <= 77.55:
+            return "Tiruppur"
+        if 11.20 <= lat <= 11.55 and 77.50 <= lon <= 77.85:
+            return "Erode"
+        if 11.45 <= lat <= 11.85 and 78.00 <= lon <= 78.35:
+            return "Salem"
+        if 10.20 <= lat <= 10.55 and 77.80 <= lon <= 78.20:
+            return "Dindigul"
+        if 9.75 <= lat <= 10.15 and 78.00 <= lon <= 78.30:
+            return "Madurai"
+        if 10.65 <= lat <= 10.95 and 78.55 <= lon <= 78.85:
+            return "Tiruchirappalli"
+        if 10.65 <= lat <= 10.95 and 78.95 <= lon <= 79.35:
+            return "Thanjavur"
+        if 8.55 <= lat <= 8.85 and 77.55 <= lon <= 77.95:
+            return "Tirunelveli"
+        if 8.65 <= lat <= 8.95 and 78.00 <= lon <= 78.30:
+            return "Thoothukudi"
+        if 12.85 <= lat <= 13.35 and 80.05 <= lon <= 80.35:
+            return "Chennai"
+
+    return "Chennai"
+
+
 class OpenStreetMapService:
 
     @staticmethod

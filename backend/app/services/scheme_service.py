@@ -3,11 +3,108 @@ Government Scheme service — seeds scheme tables, manages search queries,
 and links RAG query results to database history logs.
 """
 
+import logging
 from uuid import UUID, uuid4
-from datetime import date
+from datetime import date, datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, desc
 from typing import List, Optional, Dict, Any
+
+logger = logging.getLogger("app.services.scheme_service")
+
+
+def _normalize_rag_response(
+    rag_res: Any,
+    query_text: str,
+    scoped_scheme_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Ensures rag_res is a valid dictionary conforming to the expected RAG output structure."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    if not isinstance(rag_res, dict):
+        q_id_fallback = str(uuid4())
+        return {
+            "ai_response": "We encountered an unexpected issue analyzing government scheme eligibility. Please try asking about a specific scheme or provide your demographic details.",
+            "retrieved_chunks": [],
+            "confidence_score": 0.0,
+            "is_low_confidence": True,
+            "follow_up_suggestions": [
+                "What schemes are available in Tamil Nadu?",
+                "Am I eligible for PM-JAY?",
+                "What are the senior citizen healthcare schemes?"
+            ],
+            "eligibility_result": {
+                "query_id": q_id_fallback,
+                "scheme_id": scoped_scheme_id,
+                "query_type": "ERROR_FALLBACK",
+                "user_question": query_text,
+                "interview_state": "COMPLETED",
+                "current_question": None,
+                "progress": None,
+                "match_percentage": None,
+                "overall_status": "INSUFFICIENT_INFORMATION",
+                "overall_explanation": "Unable to complete full eligibility assessment at this moment. Please retry.",
+                "criteria_breakdown": [],
+                "missing_information": [],
+                "structured_missing_criteria": [],
+                "all_evidence_sources": [],
+                "profile_complete": False,
+                "missing_required_fields": [],
+                "profile_completion_status": "incomplete",
+                "schemes": [],
+                "queried_at": now_iso,
+            },
+            "profile_complete": False,
+            "missing_required_fields": [],
+            "profile_completion_status": "incomplete",
+            "schemes": [],
+        }
+
+    ai_response = str(rag_res.get("ai_response") or "")
+    retrieved_chunks = rag_res.get("retrieved_chunks") if isinstance(rag_res.get("retrieved_chunks"), list) else []
+    try:
+        confidence_score = float(rag_res.get("confidence_score", 0.0))
+    except (ValueError, TypeError):
+        confidence_score = 0.0
+
+    is_low_confidence = bool(rag_res.get("is_low_confidence", confidence_score < 0.65))
+    follow_up_suggestions = rag_res.get("follow_up_suggestions") if isinstance(rag_res.get("follow_up_suggestions"), list) else []
+
+    elig_res = rag_res.get("eligibility_result")
+    if not isinstance(elig_res, dict):
+        elig_res = {
+            "query_id": str(uuid4()),
+            "scheme_id": scoped_scheme_id,
+            "query_type": "GENERAL_INFORMATION",
+            "user_question": query_text,
+            "interview_state": "COMPLETED",
+            "current_question": None,
+            "progress": None,
+            "match_percentage": None,
+            "overall_status": "INFORMATIONAL",
+            "overall_explanation": ai_response or "Scheme information retrieved.",
+            "criteria_breakdown": [],
+            "missing_information": [],
+            "structured_missing_criteria": [],
+            "all_evidence_sources": [],
+            "profile_complete": True,
+            "missing_required_fields": [],
+            "profile_completion_status": "complete",
+            "schemes": [],
+            "queried_at": now_iso,
+        }
+
+    return {
+        "ai_response": ai_response,
+        "retrieved_chunks": retrieved_chunks,
+        "confidence_score": confidence_score,
+        "is_low_confidence": is_low_confidence,
+        "follow_up_suggestions": follow_up_suggestions,
+        "eligibility_result": elig_res,
+        "profile_complete": rag_res.get("profile_complete"),
+        "missing_required_fields": rag_res.get("missing_required_fields") or [],
+        "profile_completion_status": rag_res.get("profile_completion_status"),
+        "schemes": rag_res.get("schemes") or [],
+    }
 
 from app.models.user import User
 from app.models.profile import PatientProfile
@@ -104,28 +201,39 @@ class SchemeService:
             try:
                 profile = await _get_profile(db, current_user)
                 patient_ctx = await ProfileService.get_patient_context(db, current_user.user_id)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"[SchemeService] Could not retrieve profile/context: {e}")
                 profile = None
+                patient_ctx = None
 
         # 1. Run RAG Pipeline query (vector similarity search + Gemini decomposition)
-        rag_res = await RAGPipeline.query(
-            query_text=payload.query_text,
-            scoped_scheme_id=payload.scoped_scheme_id,
-            patient_context=patient_ctx,
-            additional_info=payload.additional_info,
-        )
+        try:
+            raw_rag_res = await RAGPipeline.query(
+                query_text=payload.query_text,
+                scoped_scheme_id=payload.scoped_scheme_id,
+                patient_context=patient_ctx,
+                additional_info=payload.additional_info,
+            )
+        except Exception as exc:
+            logger.error(f"[SchemeService] RAGPipeline.query failed for query '{payload.query_text[:50]}': {exc}", exc_info=True)
+            raw_rag_res = None
+
+        rag_res = _normalize_rag_response(raw_rag_res, payload.query_text, payload.scoped_scheme_id)
 
         # 2. Correlate top match chunk back to a database scheme
-        # For MULTI_SCHEME_ELIGIBILITY_QUERY, use the scheme_id from eligibility_result if available
-        query_type = rag_res.get("eligibility_result", {}).get("query_type", "")
-        if query_type == "MULTI_SCHEME_ELIGIBILITY_QUERY":
-            scheme_id = rag_res.get("eligibility_result", {}).get("scheme_id")
+        elig_res = rag_res.get("eligibility_result")
+        query_type = elig_res.get("query_type", "") if isinstance(elig_res, dict) else ""
+        
+        if query_type == "MULTI_SCHEME_ELIGIBILITY_QUERY" and isinstance(elig_res, dict):
+            scheme_id = elig_res.get("scheme_id")
         else:
             scheme_id = payload.scoped_scheme_id or (
-                rag_res.get("eligibility_result", {}).get("scheme_id") if rag_res.get("eligibility_result") else None
+                elig_res.get("scheme_id") if isinstance(elig_res, dict) else None
             )
             if not scheme_id and rag_res.get("retrieved_chunks"):
-                scheme_id = rag_res["retrieved_chunks"][0].get("scheme_id")
+                top_chk = rag_res["retrieved_chunks"][0]
+                if isinstance(top_chk, dict):
+                    scheme_id = top_chk.get("scheme_id")
             if not scheme_id:
                 scheme_id = "scheme_C01"
 
@@ -133,14 +241,13 @@ class SchemeService:
         conv_uuid = None
         if payload.conversation_id:
             try:
-                conv_uuid = UUID(payload.conversation_id)
+                conv_uuid = UUID(str(payload.conversation_id).strip())
             except Exception:
                 conv_uuid = None
 
         # 3. Save query log to DB
         q_id = uuid4()
-        elig_res = rag_res.get("eligibility_result")
-        if elig_res and isinstance(elig_res, dict):
+        if isinstance(elig_res, dict):
             elig_res["query_id"] = str(q_id)
             elig_res["queryId"] = str(q_id)
 
@@ -179,17 +286,23 @@ class SchemeService:
 
         q_text = payload.user_question or f"Am I eligible for {scheme.scheme_name}?"
 
-        rag_res = await RAGPipeline.query(
-            query_text=q_text,
-            scoped_scheme_id=scheme_id,
-            patient_context=patient_ctx,
-            additional_info=payload.additional_info,
-            uploaded_document_id=payload.uploaded_document_id,
-        )
+        try:
+            raw_rag_res = await RAGPipeline.query(
+                query_text=q_text,
+                scoped_scheme_id=scheme_id,
+                patient_context=patient_ctx,
+                additional_info=payload.additional_info,
+                uploaded_document_id=payload.uploaded_document_id,
+            )
+        except Exception as exc:
+            logger.error(f"[SchemeService] evaluate_scheme_eligibility failed for {scheme_id}: {exc}", exc_info=True)
+            raw_rag_res = None
+
+        rag_res = _normalize_rag_response(raw_rag_res, q_text, scheme_id)
 
         q_id = uuid4()
         elig_res = rag_res.get("eligibility_result")
-        if elig_res and isinstance(elig_res, dict):
+        if isinstance(elig_res, dict):
             elig_res["query_id"] = str(q_id)
             elig_res["queryId"] = str(q_id)
 
@@ -331,17 +444,23 @@ class SchemeService:
         # Clean prompt presentation
         combined_text = q_log.user_question
 
-        rag_res = await RAGPipeline.query(
-            query_text=combined_text,
-            scoped_scheme_id=q_log.scheme_id,
-            patient_context=patient_ctx,
-            additional_info=merged_info,
-            uploaded_document_id=payload.uploaded_document_id,
-        )
+        try:
+            raw_rag_res = await RAGPipeline.query(
+                query_text=combined_text,
+                scoped_scheme_id=q_log.scheme_id,
+                patient_context=patient_ctx,
+                additional_info=merged_info,
+                uploaded_document_id=payload.uploaded_document_id,
+            )
+        except Exception as exc:
+            logger.error(f"[SchemeService] continue_scheme_eligibility failed for query {payload.query_id}: {exc}", exc_info=True)
+            raw_rag_res = None
+
+        rag_res = _normalize_rag_response(raw_rag_res, combined_text, q_log.scheme_id)
 
         # Update existing query log
         elig_res = rag_res.get("eligibility_result")
-        if elig_res and isinstance(elig_res, dict):
+        if isinstance(elig_res, dict):
             elig_res["query_id"] = str(q_log.query_id)
             elig_res["queryId"] = str(q_log.query_id)
 

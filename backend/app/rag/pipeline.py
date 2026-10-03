@@ -1211,7 +1211,7 @@ class RAGPipeline:
                 }
             )
             if llm_text:
-                summary_text = llm_text
+                summary_text = f"{summary_text}\n\n{llm_text}"
 
             top_scheme = evaluated_schemes[0] if evaluated_schemes else None
             top_scheme_name = top_scheme["scheme_name"] if top_scheme else "Government Healthcare Schemes"
@@ -1267,7 +1267,31 @@ class RAGPipeline:
                 "confidence_score": 0.0,
                 "is_low_confidence": True,
                 "follow_up_suggestions": ["What schemes are available in Tamil Nadu?", "What Central Government schemes exist?"],
-                "eligibility_result": None,
+                "eligibility_result": {
+                    "query_id": query_id_str,
+                    "scheme_id": None,
+                    "query_type": "UNSUPPORTED_SCHEME",
+                    "user_question": query_text,
+                    "interview_state": "COMPLETED",
+                    "current_question": None,
+                    "progress": None,
+                    "match_percentage": None,
+                    "overall_status": "INFORMATIONAL",
+                    "overall_explanation": msg,
+                    "criteria_breakdown": [],
+                    "missing_information": [],
+                    "structured_missing_criteria": [],
+                    "all_evidence_sources": [],
+                    "profile_complete": True,
+                    "missing_required_fields": [],
+                    "profile_completion_status": "complete",
+                    "schemes": [],
+                    "queried_at": now_iso,
+                },
+                "profile_complete": True,
+                "missing_required_fields": [],
+                "profile_completion_status": "complete",
+                "schemes": [],
             }
 
         if top_scheme_id == "UNRECOGNIZED_SCHEME":
@@ -1278,7 +1302,31 @@ class RAGPipeline:
                 "confidence_score": 0.0,
                 "is_low_confidence": True,
                 "follow_up_suggestions": ["Which government schemes may I qualify for?", "What healthcare schemes are available in Tamil Nadu?", "What maternity benefits are available?"],
-                "eligibility_result": None,
+                "eligibility_result": {
+                    "query_id": query_id_str,
+                    "scheme_id": None,
+                    "query_type": "UNRECOGNIZED_SCHEME",
+                    "user_question": query_text,
+                    "interview_state": "COMPLETED",
+                    "current_question": None,
+                    "progress": None,
+                    "match_percentage": None,
+                    "overall_status": "INFORMATIONAL",
+                    "overall_explanation": msg,
+                    "criteria_breakdown": [],
+                    "missing_information": [],
+                    "structured_missing_criteria": [],
+                    "all_evidence_sources": [],
+                    "profile_complete": True,
+                    "missing_required_fields": [],
+                    "profile_completion_status": "complete",
+                    "schemes": [],
+                    "queried_at": now_iso,
+                },
+                "profile_complete": True,
+                "missing_required_fields": [],
+                "profile_completion_status": "complete",
+                "schemes": [],
             }
 
         # 2. Check if user document chunks exist in VectorStore (Document Flow without reparsing raw PDF)
@@ -1359,12 +1407,38 @@ class RAGPipeline:
             })
 
         if not results and not doc_chunks:
+            msg = f"I couldn't locate any official evidence for {top_scheme_name} in our database at this time."
             return {
-                "ai_response": f"I couldn't locate any official evidence for {top_scheme_name} in our database at this time.",
+                "ai_response": msg,
                 "retrieved_chunks": [],
                 "confidence_score": 0.0,
                 "is_low_confidence": True,
-                "eligibility_result": None,
+                "follow_up_suggestions": ["What schemes are available in Tamil Nadu?", "Am I eligible for PM-JAY?"],
+                "eligibility_result": {
+                    "query_id": query_id_str,
+                    "scheme_id": top_scheme_id,
+                    "query_type": "NO_EVIDENCE",
+                    "user_question": query_text,
+                    "interview_state": "COMPLETED",
+                    "current_question": None,
+                    "progress": None,
+                    "match_percentage": None,
+                    "overall_status": "INSUFFICIENT_INFORMATION",
+                    "overall_explanation": msg,
+                    "criteria_breakdown": [],
+                    "missing_information": [],
+                    "structured_missing_criteria": [],
+                    "all_evidence_sources": [],
+                    "profile_complete": False,
+                    "missing_required_fields": [],
+                    "profile_completion_status": "incomplete",
+                    "schemes": [],
+                    "queried_at": now_iso,
+                },
+                "profile_complete": False,
+                "missing_required_fields": [],
+                "profile_completion_status": "incomplete",
+                "schemes": [],
             }
 
         top_score = results[0][2] if results else 0.88

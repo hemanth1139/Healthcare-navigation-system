@@ -58,8 +58,8 @@ async def invoke_gemini(
     messages: List[BaseMessage],
     feature: str = "general_inference",
     temperature: float = 0.2,
-    timeout_seconds: float = 12.0,
-    max_retries_per_model: int = 2
+    timeout_seconds: float = 3.0,
+    max_retries_per_model: int = 1
 ) -> str:
     """
     Invokes Gemini through the centralized Model Router with bounded retry,
@@ -82,7 +82,7 @@ async def invoke_gemini(
                     llm = ChatGoogleGenerativeAI(
                         model=model_name,
                         temperature=temperature,
-                        max_retries=0,  # We manage bounded retries explicitly with backoff
+                        max_retries=0,
                         timeout=timeout_seconds,
                         google_api_key=active_key
                     )
@@ -94,7 +94,6 @@ async def invoke_gemini(
                     
                     content = response.content if hasattr(response, "content") else str(response)
                     if isinstance(content, list):
-                        # Handle multi-part responses
                         content = "".join(str(part.get("text", "")) if isinstance(part, dict) else str(part) for part in content)
                     
                     cleaned = str(content).strip()
@@ -120,11 +119,11 @@ async def invoke_gemini(
                             feature, model_name, status, reason, attempt
                         )
                         key_auth_failed = True
-                        break  # Stop trying other models with the same invalid key
+                        break
 
-                    # 429 RESOURCE_EXHAUSTED / 503 SERVER_ERROR / 408 TIMEOUT: Bounded exponential backoff
+                    # 429 RESOURCE_EXHAUSTED / 503 SERVER_ERROR / 408 TIMEOUT
                     if attempt < max_retries_per_model:
-                        backoff = min(2.0, 0.4 * (2 ** (attempt - 1)))
+                        backoff = min(1.0, 0.3 * (2 ** (attempt - 1)))
                         logger.warning(
                             "[LLM ROTATOR] feature=%s model=%s status=%d reason=%s attempt=%d action=retry_with_backoff delay=%.2fs",
                             feature, model_name, status, reason, attempt, backoff

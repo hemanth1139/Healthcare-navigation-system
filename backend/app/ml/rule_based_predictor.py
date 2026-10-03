@@ -7,25 +7,83 @@ red-flag detection, specialist recommendations, and dynamic natural language sym
 from typing import List, Dict, Any, Tuple, Optional
 import re
 
-# ─── Canonical Symptom Synonyms & Normalization ──────────────────────────────
+# ─── Canonical Symptom Synonyms & Controlled Taxonomy ────────────────────────
 
 SYMPTOM_SYNONYMS: Dict[str, List[str]] = {
+    # ── Urinary & Renal System ──
+    "difficulty_urinating": [
+        "trouble in passing urine", "trouble passing urine", "trouble while passing urine", "trouble is passing urine",
+        "difficulty in passing urine", "difficulty passing urine", "difficulty while passing urine",
+        "difficulty urinating", "difficulty in urination", "hard to urinate", "hard to pass urine", "hard to pee",
+        "straining to urinate", "straining to pass urine", "straining at micturition", "straining when peeing",
+        "weak stream", "poor stream", "intermittent stream", "slow stream", "slow urine flow", "dribbling urine",
+        "trouble peeing", "difficulty peeing", "unable to pee easily", "unable to pass urine easily",
+        "urinary hesitancy", "hesitancy in urination", "passing urine with difficulty", "urinary problem", "urinary difficulty"
+    ],
+    "acute_urinary_retention": [
+        "cannot pass urine", "cannot urinate", "can't urinate", "can't pass urine",
+        "unable to pass urine", "unable to urinate", "complete inability to urinate",
+        "cannot pass any urine at all", "cannot pass any urine", "cannot pass urine at all",
+        "cannot urinate at all", "unable to pass any urine", "unable to urinate at all",
+        "stopped urinating", "no urine output", "haven't passed urine", "have not passed urine",
+        "cannot pee", "anuria", "urinary retention", "bladder full but cannot pee",
+        "distended bladder", "unable to empty bladder", "cannot empty bladder at all",
+        "bladder is burstingly full", "not passing any urine", "zero urine", "no urine at all"
+    ],
+    "burning_urination": [
+        "pain in passing urine", "pain while passing urine", "pain when passing urine", "pain passing urine",
+        "pain in urination", "pain while urinating", "pain during urination", "pain when urinating",
+        "pain in peeing", "pain while peeing", "pain when peeing", "pain peeing", "pain during micturition",
+        "hurts to urinate", "hurts when urinating", "hurts while urinating", "hurts to pee", "hurts when i pee",
+        "burning urination", "burning when urinating", "burning while urinating", "burning during urination",
+        "burning in passing urine", "burning while passing urine", "burning when passing urine", "burning passing urine",
+        "burning sensation when urinating", "burning sensation while urinating", "burning sensation when i urinate",
+        "burning sensation when passing urine", "burning sensation while passing urine", "burning sensation in passing urine",
+        "burning sensation when i pass urine", "burning when i pass urine", "burning sensation",
+        "dysuria", "painful urination", "painful micturition", "stinging urination", "stinging urine", "sharp pain when peeing",
+        "discomfort during urination", "discomfort in passing urine", "burning pee"
+    ],
+    "urinary_frequency_urgency": [
+        "frequent urination", "urinating often", "peeing constantly", "urinary urgency",
+        "cannot hold urine", "peeing every few minutes", "waking up to pee", "nocturia",
+        "feeling like i always need to pee", "urgency to urinate", "frequent trips to bathroom"
+    ],
+    "hematuria": [
+        "blood in urine", "red urine", "pink urine", "bloody urine", "hematuria",
+        "passing blood in urine", "blood clots in urine", "cola colored urine", "tea colored urine"
+    ],
+    "flank_pain": [
+        "flank pain", "kidney pain", "side back pain", "renal colic", "lower side back pain",
+        "rib to hip pain", "costovertebral angle pain", "severe side pain", "pain on side of back",
+        "loin pain", "kidney angle pain", "sharp pain in lower side back",
+        "right flank back pain", "left flank back pain", "flank back pain", "right flank pain",
+        "left flank pain", "flank and back pain", "flank/back pain"
+    ],
+    "lower_abdominal_pain": [
+        "lower abdominal pain", "bladder pain", "pelvic pain", "suprapubic pain",
+        "pain below belly button", "full bladder pain", "distended abdomen", "lower belly pain",
+        "pain in lower tummy", "lower stomach pain", "cramping in lower abdomen"
+    ],
+
+    # ── Musculoskeletal & Joint System ──
     "knee_pain": [
         "knee pain", "pain in knee", "knee discomfort", "hurting knee", "swollen knee",
         "knee ache", "patellar pain", "pain in my knee", "right knee pain", "left knee pain",
-        "both knees pain", "knee hurts", "knee soreness", "knee tenderness", "pain around knee"
+        "both knees pain", "knee hurts", "knee soreness", "knee tenderness", "pain around knee",
+        "hurt my right knee", "hurt my left knee", "hurt my knee", "injured my right knee",
+        "injured my left knee", "injured my knee", "hurt knee", "pain in right knee", "pain in left knee"
     ],
     "joint_pain": [
         "joint pain", "pain in joints", "aching joints", "arthralgia", "arthritis",
         "shoulder pain", "elbow pain", "wrist pain", "hip pain", "ankle pain", "joint stiffness",
-        "pain in joints", "hurting joints"
+        "hurting joints", "polyarthralgia"
     ],
     "inability_to_bear_weight": [
         "cannot bear weight", "can't bear weight", "unable to bear weight", "cannot walk",
         "unable to walk", "can't walk", "cannot put weight on it", "can't put weight",
         "unable to put weight", "non weight bearing", "cannot stand", "unable to stand",
         "limping severely", "cannot put pressure on leg", "inability to bear weight",
-        "cannot take a step", "unable to step"
+        "cannot take a step", "unable to step", "cannot walk at all"
     ],
     "joint_deformity": [
         "visible deformity", "joint deformity", "deformed knee", "crooked knee",
@@ -43,9 +101,10 @@ SYMPTOM_SYNONYMS: Dict[str, List[str]] = {
         "cannot bend knee", "cannot straighten knee", "joint catching", "joint locking"
     ],
     "trauma_injury": [
-        "fell down", "fall", "sports injury", "twisted knee", "knee twist", "twisting injury",
+        "fell down", "fall", "injury", "trauma", "sports injury", "twisted knee", "knee twist", "twisting injury",
         "direct hit to knee", "popping sound in knee", "heard a pop", "direct blow",
-        "traumatic impact", "road accident", "hit by bike", "fell from stairs", "sports collision"
+        "traumatic impact", "road accident", "hit by bike", "fell from stairs", "sports collision",
+        "after a sudden twist", "sudden twist", "twisted my knee", "playing soccer", "playing football"
     ],
     "swelling": [
         "swelling", "swollen", "inflammation", "edema", "puffy", "puffiness",
@@ -55,97 +114,137 @@ SYMPTOM_SYNONYMS: Dict[str, List[str]] = {
         "back pain", "lower back pain", "lumbar pain", "spine pain", "back ache",
         "stiff back", "upper back pain", "pain in back"
     ],
+
+    # ── ENT & Upper Airway ──
     "throat_pain": [
         "throat pain", "sore throat", "pain in throat", "hurting throat", "pharyngitis",
-        "throat irritation", "difficulty swallowing", "scratchy throat", "raw throat",
-        "tonsil pain", "pain when swallowing", "swollen throat", "throat infection", "pain in my throat"
+        "throat irritation", "scratchy throat", "raw throat",
+        "tonsil pain", "swollen throat", "throat infection", "pain in my throat"
     ],
-    "nausea": [
-        "nausea", "feeling sick", "queasy", "upset stomach", "nauseous", "nauseated", "feel like throwing up"
+    "difficulty_swallowing": [
+        "difficulty swallowing", "pain when swallowing", "hard to swallow", "cannot swallow",
+        "dysphagia", "odynophagia", "choking on food", "unable to swallow saliva",
+        "drooling saliva", "swallowing is painful", "hurts to swallow",
+        "difficulty swallowing food and drinks", "difficulty swallowing food", "trouble swallowing food",
+        "hard to swallow food"
     ],
-    "body_aches": [
-        "body aches", "body pain", "muscle pain", "myalgia", "generalized aches",
-        "aching all over", "sore muscles", "aches", "body ache", "all over body pain"
-    ],
+
+    # ── Cardiorespiratory System ──
     "chest_pain": [
         "chest pain", "chest tightness", "chest pressure", "chest discomfort",
         "tightness in chest", "heaviness in chest", "squeezing in chest", "crushing chest pain",
-        "angina", "sternal pain", "substernal pain", "pain in chest"
+        "angina", "sternal pain", "substernal pain", "pain in chest",
+        "pressure in my chest", "pressure in chest", "severe pressure in my chest",
+        "tightness in my chest", "heaviness in my chest"
     ],
     "left_arm_radiation": [
         "left arm pain", "left arm", "radiation to arm", "shooting down left arm",
-        "pain in left shoulder", "radiating to jaw", "radiating to neck", "jaw pain", "neck pain", "arm numbness"
+        "pain in left shoulder", "radiating to jaw", "radiating to neck", "jaw pain", "neck pain",
+        "arm numbness", "radiating down my left arm"
     ],
     "shortness_of_breath": [
         "shortness of breath", "breathlessness", "difficulty breathing", "dyspnea",
         "cannot breathe", "gasping", "trouble breathing", "wheezing", "tight chest breathing", "breathless"
     ],
-    "fever": [
-        "fever", "high temperature", "chills", "feverish", "shivering",
-        "hot and cold", "pyrexia", "body burning", "running a fever", "running temperature", "high fever"
+    "cough": [
+        "cough", "coughing", "dry cough", "wet cough", "productive cough",
+        "hacking cough", "barking cough"
     ],
+
+    # ── Neurological & Head ──
     "headache": [
         "headache", "head pain", "throbbing head", "migraine", "pain in head",
         "temple pain", "forehead pain", "head pressure", "pain in my head"
     ],
     "thunderclap_headache": [
         "thunderclap headache", "worst headache of my life", "sudden severe headache",
-        "explosive headache", "onset in seconds", "worst headache ever"
+        "explosive headache", "onset in seconds", "worst headache ever", "thunderclap"
     ],
     "stiff_neck": [
         "stiff neck", "neck stiffness", "cannot bend neck", "nuchal rigidity",
         "pain moving neck", "neck rigidity", "cannot touch chin to chest"
     ],
+    "facial_droop_weakness": [
+        "facial droop", "slurred speech", "one side weakness", "arm weakness",
+        "cannot speak", "facial numbness", "stroke symptoms", "sudden weakness", "arm drift",
+        "hemiparesis", "facial weakness", "loss of speech"
+    ],
+
+    # ── Gastrointestinal System ──
     "abdominal_pain": [
         "abdominal pain", "stomach ache", "belly pain", "gut pain",
-        "lower abdominal pain", "right lower quadrant pain", "stomach cramps", "stomach pain", "pain in stomach"
+        "right lower quadrant pain", "stomach cramps", "stomach pain", "pain in stomach"
     ],
-    "cough": [
-        "cough", "coughing", "dry cough", "wet cough", "productive cough",
-        "hacking cough", "barking cough"
+    "nausea": [
+        "nausea", "feeling sick", "queasy", "upset stomach", "nauseous", "nauseated", "feel like throwing up"
     ],
     "vomiting": [
         "vomiting", "throwing up", "puking", "emesis"
+    ],
+    "heartburn": [
+        "heartburn", "acid reflux", "burning in chest after food", "sour taste", "regurgitation", "gerd"
+    ],
+
+    # ── Systemic / Constitutional ──
+    "fever": [
+        "fever", "high temperature", "chills", "feverish", "shivering",
+        "hot and cold", "pyrexia", "body burning", "running a fever", "running temperature", "high fever",
+        "temperature"
+    ],
+    "body_aches": [
+        "body aches", "body pain", "muscle pain", "myalgia", "generalized aches",
+        "aching all over", "sore muscles", "aches", "body ache", "all over body pain"
+    ],
+    "fatigue": [
+        "fatigue", "tiredness", "exhaustion", "weakness", "lethargy", "feeling tired"
     ],
     "dizziness": [
         "dizziness", "lightheadedness", "fainting", "syncope", "feeling faint", "spinning", "vertigo", "dizzy"
     ],
     "sweating": [
-        "sweating", "cold sweat", "diaphoresis", "profuse sweating", "night sweats", "sweaty"
-    ],
-    "facial_droop_weakness": [
-        "facial droop", "slurred speech", "one side weakness", "arm weakness",
-        "cannot speak", "facial numbness", "stroke symptoms", "sudden weakness", "arm drift"
-    ],
-    "burning_urination": [
-        "burning urination", "painful urination", "dysuria", "stinging urine", "frequent urination"
-    ],
-    "fatigue": [
-        "fatigue", "tiredness", "exhaustion", "weakness", "lethargy", "feeling tired"
-    ],
-    "heartburn": [
-        "heartburn", "acid reflux", "burning in chest after food", "sour taste", "regurgitation", "gerd"
+        "sweating", "cold sweat", "diaphoresis", "profuse sweating", "night sweats", "sweaty", "cold sweats"
     ],
 }
 
+COMMON_BODY_PARTS = [
+    "knee", "chest", "head", "neck", "throat", "back", "joint", "shoulder", "hip", "ankle",
+    "wrist", "elbow", "stomach", "abdomen", "flank", "groin", "ear", "eye"
+]
+
 def normalize_symptom(symptom_str: str) -> str:
-    """Normalize any natural language symptom string to its canonical key."""
+    """Normalize any natural language symptom string to its canonical controlled key."""
     if not symptom_str:
         return ""
+    if symptom_str in SYMPTOM_SYNONYMS:
+        return symptom_str
+
     cleaned = symptom_str.lower().strip().replace("_", " ").replace("-", " ")
-    for canonical, synonyms in SYMPTOM_SYNONYMS.items():
-        if canonical.replace("_", " ") == cleaned:
-            return canonical
-        for syn in synonyms:
-            if syn == cleaned or f" {syn} " in f" {cleaned} " or cleaned.endswith(f" {syn}") or cleaned.startswith(f"{syn} "):
-                return canonical
     
-    # Check body parts with pain/ache/discomfort
+    # 1. Exact match against canonical name
+    for canonical in SYMPTOM_SYNONYMS.keys():
+        if canonical == symptom_str or canonical.replace("_", " ") == cleaned:
+            return canonical
+
+    # 2. Match against synonyms ordered by length descending (longest / most specific match first)
+    all_syn_pairs = []
+    for canonical, synonyms in SYMPTOM_SYNONYMS.items():
+        for syn in synonyms:
+            all_syn_pairs.append((len(syn), syn, canonical))
+    all_syn_pairs.sort(key=lambda x: x[0], reverse=True)
+
+    for _, syn, canonical in all_syn_pairs:
+        if syn == cleaned:
+            return canonical
+        if f" {syn} " in f" {cleaned} " or cleaned.endswith(f" {syn}") or cleaned.startswith(f"{syn} "):
+            return canonical
+    
+    # 3. Check specific body parts
     for part in COMMON_BODY_PARTS:
-        if part in cleaned and ("pain" in cleaned or "ache" in cleaned or "discomfort" in cleaned or "hurt" in cleaned):
+        if part in cleaned and ("pain" in cleaned or "ache" in cleaned or "discomfort" in cleaned or "hurt" in cleaned or "injury" in cleaned):
             return f"{part}_pain"
 
     return cleaned.replace(" ", "_")
+
 
 def normalize_symptom_list(symptoms: List[str]) -> List[str]:
     """Normalize a list of raw symptom strings, removing duplicates while preserving order."""
@@ -159,43 +258,65 @@ def normalize_symptom_list(symptoms: List[str]) -> List[str]:
     return normalized
 
 def format_symptom_title(symptom_key: str) -> str:
-    """Format canonical symptom key to a clean title for user display."""
+    """Format canonical symptom key to a clean, authoritative clinical title for user display."""
     if not symptom_key:
         return "General Concern"
     
-    # Custom titles for key findings
     custom_titles = {
+        # Urinary & Renal
+        "difficulty_urinating": "Difficulty Urinating",
+        "acute_urinary_retention": "Acute Urinary Retention",
+        "burning_urination": "Burning Urination",
+        "urinary_frequency_urgency": "Urinary Frequency & Urgency",
+        "hematuria": "Blood in Urine",
+        "flank_pain": "Flank Pain",
+        "lower_abdominal_pain": "Lower Abdominal Pain",
+        
+        # Musculoskeletal
         "knee_pain": "Knee Pain",
         "joint_pain": "Joint Pain",
         "inability_to_bear_weight": "Inability to Bear Weight",
-        "joint_deformity": "Joint Deformity / Misalignment",
-        "joint_warmth_redness": "Joint Warmth / Erythema",
-        "knee_locking": "Mechanical Knee Locking / Instability",
-        "trauma_injury": "Acute Trauma / Injury Mechanism",
-        "thunderclap_headache": "Sudden Severe Thunderclap Headache",
-        "facial_droop_weakness": "Acute Focal Neurological Deficit",
+        "joint_deformity": "Joint Deformity",
+        "joint_warmth_redness": "Joint Warmth / Redness",
+        "knee_locking": "Knee Locking",
+        "trauma_injury": "Trauma / Injury",
+        "swelling": "Swelling",
+        "back_pain": "Back Pain",
+        
+        # ENT & Airway
+        "throat_pain": "Throat Pain",
+        "difficulty_swallowing": "Difficulty Swallowing",
+        
+        # Cardiorespiratory
+        "chest_pain": "Chest Pain",
+        "left_arm_radiation": "Left Arm Pain / Radiation",
         "shortness_of_breath": "Shortness of Breath",
-        "left_arm_radiation": "Radiation to Arm / Jaw",
-        "burning_urination": "Dysuria (Burning Urination)",
+        "cough": "Cough",
+        
+        # Neurological
+        "headache": "Headache",
+        "thunderclap_headache": "Sudden Severe Thunderclap Headache",
+        "stiff_neck": "Stiff Neck",
+        "facial_droop_weakness": "Acute Facial Droop / Weakness",
+        
+        # GI & Systemic
+        "abdominal_pain": "Abdominal Pain",
+        "nausea": "Nausea",
+        "vomiting": "Vomiting",
+        "heartburn": "Heartburn / Acid Reflux",
+        "fever": "Fever",
+        "body_aches": "Body Aches",
+        "fatigue": "Fatigue",
+        "dizziness": "Dizziness",
+        "sweating": "Sweating",
+        "general_discomfort": "General Discomfort",
     }
     if symptom_key in custom_titles:
         return custom_titles[symptom_key]
     return symptom_key.replace("_", " ").title()
 
+
 # ─── Dynamic Natural Language Symptom Extractor Across Message History ──────
-
-COMMON_BODY_PARTS = [
-    "knee", "joint", "back", "neck", "shoulder", "elbow", "wrist", "hip", "ankle",
-    "foot", "leg", "arm", "throat", "head", "chest", "stomach", "abdomen", "belly",
-    "ear", "eye", "tooth", "muscle"
-]
-
-# Explicit negation triggers
-NEGATION_PATTERNS = [
-    r"\b(?:no|not|denies|denied|without|never had|don't have|dont have|do not have|no longer|none of|negative for)\b\s+([a-zA-Z\s]{2,30})",
-    r"\b(?:can bear weight|able to walk|can walk|walk fine|walking is fine|no trouble walking)\b",
-    r"\b(?:no swelling|no redness|no fever|no fall|no injury|no trauma|no locking|no chest pain|no breathlessness)\b",
-]
 
 def extract_cumulative_symptoms(
     messages: List[Dict[str, str]],
@@ -204,7 +325,7 @@ def extract_cumulative_symptoms(
     """
     Extracts and accumulates symptoms across ALL user turns in the conversation.
     Tracks positive, negative (explicitly denied), and unknown findings separately.
-    Builds structured Q&A history and captures original complaint in user's own words.
+    Builds structured Q&A history and captures original complaint in user's own words verbatim.
     """
     detected_chronological: List[str] = []
     denied_symptoms: set = set()
@@ -234,26 +355,49 @@ def extract_cumulative_symptoms(
 
             text = content.lower().strip()
 
-            # 1. Check for explicit negations/denials
-            # Specific domain-level denial phrases
-            if re.search(r"\b(?:can bear weight|able to walk|can walk|walk fine|walking is fine)\b", text):
+            # 1. Check for explicit negations/denials across clinical domains
+            # Musculoskeletal denials
+            if re.search(r"\b(?:can bear weight|able to walk|can walk|walk fine|walking is fine|no trouble walking)\b", text):
                 denied_symptoms.add("inability_to_bear_weight")
             if re.search(r"\b(?:no fall|no injury|no trauma|no accident|didn't fall|did not fall|no twist)\b", text):
                 denied_symptoms.add("trauma_injury")
             if re.search(r"\b(?:no swelling|not swollen|no fluid)\b", text):
                 denied_symptoms.add("swelling")
-            if re.search(r"\b(?:no warmth|no redness|not hot|not red|no fever|no high temperature)\b", text):
+            if re.search(r"\b(?:no warmth|no redness|not hot|not red|no joint redness)\b", text):
                 denied_symptoms.add("joint_warmth_redness")
-                denied_symptoms.add("fever")
             if re.search(r"\b(?:no locking|no clicking|doesn't give way|does not lock|bends fine)\b", text):
                 denied_symptoms.add("knee_locking")
             if re.search(r"\b(?:no deformity|looks normal shape|not deformed)\b", text):
                 denied_symptoms.add("joint_deformity")
 
-            # General regex negations
+            # Urinary & Renal denials
+            if re.search(r"\b(?:no blood in urine|no blood|not bloody|no red urine|no hematuria)\b", text):
+                denied_symptoms.add("hematuria")
+            if re.search(r"\b(?:no fever|no chills|no high temperature|temperature is normal|afebrile)\b", text):
+                denied_symptoms.add("fever")
+            if re.search(r"\b(?:no flank pain|no side pain|no kidney pain|no back pain|side doesn't hurt)\b", text):
+                denied_symptoms.add("flank_pain")
+            if re.search(r"\b(?:no burning|doesn't burn|does not burn|no pain when peeing|no dysuria|not burning)\b", text):
+                denied_symptoms.add("burning_urination")
+            if re.search(r"\b(?:can pass urine|able to pee|can urinate|passing urine|not retained|urine comes out)\b", text):
+                denied_symptoms.add("acute_urinary_retention")
+
+            # Neurological & Cardiorespiratory denials
+            if re.search(r"\b(?:no chest pain|chest feels fine|no chest tightness|no heart pain)\b", text):
+                denied_symptoms.add("chest_pain")
+            if re.search(r"\b(?:no radiation|does not spread|no arm pain|no jaw pain)\b", text):
+                denied_symptoms.add("left_arm_radiation")
+            if re.search(r"\b(?:no breathlessness|breathing fine|breathing is normal|no shortness of breath)\b", text):
+                denied_symptoms.add("shortness_of_breath")
+            if re.search(r"\b(?:no neck stiffness|can bend neck|no stiff neck|neck is fine)\b", text):
+                denied_symptoms.add("stiff_neck")
+            if re.search(r"\b(?:can swallow fine|no trouble swallowing|swallowing is normal|no dysphagia)\b", text):
+                denied_symptoms.add("difficulty_swallowing")
+
+            # General regex negations across controlled taxonomy
             for canon, syns in SYMPTOM_SYNONYMS.items():
                 for syn in [canon.replace("_", " ")] + syns:
-                    neg_pattern = rf"\b(?:no|not|denies|denied|without|don't have|dont have|do not have|no longer|never had)\b[^\.\n]*\b{re.escape(syn)}\b"
+                    neg_pattern = rf"\b(?:no|not|denies|denied|without|don't have|dont have|do not have|no longer|never had|none of)\b[^\.\n]*\b{re.escape(syn)}\b"
                     if re.search(neg_pattern, text):
                         denied_symptoms.add(canon)
 
@@ -268,11 +412,12 @@ def extract_cumulative_symptoms(
                             detected_chronological.append(canon)
                         break
 
-            # 3. Dynamic regex matching for body part pains (e.g. "severe pain in my left knee")
+            # 3. Dynamic regex matching for body part complaints
             for part in COMMON_BODY_PARTS:
                 canon_name = f"{part}_pain"
                 if canon_name not in denied_symptoms and canon_name not in detected_chronological:
-                    if part in text and ("pain" in text or "ache" in text or "discomfort" in text or "hurting" in text or "hurts" in text):
+                    part_pattern = rf"(?<!\bno\s)(?<!\bnot\s)(?<!\bdon't\s)(?<!\bdont\s)(?<!\bwithout\s)\b(?:{part}\b[^\.\n,;]{{0,25}}?\b(?:pain|ache|discomfort|hurts|hurt|problem|soreness)|pain\s+in\s+(?:my\s+|the\s+)?{part}|hurting\s+{part})\b"
+                    if re.search(part_pattern, text):
                         detected_chronological.append(canon_name)
 
             # 4. Direct simple phrase extraction
@@ -289,54 +434,79 @@ def extract_cumulative_symptoms(
         for s in llm_symptoms:
             norm = normalize_symptom(s)
             if norm and norm not in denied_symptoms and norm not in detected_chronological:
-                if norm not in ["symptom_1", "symptom_2", "primary_symptom_name", "associated_symptom_name"]:
+                if norm not in ["symptom_1", "symptom_2", "primary_symptom_name", "associated_symptom_name", "general_discomfort"]:
                     detected_chronological.append(norm)
 
     # Filter out any denied symptoms from final positive list
     final_symptoms = [s for s in detected_chronological if s not in denied_symptoms]
 
     if not final_symptoms:
-        final_symptoms = ["general_discomfort"]
+        # If user provided a raw complaint, normalize it or create a clean key from original words
+        if original_complaint:
+            clean_raw_norm = normalize_symptom(original_complaint)
+            final_symptoms = [clean_raw_norm] if clean_raw_norm else ["general_discomfort"]
+        else:
+            final_symptoms = ["general_discomfort"]
 
     primary_key = final_symptoms[0]
     associated_keys = final_symptoms[1:]
 
     # Build positive and negative findings lists
     positive_findings = [format_symptom_title(s) for s in final_symptoms if s != "general_discomfort"]
+    if not positive_findings and original_complaint:
+        positive_findings = [original_complaint.strip().capitalize()]
     negative_findings = [format_symptom_title(s) for s in denied_symptoms]
 
-    # Evaluate unknown / missing triage dimensions for key complaints
+    # Evaluate unknown / missing triage dimensions for safety screening
     unknown_findings = []
     limitations = []
-
     combined_text = " ".join([m.get("content", "") for m in messages if m.get("sender") == "user"]).lower()
 
-    if "knee_pain" in final_symptoms or "joint_pain" in final_symptoms:
-        # Check if weight bearing was addressed
+    # ── Screening completeness for Urinary symptoms ──
+    if any(s in final_symptoms for s in ["difficulty_urinating", "acute_urinary_retention", "burning_urination", "hematuria", "flank_pain"]):
+        if "acute_urinary_retention" not in final_symptoms and "acute_urinary_retention" not in denied_symptoms:
+            if not any(w in combined_text for w in ["cannot urinate", "stopped peeing", "zero urine", "empty bladder", "can pass urine", "able to pee"]):
+                unknown_findings.append("Complete urinary cessation / acute retention screening")
+        if "fever" not in final_symptoms and "fever" not in denied_symptoms:
+            if not any(w in combined_text for w in ["fever", "temperature", "chills"]):
+                unknown_findings.append("Presence of fever or rigors (Systemic urosepsis check)")
+        if "flank_pain" not in final_symptoms and "flank_pain" not in denied_symptoms:
+            if not any(w in combined_text for w in ["flank", "side pain", "kidney pain", "back"]):
+                unknown_findings.append("Flank or upper renal angle pain (Pyelonephritis / stone check)")
+        if "hematuria" not in final_symptoms and "hematuria" not in denied_symptoms:
+            if not any(w in combined_text for w in ["blood", "red urine", "pink urine"]):
+                unknown_findings.append("Macroscopic hematuria (Visible blood in urine)")
+
+    # ── Screening completeness for Knee & Musculoskeletal ──
+    elif "knee_pain" in final_symptoms or "joint_pain" in final_symptoms:
         if "inability_to_bear_weight" not in final_symptoms and "inability_to_bear_weight" not in denied_symptoms:
             if not any(w in combined_text for w in ["walk", "weight", "stand", "step", "bearing"]):
                 unknown_findings.append("Weight-bearing & ambulatory mobility status")
-                limitations.append("Ability to bear weight was not evaluated; Ottawa Knee Rule fracture screening is incomplete.")
-        
-        # Check if trauma mechanism was addressed
+                limitations.append("Ability to bear weight was not confirmed; Ottawa Knee Rule fracture screening is incomplete.")
         if "trauma_injury" not in final_symptoms and "trauma_injury" not in denied_symptoms:
             if not any(w in combined_text for w in ["fall", "injury", "twist", "accident", "sports", "hit", "trauma"]):
                 unknown_findings.append("Trauma / twisting injury mechanism")
-
-        # Check if joint warmth/fever was addressed
         if "fever" not in final_symptoms and "fever" not in denied_symptoms and "joint_warmth_redness" not in final_symptoms and "joint_warmth_redness" not in denied_symptoms:
             if not any(w in combined_text for w in ["fever", "hot", "red", "warmth", "temperature", "warm"]):
-                unknown_findings.append("Presence of fever or hot/erythematous joint (Septic joint screening)")
+                unknown_findings.append("Presence of fever or erythematous/hot joint (Septic joint screening)")
 
+    # ── Screening completeness for Headache ──
     elif "headache" in final_symptoms:
         if "stiff_neck" not in final_symptoms and "stiff_neck" not in denied_symptoms and "fever" not in final_symptoms and "fever" not in denied_symptoms:
             if not any(w in combined_text for w in ["neck", "stiff", "fever", "temperature"]):
                 unknown_findings.append("Neck stiffness & high fever (Meningeal irritation signs)")
 
+    # ── Screening completeness for Chest Pain ──
     elif "chest_pain" in final_symptoms:
         if "shortness_of_breath" not in final_symptoms and "shortness_of_breath" not in denied_symptoms:
             if not any(w in combined_text for w in ["breathe", "breath", "dyspnea"]):
                 unknown_findings.append("Shortness of breath / respiratory distress")
+
+    # ── Screening completeness for Throat Pain ──
+    elif "throat_pain" in final_symptoms:
+        if "difficulty_swallowing" not in final_symptoms and "difficulty_swallowing" not in denied_symptoms:
+            if not any(w in combined_text for w in ["swallow", "fluids", "saliva", "dysphagia"]):
+                unknown_findings.append("Ability to swallow fluids and manage oral secretions")
 
     return {
         "primary_symptom": format_symptom_title(primary_key),
@@ -355,7 +525,45 @@ def extract_cumulative_symptoms(
 # ─── Clinical Disease Rule Definitions ───────────────────────────────────────
 
 DISEASE_RULES: List[Dict[str, Any]] = [
-    # ── Emergency Rules ──
+    # ══════════════════════════════════════════════════════════════════════════
+    # ── 1. EMERGENCY RULES (Immediate Escalation Required) ────────────────────
+    # ══════════════════════════════════════════════════════════════════════════
+    {
+        "disease": "Acute Urinary Retention (Suspected Bladder Outlet Obstruction)",
+        "required_symptoms": ["acute_urinary_retention"],
+        "supporting_symptoms": [
+            "lower_abdominal_pain", "difficulty_urinating", "hematuria"
+        ],
+        "base_confidence": 0.85,
+        "max_confidence": 0.98,
+        "urgency_tier": "EMERGENCY",
+        "emergency_flag": True,
+        "specialist": "Urologist (Emergency)",
+        "specialist_code": "UROLOGY",
+        "explanation": (
+            "Complete inability to pass urine with painful bladder distension is an acute urological emergency. "
+            "Prompt catheterization and decompression are required to avoid bladder damage and post-renal acute kidney injury."
+        ),
+        "recommended_action": "Seek immediate emergency department care or urological urgent evaluation for bladder decompression."
+    },
+    {
+        "disease": "Acute Pyelonephritis / Urosepsis (Suspected Complicated Upper UTI)",
+        "required_symptoms": ["fever", "flank_pain"],
+        "supporting_symptoms": [
+            "burning_urination", "difficulty_urinating", "hematuria", "nausea", "vomiting"
+        ],
+        "base_confidence": 0.75,
+        "max_confidence": 0.96,
+        "urgency_tier": "EMERGENCY",
+        "emergency_flag": True,
+        "specialist": "Urologist / Nephrologist (Emergency)",
+        "specialist_code": "UROLOGY",
+        "explanation": (
+            "Urinary tract symptoms accompanied by high fever, rigors, and flank tenderness indicate acute kidney infection "
+            "(pyelonephritis) with potential risk of systemic urosepsis."
+        ),
+        "recommended_action": "Proceed to the nearest emergency medical department for intravenous antibiotics, blood cultures, and renal imaging."
+    },
     {
         "disease": "Acute Coronary Syndrome (Suspected Cardiac Event)",
         "required_symptoms": ["chest_pain"],
@@ -427,8 +635,80 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         ),
         "recommended_action": "Seek emergency medical department evaluation immediately."
     },
+    {
+        "disease": "Acute Severe Neurological Headache (Thunderclap Pattern)",
+        "required_symptoms": ["thunderclap_headache"],
+        "supporting_symptoms": [
+            "stiff_neck", "vomiting", "dizziness", "facial_droop_weakness"
+        ],
+        "base_confidence": 0.80,
+        "max_confidence": 0.98,
+        "urgency_tier": "EMERGENCY",
+        "emergency_flag": True,
+        "specialist": "Neurologist (Emergency)",
+        "specialist_code": "NEUROLOGY",
+        "explanation": (
+            "Sudden explosive thunderclap headache reaching maximum severity in seconds requires immediate non-contrast CT "
+            "and vascular imaging to exclude subarachnoid hemorrhage or intracranial vascular catastrophe."
+        ),
+        "recommended_action": "Proceed to the nearest emergency department equipped for urgent neurological neuroimaging immediately."
+    },
 
-    # ── Urgent Rules ──
+    # ══════════════════════════════════════════════════════════════════════════
+    # ── 2. URGENT RULES (Prompt Specialist Evaluation Needed) ─────────────────
+    # ══════════════════════════════════════════════════════════════════════════
+    {
+        "disease": "Severe Lower Urinary Tract Symptoms / Bladder Outlet Obstruction (LUTS)",
+        "required_symptoms": ["difficulty_urinating"],
+        "supporting_symptoms": [
+            "lower_abdominal_pain", "burning_urination", "urinary_frequency_urgency", "hematuria"
+        ],
+        "base_confidence": 0.65,
+        "max_confidence": 0.92,
+        "urgency_tier": "URGENT",
+        "emergency_flag": False,
+        "specialist": "Urologist",
+        "specialist_code": "UROLOGY",
+        "explanation": (
+            "Persistent difficulty, straining, or severe hesitancy in passing urine indicates significant lower urinary tract "
+            "obstruction (e.g. prostatic enlargement, urethral stricture, or detrusor decompensation). Urgent specialist evaluation is required."
+        ),
+        "recommended_action": "Consult a urologist promptly for ultrasound post-void residual volume, uroflowmetry, and clinical assessment."
+    },
+    {
+        "disease": "Renal Colic / Nephrolithiasis (Suspected Kidney / Ureteral Calculus)",
+        "required_symptoms": ["flank_pain"],
+        "supporting_symptoms": [
+            "hematuria", "burning_urination", "nausea", "vomiting", "difficulty_urinating"
+        ],
+        "base_confidence": 0.65,
+        "max_confidence": 0.93,
+        "urgency_tier": "URGENT",
+        "emergency_flag": False,
+        "specialist": "Urologist / Nephrologist",
+        "specialist_code": "UROLOGY",
+        "explanation": (
+            "Acute severe unilateral flank/side pain with urinary symptoms or hematuria is consistent with an obstructing calculus in the renal tract."
+        ),
+        "recommended_action": "Obtain urgent urological consultation and non-contrast CT KUB or renal ultrasound today."
+    },
+    {
+        "disease": "Hematuria Syndrome (Macroscopic Blood in Urine)",
+        "required_symptoms": ["hematuria"],
+        "supporting_symptoms": [
+            "difficulty_urinating", "burning_urination", "flank_pain", "lower_abdominal_pain"
+        ],
+        "base_confidence": 0.70,
+        "max_confidence": 0.94,
+        "urgency_tier": "URGENT",
+        "emergency_flag": False,
+        "specialist": "Urologist",
+        "specialist_code": "UROLOGY",
+        "explanation": (
+            "Visible blood in the urine requires structured urological diagnostic workup including cystoscopy and upper tract imaging."
+        ),
+        "recommended_action": "Schedule an urgent urological consultation within 24 to 48 hours."
+    },
     {
         "disease": "Acute Traumatic Knee Injury (Suspected Fracture / Ligament Rupture)",
         "required_symptoms": ["knee_pain", "inability_to_bear_weight"],
@@ -481,8 +761,45 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         ),
         "recommended_action": "Schedule a clinical evaluation, chest auscultation, and radiography today."
     },
+    {
+        "disease": "Severe Tonsillopharyngitis / Peritonsillar Infection (Suspected)",
+        "required_symptoms": ["throat_pain", "difficulty_swallowing"],
+        "supporting_symptoms": [
+            "fever", "body_aches", "fatigue", "headache"
+        ],
+        "base_confidence": 0.65,
+        "max_confidence": 0.92,
+        "urgency_tier": "URGENT",
+        "emergency_flag": False,
+        "specialist": "ENT Specialist",
+        "specialist_code": "ENT",
+        "explanation": (
+            "Severe throat pain with difficulty swallowing liquids or oral secretions requires prompt ENT examination "
+            "to assess for peritonsillar abscess, deep neck space infection, or epiglottitis."
+        ),
+        "recommended_action": "Seek urgent outpatient ENT evaluation today. If breathing difficulty develops, seek emergency care immediately."
+    },
 
-    # ── Non-Urgent Rules ──
+    # ══════════════════════════════════════════════════════════════════════════
+    # ── 3. NON-URGENT RULES (Standard Outpatient Care) ────────────────────────
+    # ══════════════════════════════════════════════════════════════════════════
+    {
+        "disease": "Urinary Tract Infection (Uncomplicated Acute Cystitis)",
+        "required_symptoms": ["burning_urination"],
+        "supporting_symptoms": [
+            "urinary_frequency_urgency", "lower_abdominal_pain", "fatigue"
+        ],
+        "base_confidence": 0.55,
+        "max_confidence": 0.90,
+        "urgency_tier": "NON_URGENT",
+        "emergency_flag": False,
+        "specialist": "Urologist / General Physician",
+        "specialist_code": "UROLOGY",
+        "explanation": (
+            "Dysuria and urinary frequency without fever, flank pain, or acute retention indicate uncomplicated lower urinary tract infection (cystitis)."
+        ),
+        "recommended_action": "Provide a clean-catch urine sample for urinalysis and culture at an outpatient clinic for targeted antimicrobial management."
+    },
     {
         "disease": "Acute Pharyngitis / Upper Respiratory Tract Infection",
         "required_symptoms": ["throat_pain"],
@@ -496,9 +813,9 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "specialist": "ENT Specialist / General Physician",
         "specialist_code": "ENT",
         "explanation": (
-            "Throat discomfort accompanied by systemic signs such as body aches or nausea is characteristic of acute pharyngitis or upper respiratory tract infection."
+            "Throat discomfort accompanied by systemic signs such as body aches or mild fever is characteristic of acute pharyngitis."
         ),
-        "recommended_action": "Maintain warm saline gargles, adequate hydration, and schedule an outpatient consultation with a general physician or ENT specialist."
+        "recommended_action": "Maintain warm saline gargles, adequate hydration, and schedule an outpatient consultation with an ENT doctor or GP."
     },
     {
         "disease": "Acute Bronchitis / Respiratory Infection",
@@ -569,25 +886,10 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         ),
         "recommended_action": "Schedule an outpatient consultation with a gastroenterologist or general physician."
     },
-    {
-        "disease": "Urinary Tract Infection (UTI)",
-        "required_symptoms": ["burning_urination"],
-        "supporting_symptoms": [
-            "abdominal_pain", "fever", "fatigue"
-        ],
-        "base_confidence": 0.55,
-        "max_confidence": 0.90,
-        "urgency_tier": "NON_URGENT",
-        "emergency_flag": False,
-        "specialist": "Urologist / General Physician",
-        "specialist_code": "UROLOGY",
-        "explanation": (
-            "Dysuria and urinary discomfort indicate urinary tract irritation or bacterial cystitis."
-        ),
-        "recommended_action": "Provide a clean-catch urine sample for urinalysis at your local clinic."
-    },
 
-    # ── Routine Rules ──
+    # ══════════════════════════════════════════════════════════════════════════
+    # ── 4. ROUTINE RULES (Self-Care & Routine Primary Care) ───────────────────
+    # ══════════════════════════════════════════════════════════════════════════
     {
         "disease": "Musculoskeletal Strain / Joint & Ligament Evaluation",
         "required_symptoms": ["knee_pain", "joint_pain", "back_pain"],
@@ -639,8 +941,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "explanation": (
             "Bilateral band-like pressure without visual changes or neurological deficits is typical of tension headache."
         ),
-        "recommended_action": "Engage in stress reduction, regular hydration, and routine primary care follow-up if needed."
-    },
+    }
 ]
 
 
@@ -783,6 +1084,7 @@ def predict_disease(
         "differential": differential,
         "triggered_rules": top_triggered,
         "severity": urgency_tier.lower(),
+        "urgency_tier": urgency_tier,
         "urgency_level": urgency_tier,
         "emergency_flag": emergency_flag,
         "specialist": specialist_name,
@@ -833,6 +1135,7 @@ def _no_match_result(
         "differential": [],
         "triggered_rules": triggered,
         "severity": "routine",
+        "urgency_tier": "ROUTINE",
         "urgency_level": "ROUTINE",
         "emergency_flag": False,
         "specialist": "General Physician",
