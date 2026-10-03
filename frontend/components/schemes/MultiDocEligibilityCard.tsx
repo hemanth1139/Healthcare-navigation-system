@@ -36,7 +36,7 @@ import {
 interface MultiDocEligibilityCardProps {
   result: MultiDocEligibilityResult;
   /** Called when user submits answers in the interactive interview. Pass this from the parent page. */
-  onContinue?: (queryId: string, additionalInfo: Record<string, any>) => Promise<void>;
+  onContinue?: (queryId: string, additionalInfo: Record<string, string>) => Promise<void>;
 }
 
 const OVERALL_STATUS_CONFIG: Record<
@@ -205,18 +205,29 @@ const renderFormattedText = (text: string) => {
 };
 
 // ─── CriterionRow ─────────────────────────────────────────────────────────────
+type FlexCriterion = EligibilityCriterion & {
+  criterionId?: string;
+  criterionResult?: CriterionResult;
+  criterionName?: string;
+  patientValue?: string;
+  requiredValue?: string;
+  isMissingInfo?: boolean;
+  supportingEvidence?: EvidenceSource[];
+};
+
 const CriterionRow: React.FC<{ criterion: EligibilityCriterion }> = ({ criterion }) => {
   if (!criterion) return null;
   const [expanded, setExpanded] = useState(false);
-  const criterionResult = (criterion.criterion_result || (criterion as any).criterionResult || "UNKNOWN") as CriterionResult;
+  const flex = criterion as FlexCriterion;
+  const criterionResult = (criterion.criterion_result || flex.criterionResult || "UNKNOWN") as CriterionResult;
   const cfg = CRITERION_CONFIG[criterionResult] || CRITERION_CONFIG.UNKNOWN;
-  const criterionName = criterion.criterion_name || (criterion as any).criterionName || "Criterion";
-  const patientValue = criterion.patient_value || (criterion as any).patientValue;
-  const requiredValue = criterion.required_value || (criterion as any).requiredValue;
-  const isMissingInfo = criterion.is_missing_info || (criterion as any).isMissingInfo;
-  const rawEvidence = criterion.supporting_evidence || (criterion as any).supportingEvidence || [];
+  const criterionName = criterion.criterion_name || flex.criterionName || "Criterion";
+  const patientValue = criterion.patient_value || flex.patientValue;
+  const requiredValue = criterion.required_value || flex.requiredValue;
+  const isMissingInfo = criterion.is_missing_info || flex.isMissingInfo;
+  const rawEvidence = criterion.supporting_evidence || flex.supportingEvidence || [];
   const supportingEvidence: EvidenceSource[] = Array.isArray(rawEvidence) ? rawEvidence : [];
-  const sourceAttr = criterion.source || (criterion as any).source;
+  const sourceAttr = criterion.source;
   const srcBadge = sourceAttr && SOURCE_BADGES[sourceAttr] ? SOURCE_BADGES[sourceAttr] : null;
 
   return (
@@ -279,11 +290,13 @@ const CriterionRow: React.FC<{ criterion: EligibilityCriterion }> = ({ criterion
                 Evidence Sources
               </p>
               {supportingEvidence.map((src, idx) => {
-                const docTitle = src.document_title || (src as any).documentTitle || "Scheme Document";
-                const pageNum = src.page_number || (src as any).pageNumber;
-                const officialUrl = src.official_url || (src as any).officialUrl || "https://pmjay.gov.in";
-                const relScore = src.relevance_score || (src as any).relevanceScore;
-                const chunkId = src.chunk_id || (src as any).chunkId || `chk_${idx}`;
+                type FlexEvidence = EvidenceSource & { documentTitle?: string; pageNumber?: number; officialUrl?: string; relevanceScore?: number; chunkId?: string; };
+                const fsrc = src as FlexEvidence;
+                const docTitle = src.document_title || fsrc.documentTitle || "Scheme Document";
+                const pageNum = src.page_number || fsrc.pageNumber;
+                const officialUrl = src.official_url || fsrc.officialUrl || "https://pmjay.gov.in";
+                const relScore = src.relevance_score || fsrc.relevanceScore;
+                const chunkId = src.chunk_id || fsrc.chunkId || `chk_${idx}`;
                 return (
                   <div key={chunkId} className="bg-white/70 border border-slate-200 rounded-lg p-2.5">
                     <div className="flex items-center justify-between gap-2 mb-1">
@@ -329,14 +342,15 @@ const CriterionRow: React.FC<{ criterion: EligibilityCriterion }> = ({ criterion
 const InterviewAnswerPanel: React.FC<{
   questions: MissingCriterionItem[];
   queryId: string;
-  onSubmit: (queryId: string, additionalInfo: Record<string, any>) => Promise<void>;
+  onSubmit: (queryId: string, additionalInfo: Record<string, string>) => Promise<void>;
 }> = ({ questions, queryId, onSubmit }) => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getQuestionKey = (q: any, idx: number): string => {
-    return q?.field_key || q?.fieldKey || q?.criterion_id || q?.criterionId || `question_${idx}`;
+  const getQuestionKey = (q: MissingCriterionItem, idx: number): string => {
+    const fq = q as MissingCriterionItem & { field_key?: string; fieldKey?: string; criterionId?: string };
+    return fq?.field_key || fq?.fieldKey || fq?.criterion_id || fq?.criterionId || `question_${idx}`;
   };
 
   const allAnswered = questions.every((q, idx) => {
@@ -406,7 +420,7 @@ const InterviewAnswerPanel: React.FC<{
       )}
 
       <div className="flex flex-col gap-3">
-        {questions.map((q: any, idx: number) => {
+        {questions.map((q: MissingCriterionItem, idx: number) => {
           const key = getQuestionKey(q, idx);
           const inputType = (q.input_type || q.inputType || "TEXT")?.toUpperCase();
           const currentVal = answers[key] ?? "";
@@ -505,34 +519,46 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
 }) => {
   if (!result) return null;
 
-  const rawStatus = result.overall_status || (result as any).overallStatus || "INSUFFICIENT_INFORMATION";
+  type FlexResult = MultiDocEligibilityResult & {
+    overallStatus?: EligibilityStatus;
+    criteriaBreakdown?: EligibilityCriterion[];
+    allEvidenceSources?: EvidenceSource[];
+    structuredMissingCriteria?: MissingCriterionItem[];
+    interviewState?: string;
+    queryId?: string;
+    queryType?: string;
+    overallExplanation?: string;
+  };
+  const flexResult = result as FlexResult;
+
+  const rawStatus = result.overall_status || flexResult.overallStatus || "INSUFFICIENT_INFORMATION";
   const status = rawStatus as EligibilityStatus;
   const cfg = OVERALL_STATUS_CONFIG[status] || OVERALL_STATUS_CONFIG.INSUFFICIENT_INFORMATION;
 
-  const rawCriteria = result.criteria_breakdown || (result as any).criteriaBreakdown || [];
+  const rawCriteria = result.criteria_breakdown || flexResult.criteriaBreakdown || [];
   const criteriaBreakdown: EligibilityCriterion[] = Array.isArray(rawCriteria) ? rawCriteria : [];
 
-  const rawEvidence = result.all_evidence_sources || (result as any).allEvidenceSources || [];
+  const rawEvidence = result.all_evidence_sources || flexResult.allEvidenceSources || [];
   const evidenceSources: EvidenceSource[] = Array.isArray(rawEvidence) ? rawEvidence : [];
 
-  const rawMissing = result.structured_missing_criteria || (result as any).structuredMissingCriteria || [];
+  const rawMissing = result.structured_missing_criteria || flexResult.structuredMissingCriteria || [];
   const structuredMissingCriteria: MissingCriterionItem[] = Array.isArray(rawMissing) ? rawMissing : [];
 
-  const interviewState = result.interview_state || (result as any).interviewState;
-  const queryId = result.query_id || (result as any).queryId || "";
-  const progress = result.progress || (result as any).progress;
+  const interviewState = result.interview_state || flexResult.interviewState;
+  const queryId = result.query_id || flexResult.queryId || "";
+  const progress = result.progress;
 
   const needsInterview =
     (interviewState === "QUESTIONS_REQUIRED" || interviewState === "PROFILE_DATA_REQUIRED" || status === "PROFILE_DATA_REQUIRED") &&
     structuredMissingCriteria.length > 0 &&
     !!onContinue;
 
-  const passCount = criteriaBreakdown.filter((c) => (c?.criterion_result || (c as any)?.criterionResult) === "PASS").length;
-  const failCount = criteriaBreakdown.filter((c) => (c?.criterion_result || (c as any)?.criterionResult) === "FAIL").length;
-  const unknownCount = criteriaBreakdown.filter((c) => (c?.criterion_result || (c as any)?.criterionResult) === "UNKNOWN").length;
-  const notRequiredCount = criteriaBreakdown.filter((c) => (c?.criterion_result || (c as any)?.criterionResult) === "NOT_REQUIRED").length;
+  const passCount = criteriaBreakdown.filter((c) => ((c as FlexCriterion)?.criterion_result || (c as FlexCriterion)?.criterionResult) === "PASS").length;
+  const failCount = criteriaBreakdown.filter((c) => ((c as FlexCriterion)?.criterion_result || (c as FlexCriterion)?.criterionResult) === "FAIL").length;
+  const unknownCount = criteriaBreakdown.filter((c) => ((c as FlexCriterion)?.criterion_result || (c as FlexCriterion)?.criterionResult) === "UNKNOWN").length;
+  const notRequiredCount = criteriaBreakdown.filter((c) => ((c as FlexCriterion)?.criterion_result || (c as FlexCriterion)?.criterionResult) === "NOT_REQUIRED").length;
 
-  const queryType = result.query_type || (result as any).queryType || "PERSONAL_ELIGIBILITY";
+  const queryType = result.query_type || flexResult.queryType || "PERSONAL_ELIGIBILITY";
   const breakdownTitle =
     queryType === "COVERAGE" || queryType === "COVERAGE_QUERY"
       ? "Coverage & Package Inclusions Breakdown"
@@ -549,7 +575,7 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
       ? Math.round((passCount / (passCount + failCount + unknownCount)) * 100)
       : null;
 
-  const explanationText = result.overall_explanation || (result as any).overallExplanation || "";
+  const explanationText = result.overall_explanation || flexResult.overallExplanation || "";
 
   return (
     <Card className={`border-2 ${cfg.border} ${cfg.bg} p-5 flex flex-col gap-4`}>
@@ -684,7 +710,7 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
       </div>
 
       {/* Eligible Schemes Grid (for MULTI_SCHEME queries) */}
-      {(queryType === "MULTI_SCHEME_ELIGIBILITY_QUERY" || (evidenceSources.length > 0 && evidenceSources.some((e: any) => e.scheme_id))) && (
+      {(queryType === "MULTI_SCHEME_ELIGIBILITY_QUERY" || (evidenceSources.length > 0 && evidenceSources.some((e) => e.scheme_id))) && (
         <div className="flex flex-col gap-3 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -696,14 +722,28 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {evidenceSources.map((source: any, idx: number) => {
-              const sId = String(source.scheme_id || source.schemeId || `s_${idx}`);
-              const sName = source.scheme_name || source.schemeName || source.document_title || source.documentTitle || "Healthcare Scheme";
-              const sGov = String(source.government_level || source.governmentLevel || (sId.includes("TN") ? "Tamil Nadu" : "Central Government"));
-              const sMatch = source.match_percentage ?? source.matchPercentage ?? (source.relevance_score ? Math.round(source.relevance_score * 100) : 100);
-              const sRelevance = source.relevance_score ?? source.relevanceScore ?? sMatch;
-              const sCoverage = source.coverage_amount || source.coverageAmount || "Per official guidelines";
-              const sUrl = source.official_url || source.officialUrl;
+            {evidenceSources.map((source, idx) => {
+              type FlexSource = EvidenceSource & {
+                schemeId?: string;
+                schemeName?: string;
+                documentTitle?: string;
+                relevanceScore?: number;
+                governmentLevel?: string;
+                government_level?: string;
+                matchPercentage?: number;
+                match_percentage?: number;
+                coverageAmount?: string;
+                coverage_amount?: string;
+                officialUrl?: string;
+              };
+              const fsource = source as FlexSource;
+              const sId = String(source.scheme_id || fsource.schemeId || `s_${idx}`);
+              const sName = source.scheme_name || fsource.schemeName || source.document_title || fsource.documentTitle || "Healthcare Scheme";
+              const sGov = String(source.government_level || fsource.governmentLevel || (sId.includes("TN") ? "Tamil Nadu" : "Central Government"));
+              const sMatch = source.match_percentage ?? fsource.matchPercentage ?? (source.relevance_score ? Math.round(source.relevance_score * 100) : 100);
+              const sRelevance = source.relevance_score ?? fsource.relevanceScore ?? sMatch;
+              const sCoverage = source.coverage_amount || fsource.coverageAmount || "Per official guidelines";
+              const sUrl = source.official_url || fsource.officialUrl;
 
               return (
                 <div
@@ -791,8 +831,8 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
             <div>
               <p className="font-semibold mb-1">Please provide the following to complete your assessment:</p>
               <ul className="list-disc list-inside space-y-0.5">
-                {structuredMissingCriteria.map((q: any, idx: number) => (
-                  <li key={q.criterion_id || q.criterionId || idx}>{q.label || q.question}</li>
+                {structuredMissingCriteria.map((q: MissingCriterionItem, idx: number) => (
+                  <li key={q.criterion_id || (q as MissingCriterionItem & { criterionId?: string }).criterionId || idx}>{q.label || q.question}</li>
                 ))}
               </ul>
             </div>
@@ -807,7 +847,7 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
           </p>
           {criteriaBreakdown.map((criterion, idx) => (
             <CriterionRow
-              key={criterion?.criterion_id || (criterion as any)?.criterionId || `cr_${idx}`}
+              key={criterion?.criterion_id || (criterion as FlexCriterion)?.criterionId || `cr_${idx}`}
               criterion={criterion}
             />
           ))}

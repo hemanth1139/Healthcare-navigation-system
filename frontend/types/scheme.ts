@@ -95,7 +95,7 @@ export interface MultiDocEligibilityResult {
   missingRequiredFields?: string[];
   profile_completion_status?: "complete" | "incomplete" | string;
   profileCompletionStatus?: string;
-  schemes?: any[];
+  schemes?: GovernmentScheme[] | Record<string, unknown>[];
   queried_at: string;              // ISO timestamp
 }
 
@@ -152,6 +152,6 @@ export interface SchemeQuery {
   missingRequiredFields?: string[];
   profile_completion_status?: string;
   profileCompletionStatus?: string;
-  schemes?: any[];
+  schemes?: GovernmentScheme[] | Record<string, unknown>[];
   created_at?: string;
 }
