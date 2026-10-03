@@ -89,6 +89,13 @@ export interface MultiDocEligibilityResult {
   missing_information?: string[];  // List of missing patient data fields needed
   structured_missing_criteria?: MissingCriterionItem[];
   all_evidence_sources: EvidenceSource[];
+  profile_complete?: boolean;
+  profileComplete?: boolean;
+  missing_required_fields?: string[];
+  missingRequiredFields?: string[];
+  profile_completion_status?: "complete" | "incomplete" | string;
+  profileCompletionStatus?: string;
+  schemes?: any[];
   queried_at: string;              // ISO timestamp
 }
 
@@ -103,6 +110,9 @@ export interface GovernmentScheme {
   eligibility: string;
   benefits: string;
   official_url: string;
+  portal_url?: string;
+  guidelines_url?: string;
+  verification_status?: string;
   last_updated: string;
   eligibility_criteria?: {
     income_limit_per_annum_inr?: string;
@@ -136,5 +146,12 @@ export interface SchemeQuery {
   is_low_confidence?: boolean;
   follow_up_suggestions?: string[]; // Follow-up questions based on query type
   eligibility_result?: MultiDocEligibilityResult; // Phase 1: full decomposed result
+  profile_complete?: boolean;
+  profileComplete?: boolean;
+  missing_required_fields?: string[];
+  missingRequiredFields?: string[];
+  profile_completion_status?: string;
+  profileCompletionStatus?: string;
+  schemes?: any[];
   created_at?: string;
 }

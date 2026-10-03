@@ -59,13 +59,21 @@ class HospitalOut(BaseModel):
         lng = float(data["longitude"])
         maps_url = data.get("google_maps_url") or f"https://www.google.com/maps/dir/?api=1&destination={lat},{lng}"
 
+        est_time = data.get("estimated_time")
+        if not est_time or est_time == "5 mins drive":
+            if "duration_minutes" in data and data["duration_minutes"] is not None:
+                from app.utils.maps import format_travel_time
+                est_time = format_travel_time(float(data["duration_minutes"]))
+            else:
+                est_time = "Travel time unavailable"
+
         return cls(
             hospital_id=hospital_id,
             google_place_id=data["google_place_id"],
             hospital_name=data["hospital_name"],
             address=data.get("address", ""),
-            city=data.get("city", ""),
-            state=data.get("state", ""),
+            city=data.get("city", "") or "Chennai",
+            state=data.get("state") or "Tamil Nadu",
             latitude=lat,
             longitude=lng,
             phone=data.get("phone", ""),
@@ -76,7 +84,7 @@ class HospitalOut(BaseModel):
             has_emergency_room=data.get("has_emergency_room", True),
             rating=float(data["rating"]) if data.get("rating") else None,
             distance_km=float(data.get("distance_km", 0.0)),
-            estimated_time=str(data.get("estimated_time", "5 mins drive")),
+            estimated_time=str(est_time),
             opening_hours=data.get("opening_hours"),
             beds=data.get("beds")
         )

@@ -491,7 +491,7 @@ def _filter_schemes_by_basic_criteria(
 
 MULTI_SCHEME_PATTERNS = [
     r'\bwhat\s+(?:government\s+|healthcare\s+|medical\s+)?schemes?\s+(?:am\s+i|are\s+we|can\s+i|could\s+i|do\s+i)\s+(?:eligible\s+for|qualify\s+for|apply\s+for|get)\b',
-    r'\bwhich\s+(?:government\s+|healthcare\s+|medical\s+)?schemes?\s+(?:can\s+i|could\s+i|am\s+i|are\s+available|apply|do\s+i)\b',
+    r'\bwhich\s+(?:government\s+|healthcare\s+|medical\s+)?schemes?\s+(?:can\s+i|could\s+i|am\s+i|are\s+available|apply|do\s+i|may\s+i\s+qualify)\b',
     r'\bfind\s+(?:all\s+)?(?:government\s+|healthcare\s+|medical\s+)?schemes?\s+(?:for\s+me|for\s+my\s+family|available)\b',
     r'\bwhat\s+(?:government\s+|healthcare\s+|medical\s+)?schemes?\s+are\s+available\b',
     r'\bshow\s+(?:me\s+)?(?:all\s+)?schemes?\s+(?:i\s+qualify\s+for|i\s+am\s+eligible\s+for|available)\b',
@@ -504,6 +504,11 @@ MULTI_SCHEME_PATTERNS = [
     r'\bsearch\s+(?:for\s+)?(?:healthcare|medical)\s+schemes?\b',
     r'\beligible\s+schemes?\b',
     r'\bapply\s+for\s+(?:healthcare|medical)\s+schemes?\b',
+    # Thematic multi-scheme query patterns
+    r'\b(?:what|which|list|show|available)\s+(?:maternity|pregnancy|pregnant|maternal|mother)\s+(?:benefits?|schemes?|support|assistance)\b',
+    r'\b(?:what|which|list|show)\s+(?:healthcare|medical|government)\s+schemes?\s+(?:are\s+available\s+in\s+tamil\s+nadu|in\s+tamil\s+nadu|in\s+tn)\b',
+    r'\b(?:what|which|list|show)\s+schemes?\s+(?:can\s+help\s+with|for)\s+(?:hospital\s+expenses|hospitalization|hospital\s+bills|surgery\s+expenses|medical\s+expenses)\b',
+    r'\b(?:what|which|list|show)\s+(?:senior|elderly|geriatric|disability|disabled)\s+schemes?\b',
 ]
 
 
@@ -742,6 +747,8 @@ def resolve_scheme_context(
     1. If scoped_scheme_id is provided, match that exact scheme from known schemes / vectorstore.
     2. Otherwise, scan query_text for explicit scheme names, acronyms, or keywords.
     3. If query mentions an unsupported state scheme, flag it without silently switching to PM-JAY.
+    4. Handle thematic query resolution (maternity, Tamil Nadu, elderly, disability, hospitalization).
+    5. If query is entirely unrecognized / unrelated to healthcare schemes, return UNRECOGNIZED_SCHEME.
     """
     q_low = (query_text or "").lower()
 
@@ -766,7 +773,6 @@ def resolve_scheme_context(
         return "SCHEME_NOT_SUPPORTED", "Unsupported State Healthcare Scheme", "https://pmjay.gov.in"
 
     # 3. Match in query text against all 20 schemes (order by longest specific alias first)
-    # Check specific sub-schemes / state schemes before generic PM-JAY
     priority_order = [
         "scheme_C02", "scheme_TN02", "scheme_TN03", "scheme_TN04", "scheme_TN05",
         "scheme_TN06", "scheme_TN07", "scheme_TN08", "scheme_TN09", "scheme_C03",
@@ -780,9 +786,33 @@ def resolve_scheme_context(
             if alias in q_low:
                 return scheme_info["id"], scheme_info["name"], scheme_info["url"]
 
-    # 4. Default fallback: Ayushman Bharat PM-JAY
-    default_s = ALL_SCHEMES_MAP["scheme_C01"]
-    return default_s["id"], default_s["name"], default_s["url"]
+    # 4. Thematic keyword routing when no explicit scheme name is mentioned
+    if any(w in q_low for w in ["maternity", "pregnant", "pregnancy", "lactating", "delivery", "antenatal"]):
+        s = ALL_SCHEMES_MAP["scheme_TN02"] if "tamil" in q_low or "tn" in q_low else ALL_SCHEMES_MAP["scheme_C07"]
+        return s["id"], s["name"], s["url"]
+
+    if any(w in q_low for w in ["elderly", "senior", "geriatric", "old age"]):
+        s = ALL_SCHEMES_MAP["scheme_TN07"] if "tamil" in q_low or "tn" in q_low else ALL_SCHEMES_MAP["scheme_C02"]
+        return s["id"], s["name"], s["url"]
+
+    if any(w in q_low for w in ["disability", "disabled", "handicap", "autism", "cerebral palsy", "udid"]):
+        s = ALL_SCHEMES_MAP["scheme_C05"]
+        return s["id"], s["name"], s["url"]
+
+    if any(w in q_low for w in ["accident", "road accident", "trauma", "emergency trauma", "48 hours", "innuyir"]):
+        s = ALL_SCHEMES_MAP["scheme_TN05"]
+        return s["id"], s["name"], s["url"]
+
+    if any(w in q_low for w in ["tamil nadu", "tamilnadu", "chennai", "state scheme"]):
+        s = ALL_SCHEMES_MAP["scheme_TN01"]
+        return s["id"], s["name"], s["url"]
+
+    if any(w in q_low for w in ["hospital expenses", "hospitalization", "hospital bill", "cashless", "insurance", "ayushman", "health cover", "surgery cover"]):
+        s = ALL_SCHEMES_MAP["scheme_C01"]
+        return s["id"], s["name"], s["url"]
+
+    # 5. Non-healthcare / unrecognized query -> explicit unrecognized marker
+    return "UNRECOGNIZED_SCHEME", "Unrecognized Healthcare Scheme", ""
 
 
 def _evaluate_scheme_criteria(
@@ -995,6 +1025,10 @@ class RAGPipeline:
                     "retrieved_chunks": [],
                     "confidence_score": 1.0,
                     "is_low_confidence": False,
+                    "profile_complete": False,
+                    "missing_required_fields": missing_labels,
+                    "profile_completion_status": "incomplete",
+                    "schemes": [],
                     "eligibility_result": {
                         "query_id": query_id_str,
                         "scheme_id": None,
@@ -1010,6 +1044,10 @@ class RAGPipeline:
                         "missing_information": missing_labels,
                         "structured_missing_criteria": missing_intake,
                         "all_evidence_sources": [],
+                        "profile_complete": False,
+                        "missing_required_fields": missing_labels,
+                        "profile_completion_status": "incomplete",
+                        "schemes": [],
                         "queried_at": now_iso,
                     }
                 }
@@ -1185,6 +1223,10 @@ class RAGPipeline:
                 "confidence_score": 0.95,
                 "is_low_confidence": False,
                 "follow_up_suggestions": generate_follow_up_suggestions("MULTI_SCHEME_ELIGIBILITY_QUERY", top_scheme_name, query_text),
+                "profile_complete": True,
+                "missing_required_fields": [],
+                "profile_completion_status": "complete",
+                "schemes": evaluated_schemes,
                 "eligibility_result": {
                     "query_id": query_id_str,
                     "scheme_id": top_scheme_id,
@@ -1201,6 +1243,10 @@ class RAGPipeline:
                     "missing_information": [],
                     "structured_missing_criteria": [],
                     "all_evidence_sources": multi_chunks,
+                    "profile_complete": True,
+                    "missing_required_fields": [],
+                    "profile_completion_status": "complete",
+                    "schemes": evaluated_schemes,
                     "queried_at": now_iso,
                 }
             }
@@ -1212,6 +1258,28 @@ class RAGPipeline:
             scoped_scheme_id=scoped_scheme_id,
             vector_store=vector_store
         )
+
+        if top_scheme_id == "SCHEME_NOT_SUPPORTED":
+            msg = "This state healthcare scheme is currently outside our primary coverage area (Tamil Nadu & Central Government schemes). We support all 9 Tamil Nadu state schemes and 11 Central Government schemes."
+            return {
+                "ai_response": msg,
+                "retrieved_chunks": [],
+                "confidence_score": 0.0,
+                "is_low_confidence": True,
+                "follow_up_suggestions": ["What schemes are available in Tamil Nadu?", "What Central Government schemes exist?"],
+                "eligibility_result": None,
+            }
+
+        if top_scheme_id == "UNRECOGNIZED_SCHEME":
+            msg = "No sufficiently relevant government healthcare scheme was found for your query. Please ask about specific healthcare schemes, benefits (such as maternity, disability, or senior care), or state schemes in Tamil Nadu."
+            return {
+                "ai_response": msg,
+                "retrieved_chunks": [],
+                "confidence_score": 0.0,
+                "is_low_confidence": True,
+                "follow_up_suggestions": ["Which government schemes may I qualify for?", "What healthcare schemes are available in Tamil Nadu?", "What maternity benefits are available?"],
+                "eligibility_result": None,
+            }
 
         # 2. Check if user document chunks exist in VectorStore (Document Flow without reparsing raw PDF)
         doc_chunks = []
@@ -1366,6 +1434,15 @@ class RAGPipeline:
                 "missing_information": [],
                 "structured_missing_criteria": [],
                 "all_evidence_sources": evidence_sources,
+                "profile_complete": True,
+                "missing_required_fields": [],
+                "profile_completion_status": "complete",
+                "schemes": [{
+                    "scheme_id": top_scheme_id,
+                    "scheme_name": top_scheme_name,
+                    "status": overall_status,
+                    "official_url": top_scheme_url,
+                }],
                 "queried_at": now_iso,
             }
 
@@ -1408,6 +1485,15 @@ class RAGPipeline:
                 "missing_information": [],
                 "structured_missing_criteria": [],
                 "all_evidence_sources": evidence_sources,
+                "profile_complete": True,
+                "missing_required_fields": [],
+                "profile_completion_status": "complete",
+                "schemes": [{
+                    "scheme_id": top_scheme_id,
+                    "scheme_name": top_scheme_name,
+                    "status": overall_status,
+                    "official_url": top_scheme_url,
+                }],
                 "queried_at": now_iso,
             }
 
@@ -1450,6 +1536,15 @@ class RAGPipeline:
                 "missing_information": [],
                 "structured_missing_criteria": [],
                 "all_evidence_sources": evidence_sources,
+                "profile_complete": True,
+                "missing_required_fields": [],
+                "profile_completion_status": "complete",
+                "schemes": [{
+                    "scheme_id": top_scheme_id,
+                    "scheme_name": top_scheme_name,
+                    "status": overall_status,
+                    "official_url": top_scheme_url,
+                }],
                 "queried_at": now_iso,
             }
 
@@ -1492,6 +1587,15 @@ class RAGPipeline:
                 "missing_information": [],
                 "structured_missing_criteria": [],
                 "all_evidence_sources": evidence_sources,
+                "profile_complete": True,
+                "missing_required_fields": [],
+                "profile_completion_status": "complete",
+                "schemes": [{
+                    "scheme_id": top_scheme_id,
+                    "scheme_name": top_scheme_name,
+                    "status": overall_status,
+                    "official_url": top_scheme_url,
+                }],
                 "queried_at": now_iso,
             }
 
@@ -1534,48 +1638,15 @@ class RAGPipeline:
                 "missing_information": [],
                 "structured_missing_criteria": [],
                 "all_evidence_sources": evidence_sources,
-                "queried_at": now_iso,
-            }
-
-            return {
-                "ai_response": overall_exp,
-                "retrieved_chunks": chunks,
-                "confidence_score": round(confidence, 2),
-                "is_low_confidence": confidence < 0.65,
-                "eligibility_result": eligibility_result,
-            }
-
-        # ─── WORKFLOW F: COMPARISON_QUERY ────────────────────────────────────
-        if query_type == "COMPARISON_QUERY":
-            overall_status = "INFORMATIONAL"
-            overall_exp = f"Comparison of **{top_scheme_name}** with other similar schemes:"
-
-            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
-            llm_text = await _generate_llm_response(
-                query_text=query_text,
-                retrieved_chunks=chunk_texts,
-                scheme_name=top_scheme_name,
-                query_type="COMPARISON_QUERY",
-                patient_context=patient_context,
-            )
-            if llm_text:
-                overall_exp = llm_text
-            
-            eligibility_result = {
-                "query_id": query_id_str,
-                "scheme_id": top_scheme_id,
-                "query_type": "COMPARISON",
-                "user_question": query_text,
-                "interview_state": "COMPLETED",
-                "current_question": None,
-                "progress": None,
-                "match_percentage": None,
-                "overall_status": overall_status,
-                "overall_explanation": overall_exp,
-                "criteria_breakdown": [],
-                "missing_information": [],
-                "structured_missing_criteria": [],
-                "all_evidence_sources": evidence_sources,
+                "profile_complete": True,
+                "missing_required_fields": [],
+                "profile_completion_status": "complete",
+                "schemes": [{
+                    "scheme_id": top_scheme_id,
+                    "scheme_name": top_scheme_name,
+                    "status": overall_status,
+                    "official_url": top_scheme_url,
+                }],
                 "queried_at": now_iso,
             }
 
@@ -1618,6 +1689,15 @@ class RAGPipeline:
                 "missing_information": [],
                 "structured_missing_criteria": [],
                 "all_evidence_sources": evidence_sources,
+                "profile_complete": True,
+                "missing_required_fields": [],
+                "profile_completion_status": "complete",
+                "schemes": [{
+                    "scheme_id": top_scheme_id,
+                    "scheme_name": top_scheme_name,
+                    "status": overall_status,
+                    "official_url": top_scheme_url,
+                }],
                 "queried_at": now_iso,
             }
 
@@ -1630,47 +1710,6 @@ class RAGPipeline:
             }
 
         # ─── WORKFLOW H: PERSONAL_ELIGIBILITY (DYNAMIC MCQ INTERVIEW) ───────────
-            overall_status = "INFORMATIONAL"
-            overall_exp = f"**{top_scheme_name}** provides cashless secondary and tertiary hospitalization cover across public and empanelled private hospitals."
-
-            chunk_texts = [c.get("excerpt", "") for c in chunks if c.get("excerpt")]
-            llm_text = await _generate_llm_response(
-                query_text=query_text,
-                retrieved_chunks=chunk_texts,
-                scheme_name=top_scheme_name,
-                query_type="GENERAL_INFORMATION",
-                patient_context=patient_context,
-            )
-            if llm_text:
-                overall_exp = llm_text
-            
-            eligibility_result = {
-                "query_id": query_id_str,
-                "scheme_id": top_scheme_id,
-                "query_type": "GENERAL_INFORMATION",
-                "user_question": query_text,
-                "interview_state": "COMPLETED",
-                "current_question": None,
-                "progress": None,
-                "match_percentage": None,
-                "overall_status": overall_status,
-                "overall_explanation": overall_exp,
-                "criteria_breakdown": [],
-                "missing_information": [],
-                "structured_missing_criteria": [],
-                "all_evidence_sources": evidence_sources,
-                "queried_at": now_iso,
-            }
-
-            return {
-                "ai_response": overall_exp,
-                "retrieved_chunks": chunks,
-                "confidence_score": round(confidence, 2),
-                "is_low_confidence": confidence < 0.65,
-                "eligibility_result": eligibility_result,
-            }
-
-        # ─── WORKFLOW D: PERSONAL_ELIGIBILITY (DYNAMIC MCQ INTERVIEW) ───────────
         # 1. Extract and normalize patient inputs from Profile context & User answers
         p_state_raw = (patient_context.get("state") if patient_context else "")
         provided_state_raw = additional_info.get("state") if additional_info else None
@@ -1706,6 +1745,9 @@ class RAGPipeline:
             "DOCUMENT_VERIFIED" if uploaded_document_id else ("USER_PROVIDED_DURING_INTERVIEW" if effective_age is not None else "UNKNOWN")
         )
 
+        p_income_raw = patient_context.get("annual_income") if patient_context else None
+        income_from_profile = float(p_income_raw) if p_income_raw is not None else None
+
         provided_income_raw = None
         if additional_info:
             for k_inc in ["annual_income", "income", "salary", "family_income", "income_level"]:
@@ -1716,10 +1758,25 @@ class RAGPipeline:
             if any(term in q_lower for term in ["my income", "income is", "i earn", "family income of", "earning"]):
                 provided_income_raw = query_text
 
-        effective_income = _parse_income_val(provided_income_raw)
-        income_source = "DOCUMENT_VERIFIED" if uploaded_document_id else (
-            "USER_PROVIDED_DURING_INTERVIEW" if provided_income_raw is not None else "UNKNOWN"
+        income_from_input = _parse_income_val(provided_income_raw)
+        effective_income = income_from_input if income_from_input is not None else income_from_profile
+        income_source = "PROFILE_CONTEXT" if (effective_income == income_from_profile and income_from_profile is not None) else (
+            "DOCUMENT_VERIFIED" if uploaded_document_id else ("USER_PROVIDED_DURING_INTERVIEW" if effective_income is not None else "UNKNOWN")
         )
+
+        p_emp_raw = patient_context.get("employment_status") if patient_context else None
+        provided_emp_raw = additional_info.get("employment_status") if additional_info else None
+        effective_employment = _parse_employment_val(provided_emp_raw) or _parse_employment_val(p_emp_raw) or _parse_employment_val(query_text)
+
+        p_dis_raw = patient_context.get("disability_status") if patient_context else None
+        provided_dis_raw = additional_info.get("disability_status") if additional_info else None
+        effective_disability = _parse_disability_val(provided_dis_raw) or _parse_disability_val(p_dis_raw) or _parse_disability_val(query_text)
+
+        p_preg_raw = patient_context.get("pregnancy_status") if patient_context else None
+        provided_preg_raw = additional_info.get("pregnancy_status") if additional_info else None
+        effective_pregnancy = _parse_pregnancy_val(provided_preg_raw) or _parse_pregnancy_val(p_preg_raw) or _parse_pregnancy_val(query_text)
+
+        effective_gender = patient_context.get("gender") if patient_context else None
 
         # Lookup resolved scheme data
         all_schemes = _load_all_schemes()
@@ -1735,6 +1792,10 @@ class RAGPipeline:
             effective_state=effective_state,
             effective_age=effective_age,
             effective_income=effective_income,
+            effective_employment=effective_employment,
+            effective_disability=effective_disability,
+            effective_pregnancy=effective_pregnancy,
+            gender=effective_gender,
             evidence_sources=evidence_sources,
             state_source=state_source,
             age_source=age_source,
@@ -1776,6 +1837,8 @@ class RAGPipeline:
         } if total_applicable > 0 else None
 
         missing_info_names = [c["criterion_name"] for c in applicable_criteria if c["criterion_result"] == "UNKNOWN"]
+        prof_complete = len(structured_missing_questions) == 0
+        prof_status = "complete" if prof_complete else "incomplete"
 
         # Call Gemini LLM for personalized explanation once interview questions are complete
         if interview_state == "COMPLETED":
@@ -1784,7 +1847,10 @@ class RAGPipeline:
                 "age": effective_age,
                 "state": effective_state,
                 "annual_income": effective_income,
-                "gender": patient_context.get("gender") if patient_context else None,
+                "gender": effective_gender,
+                "employment_status": effective_employment,
+                "disability_status": effective_disability,
+                "pregnancy_status": effective_pregnancy,
             }
             llm_text = await _generate_llm_response(
                 query_text=query_text or f"Check eligibility for {top_scheme_name}",
@@ -1811,6 +1877,17 @@ class RAGPipeline:
             "missing_information": missing_info_names,
             "structured_missing_criteria": structured_missing_questions,
             "all_evidence_sources": evidence_sources,
+            "profile_complete": prof_complete,
+            "missing_required_fields": missing_info_names,
+            "profile_completion_status": prof_status,
+            "schemes": [{
+                "scheme_id": top_scheme_id,
+                "scheme_name": top_scheme_name,
+                "status": overall_status,
+                "match_percentage": match_pct,
+                "coverage_amount": target_scheme.get("coverage_amount_inr", "Per official rules"),
+                "official_url": top_scheme_url,
+            }],
             "queried_at": now_iso,
         }
 
@@ -1821,6 +1898,10 @@ class RAGPipeline:
             "is_low_confidence": confidence < 0.65,
             "follow_up_suggestions": generate_follow_up_suggestions(query_type, top_scheme_name, query_text),
             "eligibility_result": eligibility_result,
+            "profile_complete": prof_complete,
+            "missing_required_fields": missing_info_names,
+            "profile_completion_status": prof_status,
+            "schemes": eligibility_result.get("schemes", []),
         }
 
         # Cache informational queries

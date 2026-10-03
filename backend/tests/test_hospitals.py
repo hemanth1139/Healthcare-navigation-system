@@ -5,6 +5,7 @@ Dedicated to Tamil Nadu, India.
 
 import pytest
 from httpx import AsyncClient, ASGITransport
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.main import app
 
 pytestmark = pytest.mark.asyncio
@@ -34,8 +35,9 @@ async def _get_auth_headers(ac: AsyncClient) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
-async def test_hospital_nearby_and_cache_flow():
+async def test_hospital_nearby_and_cache_flow(db_session: AsyncSession):
     """Verify that nearby hospitals can be queried with coordinates, cached in DB, and loaded by ID."""
+    await _ensure_sample_hospitals(db_session)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         headers = await _get_auth_headers(ac)
 
@@ -75,8 +77,9 @@ async def test_hospital_nearby_and_cache_flow():
         assert "specialties" in hosp_detail
 
 
-async def test_hospital_location_query_and_filters():
+async def test_hospital_location_query_and_filters(db_session: AsyncSession):
     """Verify search by location string, hospital type filter, and specialty filter."""
+    await _ensure_sample_hospitals(db_session)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         headers = await _get_auth_headers(ac)
 
@@ -109,8 +112,45 @@ async def test_hospital_location_query_and_filters():
 
 
 
-async def test_tamil_nadu_districts_discovery():
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.hospital import Hospital
+import uuid
+
+async def _ensure_sample_hospitals(db: AsyncSession):
+    res = await db.execute(select(Hospital))
+    existing = res.scalars().all()
+    if len(existing) >= 6:
+        return
+    sample_data = [
+        {"name": "Rajiv Gandhi Government General Hospital", "type": "Government", "city": "Chennai", "lat": 13.0805, "lon": 80.2785, "spec": "Trauma Care, Cardiology, Neurology, General Medicine"},
+        {"name": "Coimbatore Medical College Hospital", "type": "Government", "city": "Coimbatore", "lat": 11.0016, "lon": 76.9629, "spec": "General Medicine, Cardiology, Emergency"},
+        {"name": "Government Rajaji Hospital", "type": "Government", "city": "Madurai", "lat": 9.9252, "lon": 78.1198, "spec": "General Medicine, Surgery, Pediatrics"},
+        {"name": "Government Mohan Kumaramangalam Medical College Hospital", "type": "Government", "city": "Salem", "lat": 11.6643, "lon": 78.1460, "spec": "General Medicine, Orthopedics"},
+        {"name": "Mahatma Gandhi Memorial Government Hospital", "type": "Government", "city": "Tiruchirappalli", "lat": 10.7905, "lon": 78.7047, "spec": "General Medicine, Cardiology"},
+        {"name": "Government Vellore Medical College Hospital", "type": "Government", "city": "Vellore", "lat": 12.9165, "lon": 79.1325, "spec": "General Medicine, Emergency"},
+    ]
+    for s in sample_data:
+        db.add(Hospital(
+            hospital_id=uuid.uuid4(),
+            google_place_id=f"test_hosp_{uuid.uuid4().hex[:8]}",
+            hospital_name=s["name"],
+            hospital_type=s["type"],
+            address=f"{s['name']}, {s['city']}, Tamil Nadu",
+            city=s["city"],
+            state="Tamil Nadu",
+            latitude=s["lat"],
+            longitude=s["lon"],
+            phone="044-25305000",
+            specialties=s["spec"],
+            has_emergency_room=True,
+            rating=4.5
+        ))
+    await db.commit()
+
+async def test_tamil_nadu_districts_discovery(db_session: AsyncSession):
     """Verify discovery across Coimbatore, Madurai, Salem, Trichy, and Vellore."""
+    await _ensure_sample_hospitals(db_session)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         headers = await _get_auth_headers(ac)
 
@@ -125,8 +165,9 @@ async def test_tamil_nadu_districts_discovery():
                 assert h.get("state") == "Tamil Nadu"
 
 
-async def test_gps_outside_tamil_nadu_safety():
+async def test_gps_outside_tamil_nadu_safety(db_session: AsyncSession):
     """Verify that coordinates outside Tamil Nadu (e.g. Delhi) are safely handled and return only Tamil Nadu hospitals."""
+    await _ensure_sample_hospitals(db_session)
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         headers = await _get_auth_headers(ac)
 

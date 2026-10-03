@@ -136,18 +136,17 @@ async def _seed_test_schemes(db_session):
     db_session.add_all([s1, s2, s3])
     await db_session.commit()
 
-    # Seed vector store indices
+    # Seed vector store indices if empty
     v_store = VectorStore()
-    v_store.clear()
-
-    for s in [s1, s2, s3]:
-        for chk in s.chunks:
-            emb = await EmbeddingService.get_embedding(f"{s.scheme_name} {chk}")
-            v_store.add_texts(
-                [chk],
-                [emb],
-                [{"scheme_id": s.scheme_id, "scheme_name": s.scheme_name, "official_url": s.official_url}],
-            )
+    if len(v_store.documents) < 10:
+        for s in [s1, s2, s3]:
+            for chk in s.chunks:
+                emb = await EmbeddingService.get_embedding(f"{s.scheme_name} {chk}")
+                v_store.add_texts(
+                    [chk],
+                    [emb],
+                    [{"scheme_id": s.scheme_id, "scheme_name": s.scheme_name, "official_url": s.official_url}],
+                )
 
 
 async def test_scheme_listing_and_search(db_session):

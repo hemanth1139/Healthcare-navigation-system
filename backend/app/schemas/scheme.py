@@ -106,6 +106,10 @@ class MultiDocEligibilityResultOut(BaseModel):
     missing_information: Optional[List[str]] = Field(default_factory=list, alias="missingInformation")
     structured_missing_criteria: Optional[List[MissingCriterionItem]] = Field(default_factory=list, alias="structuredMissingCriteria")
     all_evidence_sources: List[EvidenceSourceOut] = Field(default_factory=list, alias="allEvidenceSources")
+    profile_complete: Optional[bool] = Field(None, alias="profileComplete")
+    missing_required_fields: Optional[List[str]] = Field(default_factory=list, alias="missingRequiredFields")
+    profile_completion_status: Optional[str] = Field(None, alias="profileCompletionStatus") # "complete" | "incomplete"
+    schemes: Optional[List[Dict[str, Any]]] = Field(None, alias="schemes")
     queried_at: str = Field(..., alias="queriedAt")
 
     model_config = {"populate_by_name": True}
@@ -161,6 +165,10 @@ class SchemeQueryOut(BaseModel):
     is_low_confidence: bool = Field(False, alias="isLowConfidence")
     follow_up_suggestions: Optional[List[str]] = Field(None, alias="followUpSuggestions")
     eligibility_result: Optional[MultiDocEligibilityResultOut] = Field(None, alias="eligibilityResult")
+    profile_complete: Optional[bool] = Field(None, alias="profileComplete")
+    missing_required_fields: Optional[List[str]] = Field(default_factory=list, alias="missingRequiredFields")
+    profile_completion_status: Optional[str] = Field(None, alias="profileCompletionStatus") # "complete" | "incomplete"
+    schemes: Optional[List[Dict[str, Any]]] = Field(None, alias="schemes")
     created_at: Optional[str] = Field(None, alias="createdAt")
 
     model_config = {"populate_by_name": True, "from_attributes": True}
@@ -180,11 +188,27 @@ class SchemeQueryOut(BaseModel):
             )
 
         elig_res = None
+        prof_complete = None
+        missing_fields = []
+        prof_status = None
+        schemes_list = None
+
         if getattr(q, "eligibility_result", None):
             try:
                 elig_dict = dict(q.eligibility_result)
                 elig_dict["query_id"] = str(q.query_id)
                 elig_dict["queryId"] = str(q.query_id)
+                
+                # Extract profile completeness info
+                prof_complete = elig_dict.get("profile_complete") or elig_dict.get("profileComplete")
+                missing_fields = elig_dict.get("missing_required_fields") or elig_dict.get("missingRequiredFields") or elig_dict.get("missing_information") or []
+                prof_status = elig_dict.get("profile_completion_status") or elig_dict.get("profileCompletionStatus")
+                if prof_complete is None and prof_status:
+                    prof_complete = (prof_status == "complete")
+                elif prof_status is None and prof_complete is not None:
+                    prof_status = "complete" if prof_complete else "incomplete"
+                
+                schemes_list = elig_dict.get("schemes")
                 elig_res = MultiDocEligibilityResultOut(**elig_dict)
             except Exception:
                 elig_res = None
@@ -203,7 +227,12 @@ class SchemeQueryOut(BaseModel):
             retrievedChunks=ret_chunks,
             confidenceScore=float(q.confidence_score) if q.confidence_score else 0.0,
             isLowConfidence=float(q.confidence_score) < 0.65 if q.confidence_score else True,
+            followUpSuggestions=getattr(q, "follow_up_suggestions", None),
             eligibilityResult=elig_res,
+            profileComplete=prof_complete,
+            missingRequiredFields=missing_fields,
+            profileCompletionStatus=prof_status,
+            schemes=schemes_list,
             createdAt=created_iso
         )
 

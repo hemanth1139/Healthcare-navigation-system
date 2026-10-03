@@ -4,6 +4,7 @@ maintaining the cache database, and retrieving specific hospital details.
 Uses OpenStreetMap Overpass API (free, no API key required).
 """
 
+import uuid
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -23,10 +24,11 @@ class HospitalService:
         db: AsyncSession, payload: HospitalNearbyRequest
     ) -> HospitalSearchResponse:
         """
-        Query nearby hospitals using OpenStreetMap Overpass API (free),
-        update database cache, and return results with status metadata.
+        Query nearby hospitals using local database catalogue first.
+        If local catalogue has insufficient matches, use OpenStreetMap Overpass API as fallback.
+        Calculates real OSRM driving duration and distance.
         """
-        # Resolve manual locations instead of silently searching around Chennai.
+        # Resolve user coordinates
         latitude, longitude = payload.latitude, payload.longitude
         location_query = (payload.location_query or "").strip()
         is_statewide = location_query.lower() in {"all tamil nadu", "tamil nadu"}
@@ -68,327 +70,169 @@ class HospitalService:
         if latitude < 8.0 or latitude > 13.6 or longitude < 76.0 or longitude > 80.4:
             latitude, longitude = 13.0827, 80.2707
 
-        radius_km = payload.max_distance_km if payload.max_distance_km and payload.max_distance_km > 0 else 10
+        radius_km = payload.max_distance_km if payload.max_distance_km and payload.max_distance_km > 0 else 15
         if is_statewide and not payload.max_distance_km:
-            radius_km = 250
+            radius_km = 300
 
-        requested_radius = radius_km
-        actual_radius = radius_km
-        status = "success"
-        message = None
-        data_source = "live"
+        from app.utils.maps import haversine_distance, OSRMService
 
-        # 1. Fetch hospitals from OpenStreetMap Overpass API
-        hospitals_raw = await OpenStreetMapService.search_hospitals(
-            lat=latitude,
-            lon=longitude,
-            radius=int(radius_km * 1000),
-            max_results=payload.max_results or 50,
-            hospital_type=payload.hospital_type,
-            specialty=payload.specialty or payload.specialist
-        )
+        # 1. Primary Query: Local Database Catalogue
+        stmt = select(Hospital).where(Hospital.state == "Tamil Nadu")
+        db_res = await db.execute(stmt)
+        db_hospitals = list(db_res.scalars().all())
 
-        results = []
+        local_matched = []
+        for h in db_hospitals:
+            h_lat = float(h.latitude) if h.latitude is not None else latitude
+            h_lon = float(h.longitude) if h.longitude is not None else longitude
+            dist = haversine_distance(latitude, longitude, h_lat, h_lon)
 
-        # If external OSM query failed or returned empty (e.g. rate limit 429), fall back to local DB / primary TN hospitals
-        if not hospitals_raw:
-            status = "fallback"
-            message = "Unable to fetch live hospital data. Showing cached results from database."
-            data_source = "fallback"
-            from app.utils.maps import haversine_distance
-            stmt = select(Hospital).where(Hospital.state == "Tamil Nadu")
-            db_res = await db.execute(stmt)
-            db_hospitals = list(db_res.scalars().all())
+            h_city = (h.city or "")
+            h_addr = (h.address or "")
+            h_name = (h.hospital_name or "")
+            h_type = (h.hospital_type or "Private")
+            h_specs = (h.specialties or "General Medicine")
+            h_id = str(h.hospital_id)
+            h_gpid = h.google_place_id or f"local_{h_id}"
+            h_state_val = h.state or "Tamil Nadu"
 
-            if not db_hospitals:
-                # In test or fresh environments with empty DB, seed essential primary hospitals
-                primary_tn_hospitals = [
-                    {
-                        "google_place_id": "tn_node_rggh_chennai",
-                        "hospital_name": "Rajiv Gandhi Government General Hospital",
-                        "address": "EVR Periyar Salai, Park Town, Chennai, Tamil Nadu 600003",
-                        "city": "Chennai",
-                        "state": "Tamil Nadu",
-                        "latitude": 13.0805,
-                        "longitude": 80.2785,
-                        "phone": "+91 44 2530 5000",
-                        "website": "http://www.mmc.ac.in",
-                        "google_maps_url": "https://www.openstreetmap.org/?mlat=13.0805&mlon=80.2785&zoom=15",
-                        "rating": 4.5,
-                        "hospital_type": "Government",
-                        "specialties": "General Medicine, Cardiology, Neurology, Orthopedics, Nephrology",
-                        "has_emergency_room": True,
-                        "opening_hours": "24/7",
-                        "beds": 2723,
-                    },
-                    {
-                        "google_place_id": "tn_node_apollo_chennai",
-                        "hospital_name": "Apollo Hospitals Greams Road",
-                        "address": "21 Greams Lane, Off Greams Road, Thousand Lights, Chennai, Tamil Nadu 600006",
-                        "city": "Chennai",
-                        "state": "Tamil Nadu",
-                        "latitude": 13.0592,
-                        "longitude": 80.2505,
-                        "phone": "+91 44 2829 0200",
-                        "website": "https://www.apollohospitals.com",
-                        "google_maps_url": "https://www.openstreetmap.org/?mlat=13.0592&mlon=80.2505&zoom=15",
-                        "rating": 4.8,
-                        "hospital_type": "Private",
-                        "specialties": "Cardiology, Oncology, Neurology, Gastroenterology, Organ Transplant",
-                        "has_emergency_room": True,
-                        "opening_hours": "24/7",
-                        "beds": 600,
-                    },
-                    {
-                        "google_place_id": "tn_node_cmch_coimbatore",
-                        "hospital_name": "Coimbatore Medical College Hospital",
-                        "address": "Trichy Road, Gopalapuram, Coimbatore, Tamil Nadu 641018",
-                        "city": "Coimbatore",
-                        "state": "Tamil Nadu",
-                        "latitude": 11.0026,
-                        "longitude": 76.9691,
-                        "phone": "+91 422 230 1393",
-                        "website": "http://www.cmch.ac.in",
-                        "google_maps_url": "https://www.openstreetmap.org/?mlat=11.0026&mlon=76.9691&zoom=15",
-                        "rating": 4.3,
-                        "hospital_type": "Government",
-                        "specialties": "General Medicine, Surgery, Pediatrics, Cardiology, Emergency",
-                        "has_emergency_room": True,
-                        "opening_hours": "24/7",
-                        "beds": 1200,
-                    },
-                    {
-                        "google_place_id": "tn_node_grh_madurai",
-                        "hospital_name": "Government Rajaji Hospital",
-                        "address": "Panagal Road, Shenoy Nagar, Madurai, Tamil Nadu 625020",
-                        "city": "Madurai",
-                        "state": "Tamil Nadu",
-                        "latitude": 9.9328,
-                        "longitude": 78.1309,
-                        "phone": "+91 452 253 2535",
-                        "website": "http://www.mdmc.ac.in",
-                        "google_maps_url": "https://www.openstreetmap.org/?mlat=9.9328&mlon=78.1309&zoom=15",
-                        "rating": 4.4,
-                        "hospital_type": "Government",
-                        "specialties": "General Medicine, Cardiology, Neurology, Emergency",
-                        "has_emergency_room": True,
-                        "opening_hours": "24/7",
-                        "beds": 2518,
-                    },
-                    {
-                        "google_place_id": "tn_node_cmc_vellore",
-                        "hospital_name": "Christian Medical College (CMC)",
-                        "address": "Ida Scudder Road, Vellore, Tamil Nadu 632004",
-                        "city": "Vellore",
-                        "state": "Tamil Nadu",
-                        "latitude": 12.9248,
-                        "longitude": 79.1352,
-                        "phone": "+91 416 228 1000",
-                        "website": "https://www.cmch-vellore.edu",
-                        "google_maps_url": "https://www.openstreetmap.org/?mlat=12.9248&mlon=79.1352&zoom=15",
-                        "rating": 4.9,
-                        "hospital_type": "Private",
-                        "specialties": "Hematology, Cardiology, Endocrinology, Gastroenterology, Nephrology",
-                        "has_emergency_room": True,
-                        "opening_hours": "24/7",
-                        "beds": 3000,
-                    },
-                    {
-                        "google_place_id": "tn_node_gmch_salem",
-                        "hospital_name": "Government Mohan Kumaramangalam Medical College Hospital",
-                        "address": "Fort Main Road, Salem, Tamil Nadu 636001",
-                        "city": "Salem",
-                        "state": "Tamil Nadu",
-                        "latitude": 11.6568,
-                        "longitude": 78.1565,
-                        "phone": "+91 427 221 1555",
-                        "website": "http://www.gmkmc.ac.in",
-                        "google_maps_url": "https://www.openstreetmap.org/?mlat=11.6568&mlon=78.1565&zoom=15",
-                        "rating": 4.2,
-                        "hospital_type": "Government",
-                        "specialties": "General Medicine, Cardiology, Pediatrics, General Surgery",
-                        "has_emergency_room": True,
-                        "opening_hours": "24/7",
-                        "beds": 1350,
-                    },
-                    {
-                        "google_place_id": "tn_node_gmch_trichy",
-                        "hospital_name": "Mahatma Gandhi Memorial Government Hospital",
-                        "address": "Collector Office Road, Tiruchirappalli, Tamil Nadu 620017",
-                        "city": "Tiruchirappalli",
-                        "state": "Tamil Nadu",
-                        "latitude": 10.8035,
-                        "longitude": 78.6874,
-                        "phone": "+91 431 241 5300",
-                        "website": "http://www.kapvgmch.ac.in",
-                        "google_maps_url": "https://www.openstreetmap.org/?mlat=10.8035&mlon=78.6874&zoom=15",
-                        "rating": 4.3,
-                        "hospital_type": "Government",
-                        "specialties": "General Medicine, Cardiology, Orthopedics, Obstetrics and Gynecology",
-                        "has_emergency_room": True,
-                        "opening_hours": "24/7",
-                        "beds": 1250,
-                    }
-                ]
-                for p_hosp in primary_tn_hospitals:
-                    h_obj = Hospital(**p_hosp)
-                    db.add(h_obj)
-                try:
-                    await db.flush()
-                    db_res = await db.execute(stmt)
-                    db_hospitals = list(db_res.scalars().all())
-                except IntegrityError:
-                    await db.rollback()
-                    db_res = await db.execute(stmt)
-                    db_hospitals = list(db_res.scalars().all())
-
-            fallback_list = []
-            for h in db_hospitals:
-                h_lat = float(h.latitude if hasattr(h, "latitude") else h["latitude"]) if (h.latitude if hasattr(h, "latitude") else h.get("latitude")) else latitude
-                h_lon = float(h.longitude if hasattr(h, "longitude") else h["longitude"]) if (h.longitude if hasattr(h, "longitude") else h.get("longitude")) else longitude
-                dist = haversine_distance(latitude, longitude, h_lat, h_lon)
-
-                h_city = (h.city if hasattr(h, "city") else h.get("city")) or ""
-                h_addr = (h.address if hasattr(h, "address") else h.get("address")) or ""
-                h_name = (h.hospital_name if hasattr(h, "hospital_name") else h.get("hospital_name")) or ""
-                h_type = (h.hospital_type if hasattr(h, "hospital_type") else h.get("hospital_type")) or "Private"
-                h_specs = (h.specialties if hasattr(h, "specialties") else h.get("specialties")) or "General Medicine"
-                h_id = str(h.hospital_id if hasattr(h, "hospital_id") else h.get("hospital_id", ""))
-                h_gpid = (h.google_place_id if hasattr(h, "google_place_id") else h.get("google_place_id")) or f"local_{h_id}"
-                h_state_val = (h.state if hasattr(h, "state") else h.get("state")) or "Tamil Nadu"
-                h_phone = h.phone if hasattr(h, "phone") else h.get("phone")
-                h_website = h.website if hasattr(h, "website") else h.get("website")
-                h_maps_url = (h.google_maps_url if hasattr(h, "google_maps_url") else h.get("google_maps_url")) or f"https://www.openstreetmap.org/?mlat={h_lat}&mlon={h_lon}&zoom=15"
-                h_rating = float(h.rating if hasattr(h, "rating") else h.get("rating")) if (h.rating if hasattr(h, "rating") else h.get("rating")) else None
-                h_er = (h.has_emergency_room if hasattr(h, "has_emergency_room") else h.get("has_emergency_room"))
-                h_er_val = h_er if h_er is not None else True
-                h_hours = h.opening_hours if hasattr(h, "opening_hours") else h.get("opening_hours")
-                h_beds = h.beds if hasattr(h, "beds") else h.get("beds")
-
-                if location_query and not is_statewide:
-                    loc_l = location_query.lower()
-                    city_l = h_city.lower()
-                    addr_l = h_addr.lower()
-                    name_l = h_name.lower()
-                    if not (loc_l in city_l or loc_l in addr_l or loc_l in name_l) and payload.max_distance_km and dist > payload.max_distance_km:
-                        continue
-                elif payload.max_distance_km and dist > payload.max_distance_km and not is_statewide:
-                    if latitude < 8.0 or latitude > 13.6 or longitude < 76.0 or longitude > 80.4:
-                        pass
-                    else:
-                        continue
-
-                if payload.hospital_type and h_type and payload.hospital_type.lower() not in h_type.lower():
+            # Distance / Location Filtering
+            if location_query and not is_statewide:
+                loc_l = location_query.lower()
+                city_l = h_city.lower()
+                addr_l = h_addr.lower()
+                name_l = h_name.lower()
+                # If specific district name matches city/address, allow it; otherwise apply radius
+                if not (loc_l in city_l or loc_l in addr_l or loc_l in name_l) and dist > radius_km:
                     continue
-
-                spec_filter = payload.specialty or payload.specialist
-                if spec_filter:
-                    sf_lower = spec_filter.lower().strip()
-                    specs_l = h_specs.lower()
-                    name_l = h_name.lower()
-                    cardio_match = ("cardio" in sf_lower or "cardiac" in sf_lower or "heart" in sf_lower) and ("cardio" in specs_l or "cardiac" in specs_l or "heart" in specs_l or "cardio" in name_l or "heart" in name_l)
-                    direct_match = sf_lower in specs_l or sf_lower in name_l
-                    if not (direct_match or cardio_match):
-                        continue
-
-                fallback_list.append({
-                    "hospital_id": h_id,
-                    "google_place_id": h_gpid,
-                    "hospital_name": h_name,
-                    "address": h_addr,
-                    "city": h_city,
-                    "state": h_state_val,
-                    "latitude": h_lat,
-                    "longitude": h_lon,
-                    "phone": h_phone,
-                    "website": h_website,
-                    "google_maps_url": h_maps_url,
-                    "rating": h_rating,
-                    "hospital_type": h_type,
-                    "specialties": h_specs,
-                    "has_emergency_room": h_er_val,
-                    "distance_km": round(dist, 2),
-                    "opening_hours": h_hours,
-                    "beds": h_beds,
-                })
-
-            fallback_list.sort(key=lambda item: item["distance_km"])
-            for h in fallback_list[:(payload.max_results or 50)]:
-                results.append(HospitalOut.from_dict(h, h["hospital_id"]))
-
-        for h in hospitals_raw:
-            h_state = h.get("state") or "Tamil Nadu"
-            if h_state != "Tamil Nadu":
+            elif not is_statewide and dist > radius_km:
                 continue
-            h["state"] = h_state
 
-            if payload.specialty or payload.specialist:
-                sf = (payload.specialty or payload.specialist).lower().strip()
-                specs_l = str(h.get("specialties") or "").lower()
-                name_l = str(h.get("hospital_name") or "").lower()
-                cardio_m = ("cardio" in sf or "cardiac" in sf or "heart" in sf) and ("cardio" in specs_l or "cardiac" in specs_l or "heart" in specs_l or "cardio" in name_l or "heart" in name_l)
-                if not (sf in specs_l or sf in name_l or cardio_m):
+            # Hospital Type Filtering
+            if payload.hospital_type and payload.hospital_type.lower() not in h_type.lower():
+                continue
+
+            # Specialty Filtering
+            spec_filter = payload.specialty or payload.specialist
+            if spec_filter:
+                sf_lower = spec_filter.lower().strip()
+                specs_l = h_specs.lower()
+                name_l = h_name.lower()
+                cardio_match = (
+                    ("cardio" in sf_lower or "cardiac" in sf_lower or "heart" in sf_lower)
+                    and ("cardio" in specs_l or "cardiac" in specs_l or "heart" in specs_l or "cardio" in name_l or "heart" in name_l)
+                )
+                direct_match = sf_lower in specs_l or sf_lower in name_l
+                if not (direct_match or cardio_match):
                     continue
 
+            # Free-text search filtering
             if payload.search and payload.search.strip():
                 term = payload.search.strip().lower()
-                searchable = " ".join(str(h.get(field) or "") for field in ("hospital_name", "address", "city", "state", "specialties", "specialty_search_text"))
-                if term not in searchable.lower():
+                searchable = f"{h_name} {h_addr} {h_city} {h_state_val} {h_specs}".lower()
+                if term not in searchable:
                     continue
-            if payload.max_distance_km and h.get("distance_km", 0) > payload.max_distance_km:
-                continue
 
-            # 2. Check if hospital already cached in DB
-            result = await db.execute(
-                select(Hospital).where(Hospital.google_place_id == h["google_place_id"])
+            local_matched.append({
+                "hospital_id": h_id,
+                "google_place_id": h_gpid,
+                "hospital_name": h_name,
+                "address": h_addr,
+                "city": h_city,
+                "state": h_state_val,
+                "latitude": h_lat,
+                "longitude": h_lon,
+                "phone": h.phone,
+                "website": h.website,
+                "google_maps_url": h.google_maps_url or f"https://www.google.com/maps/dir/?api=1&destination={h_lat},{h_lon}",
+                "rating": float(h.rating) if h.rating is not None else None,
+                "hospital_type": h_type,
+                "specialties": h_specs,
+                "has_emergency_room": h.has_emergency_room if h.has_emergency_room is not None else True,
+                "distance_km": round(dist, 2),
+                "opening_hours": h.opening_hours,
+                "beds": h.beds,
+            })
+
+        # 2. Supplementary Discovery via OpenStreetMap if local DB matches are insufficient (< 3 results)
+        if len(local_matched) < 3 and not is_statewide:
+            hospitals_raw = await OpenStreetMapService.search_hospitals(
+                lat=latitude,
+                lon=longitude,
+                radius=int(radius_km * 1000),
+                max_results=payload.max_results or 50,
+                hospital_type=payload.hospital_type,
+                specialty=payload.specialty or payload.specialist,
             )
-            cached_hosp = result.scalar_one_or_none()
 
-            if not cached_hosp:
-                # Cache it in DB
-                cached_hosp = Hospital(
-                    google_place_id=h["google_place_id"],
-                    hospital_name=h["hospital_name"],
-                    address=h.get("address"),
-                    city=h.get("city"),
-                    state=h.get("state"),
-                    latitude=h.get("latitude"),
-                    longitude=h.get("longitude"),
-                    phone=h.get("phone"),
-                    website=h.get("website"),
-                    google_maps_url=h.get("google_maps_url"),
-                    rating=h.get("rating"),
-                    hospital_type=h.get("hospital_type", "Private"),
-                    specialties=h.get("specialties", "General Medicine"),
-                    has_emergency_room=h.get("has_emergency_room", True),
-                    opening_hours=h.get("opening_hours"),
-                    beds=h.get("beds")
-                )
-                db.add(cached_hosp)
-                try:
-                    await db.flush()
-                except IntegrityError:
-                    # Concurrent nearby searches can race between the lookup and
-                    # insert. Roll back the losing insert and use the winner's row.
-                    await db.rollback()
-                    result = await db.execute(
-                        select(Hospital).where(Hospital.google_place_id == h["google_place_id"])
+            for h_raw in hospitals_raw:
+                # Deduplicate with existing local_matched
+                if any(m["google_place_id"] == h_raw["google_place_id"] or m["hospital_name"].lower() == h_raw["hospital_name"].lower() for m in local_matched):
+                    continue
+
+                # Cache newly discovered hospital into local DB
+                stmt_find = select(Hospital).where(Hospital.google_place_id == h_raw["google_place_id"])
+                cached_res = await db.execute(stmt_find)
+                cached_hosp = cached_res.scalar_one_or_none()
+
+                if not cached_hosp:
+                    cached_hosp = Hospital(
+                        google_place_id=h_raw["google_place_id"],
+                        hospital_name=h_raw["hospital_name"],
+                        address=h_raw.get("address"),
+                        city=h_raw.get("city") or "Chennai",
+                        state="Tamil Nadu",
+                        latitude=h_raw.get("latitude"),
+                        longitude=h_raw.get("longitude"),
+                        phone=h_raw.get("phone"),
+                        website=h_raw.get("website"),
+                        google_maps_url=h_raw.get("google_maps_url"),
+                        rating=h_raw.get("rating"),
+                        hospital_type=h_raw.get("hospital_type", "Private"),
+                        specialties=h_raw.get("specialties", "General Medicine"),
+                        has_emergency_room=h_raw.get("has_emergency_room", True),
+                        opening_hours=h_raw.get("opening_hours"),
+                        beds=h_raw.get("beds"),
                     )
-                    cached_hosp = result.scalar_one_or_none()
-                    if cached_hosp is None:
-                        raise
+                    db.add(cached_hosp)
+                    try:
+                        await db.flush()
+                    except IntegrityError:
+                        await db.rollback()
+                        cached_res = await db.execute(stmt_find)
+                        cached_hosp = cached_res.scalar_one_or_none()
 
-            # Format to Output Schema - update with current distance data
-            h_out = HospitalOut.from_dict(h, str(cached_hosp.hospital_id))
-            results.append(h_out)
+                h_raw_id = str(cached_hosp.hospital_id) if cached_hosp else str(uuid.uuid4())
+                local_matched.append({
+                    "hospital_id": h_raw_id,
+                    "google_place_id": h_raw["google_place_id"],
+                    "hospital_name": h_raw["hospital_name"],
+                    "address": h_raw.get("address", ""),
+                    "city": h_raw.get("city", "Chennai"),
+                    "state": "Tamil Nadu",
+                    "latitude": float(h_raw.get("latitude") or latitude),
+                    "longitude": float(h_raw.get("longitude") or longitude),
+                    "phone": h_raw.get("phone"),
+                    "website": h_raw.get("website"),
+                    "google_maps_url": h_raw.get("google_maps_url"),
+                    "rating": float(h_raw["rating"]) if h_raw.get("rating") else None,
+                    "hospital_type": h_raw.get("hospital_type", "Private"),
+                    "specialties": h_raw.get("specialties", "General Medicine"),
+                    "has_emergency_room": h_raw.get("has_emergency_room", True),
+                    "distance_km": round(h_raw.get("distance_km", 0.0), 2),
+                    "opening_hours": h_raw.get("opening_hours"),
+                    "beds": h_raw.get("beds"),
+                })
 
+        # 3. Sort results
         if payload.sort_by == "name":
-            results.sort(key=lambda hospital: hospital.hospital_name.lower())
+            local_matched.sort(key=lambda item: item["hospital_name"].lower())
         elif payload.sort_by == "rating":
-            results.sort(key=lambda hospital: (hospital.rating is None, -(hospital.rating or 0)))
+            local_matched.sort(key=lambda item: (item["rating"] is None, -(item["rating"] or 0)))
         else:
-            results.sort(key=lambda hospital: hospital.distance_km)
+            local_matched.sort(key=lambda item: item["distance_km"])
 
+<<<<<<< HEAD
         return HospitalSearchResponse(
             hospitals=results,
             status=status,
@@ -397,6 +241,21 @@ class HospitalService:
             actual_radius_km=actual_radius,
             data_source=data_source
         )
+=======
+        capped_results = local_matched[:(payload.max_results or 50)]
+
+        # 4. Attach Genuine OSRM Travel Times
+        if capped_results:
+            capped_results = await OSRMService.attach_travel_times(
+                start_lat=latitude,
+                start_lon=longitude,
+                hospitals=capped_results,
+            )
+
+        # 5. Format to HospitalOut Schema
+        results = [HospitalOut.from_dict(h, h["hospital_id"]) for h in capped_results]
+        return results
+>>>>>>> f48805d (feat: complete Tamil Nadu nearby hospitals module, government scheme RAG, and clinical triage pipeline 6)
 
     @staticmethod
     async def get_hospital_by_id(db: AsyncSession, hospital_id: UUID) -> Hospital:

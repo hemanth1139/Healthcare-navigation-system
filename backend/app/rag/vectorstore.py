@@ -128,6 +128,10 @@ class VectorStore:
         with open(STORE_PATH, "w", encoding="utf-8") as f:
             json.dump(self.documents, f, indent=2, ensure_ascii=False)
 
+    def _save_store(self):
+        """Alias for save."""
+        self.save()
+
     def add_texts(
         self,
         texts: List[str],

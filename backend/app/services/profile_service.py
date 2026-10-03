@@ -45,49 +45,6 @@ class ProfileService:
             setattr(profile, field, value)
         return ProfileOut.from_orm(profile)
 
-    @staticmethod
-    async def get_patient_context(db: AsyncSession, user_id: UUID) -> dict:
-        """
-        Extracts structured demographic and clinical context for RAG pipeline eligibility evaluation.
-        """
-        stmt = (
-            select(PatientProfile)
-            .where(PatientProfile.user_id == user_id)
-            .options(
-                selectinload(PatientProfile.chronic_conditions),
-                selectinload(PatientProfile.allergies),
-                selectinload(PatientProfile.medications),
-            )
-        )
-        res = await db.execute(stmt)
-        profile = res.scalar_one_or_none()
-        if not profile:
-            return {}
-
-        age = None
-        if profile.date_of_birth:
-            today = date.today()
-            age = today.year - profile.date_of_birth.year - (
-                (today.month, today.day) < (profile.date_of_birth.month, profile.date_of_birth.day)
-            )
-
-        return {
-            "age": age,
-            "gender": profile.gender,
-            "state": profile.state,
-            "city": profile.city,
-            "date_of_birth": profile.date_of_birth.isoformat() if profile.date_of_birth else None,
-            "annual_income": float(profile.annual_income) if profile.annual_income else None,
-            "employment_status": profile.employment_status,
-            "family_size": profile.family_size,
-            "ration_card_type": profile.ration_card_type,
-            "disability_status": profile.disability_status,
-            "pregnancy_status": profile.pregnancy_status,
-            "conditions": [c.condition_name for c in (profile.chronic_conditions or [])],
-            "medications": [m.medicine_name for m in (profile.medications or [])],
-            "blood_group": profile.blood_group,
-        }
-
     # ─── Allergies ────────────────────────────────────────────────────────────
 
     @staticmethod
@@ -294,6 +251,16 @@ class ProfileService:
             summary_parts.append(f"Blood Group: {profile.blood_group}")
         if profile.state:
             summary_parts.append(f"State: {profile.state}")
+        if profile.annual_income is not None:
+            summary_parts.append(f"Annual Income: ₹{int(profile.annual_income):,}")
+        if profile.employment_status:
+            summary_parts.append(f"Employment: {profile.employment_status}")
+        if profile.ration_card_type:
+            summary_parts.append(f"Ration Card: {profile.ration_card_type}")
+        if profile.disability_status:
+            summary_parts.append(f"Disability: {profile.disability_status}")
+        if profile.pregnancy_status:
+            summary_parts.append(f"Pregnancy: {profile.pregnancy_status}")
         if bmi is not None:
             summary_parts.append(f"BMI: {bmi}")
         if chronic_conditions:
@@ -318,10 +285,19 @@ class ProfileService:
             "age": age,
             "gender": profile.gender,
             "state": profile.state,
+            "city": profile.city,
+            "date_of_birth": profile.date_of_birth.isoformat() if profile.date_of_birth else None,
+            "annual_income": float(profile.annual_income) if profile.annual_income is not None else None,
+            "employment_status": profile.employment_status,
+            "family_size": profile.family_size,
+            "ration_card_type": profile.ration_card_type,
+            "disability_status": profile.disability_status,
+            "pregnancy_status": profile.pregnancy_status,
             "blood_group": profile.blood_group,
             "bmi": bmi,
             "allergies": allergies,
             "chronic_conditions": chronic_conditions,
+            "conditions": chronic_conditions,
             "medications": medications,
             "uploaded_documents_count": len(records),
             "context_summary": context_summary,

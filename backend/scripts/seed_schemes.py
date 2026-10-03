@@ -104,15 +104,21 @@ async def seed():
             if not chunks:
                 chunks = [f"{s_name} - {benefits_summary}", f"Eligibility: {eligibility_str}"]
 
+            portal_url = s.get("portal_url") or official_url
+            category_val = s.get("category") or ("State Government" if "Tamil Nadu" in state or "TN" in s_id else "Central Government")
+
             metadatas = [
                 {
                     "scheme_id": s_id,
                     "scheme_name": s_name,
                     "official_url": official_url,
+                    "portal_url": portal_url,
                     "department": dept,
-                    "state": state
+                    "state": state,
+                    "category": category_val,
+                    "chunk_index": c_idx,
                 }
-                for _ in chunks
+                for c_idx, _ in enumerate(chunks)
             ]
 
             embeddings = await EmbeddingService.get_embeddings(chunks)
@@ -123,8 +129,8 @@ async def seed():
                     "metadata": meta,
                 })
 
-        v_store.save()
-        print(f"[SUCCESS] Vector store saved with {len(v_store.documents)} chunks.")
+        v_store._save_store()
+        print(f"[SUCCESS] Vector store saved with {len(v_store.documents)} chunks across {len(schemes_data)} schemes.")
 
         # Seed Quick Demo User (sarah@example.com)
         from app.models.user import User

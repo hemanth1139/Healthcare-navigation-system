@@ -428,8 +428,31 @@ class NominatimService:
             return None
 
 
+_osrm_route_cache: Dict[Tuple[float, float, float, float, str], Tuple[float, Dict[str, Any]]] = {}
+_OSRM_CACHE_TTL_SECONDS = 3600  # 1 hour
+
+
+def format_travel_time(duration_minutes: Optional[float]) -> str:
+    """Format travel time into user-friendly string."""
+    if duration_minutes is None:
+        return "Travel time unavailable"
+    if duration_minutes < 1.0:
+        return "< 1 min drive"
+    if duration_minutes < 60.0:
+        mins = max(1, int(round(duration_minutes)))
+        return f"{mins} min drive" if mins == 1 else f"{mins} mins drive"
+    
+    hrs = int(duration_minutes // 60)
+    mins = int(round(duration_minutes % 60))
+    if mins > 0:
+        return f"{hrs} hr {mins} mins drive"
+    return f"{hrs} hr drive" if hrs == 1 else f"{hrs} hrs drive"
+
+
 class OSRMService:
-    """OSRM routing service - Free routing and directions."""
+    """OSRM routing service - Free routing and directions with caching."""
+
+    format_travel_time = staticmethod(format_travel_time)
 
     @staticmethod
     async def get_route(
@@ -441,37 +464,118 @@ class OSRMService:
     ) -> Optional[Dict[str, Any]]:
         """
         Get route between two points using OSRM.
-        Free, no API key required.
-        
+        Free, no API key required. Caches results in-memory.
         Profiles: driving, cycling, walking
         """
+        # Validate coordinates
+        if any(v is None for v in (start_lat, start_lon, end_lat, end_lon)):
+            return None
+
+        # Check for near-identical origin and destination
+        dist_direct = haversine_distance(start_lat, start_lon, end_lat, end_lon)
+        if dist_direct < 0.05:  # within 50 meters
+            return {
+                "distance_km": round(dist_direct, 3),
+                "duration_seconds": 0,
+                "duration_minutes": 0.0,
+                "estimated_time": "< 1 min drive",
+                "geometry": None,
+                "steps": [],
+            }
+
+        cache_key = (
+            round(start_lat, 4),
+            round(start_lon, 4),
+            round(end_lat, 4),
+            round(end_lon, 4),
+            profile,
+        )
+        cached = _osrm_route_cache.get(cache_key)
+        if cached and (time.monotonic() - cached[0]) < _OSRM_CACHE_TTL_SECONDS:
+            return dict(cached[1])
+
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=6.0) as client:
                 url = f"https://router.project-osrm.org/route/v1/{profile}/{start_lon},{start_lat};{end_lon},{end_lat}"
                 params = {
-                    "overview": "full",
-                    "geometries": "geojson",
-                    "steps": "true",
+                    "overview": "false",
+                    "steps": "false",
                 }
-                response = await client.get(url, params=params)
+                response = await client.get(url, params=params, headers={"User-Agent": "HealthcareNavigationSystem/1.0"})
                 response.raise_for_status()
                 data = response.json()
                 
                 if data.get("code") == "Ok" and data.get("routes"):
                     route = data["routes"][0]
-                    return {
-                        "distance_km": route["distance"] / 1000,
-                        "duration_seconds": route["duration"],
-                        "duration_minutes": round(route["duration"] / 60, 1),
+                    dist_km = round(route["distance"] / 1000, 2)
+                    dur_sec = route["duration"]
+                    dur_min = round(dur_sec / 60, 1)
+                    res_dict = {
+                        "distance_km": dist_km,
+                        "duration_seconds": dur_sec,
+                        "duration_minutes": dur_min,
+                        "estimated_time": format_travel_time(dur_min),
                         "geometry": route.get("geometry"),
                         "steps": route.get("legs", [{}])[0].get("steps", []),
                     }
+                    _osrm_route_cache[cache_key] = (time.monotonic(), dict(res_dict))
+                    return res_dict
                 
                 return None
                 
         except Exception as e:
-            logger.error(f"[OSRM] Routing error: {e}")
+            logger.warning(f"[OSRM] Routing unavailable between ({start_lat},{start_lon}) and ({end_lat},{end_lon}): {e}")
             return None
+
+    @staticmethod
+    async def attach_travel_times(
+        start_lat: Optional[float],
+        start_lon: Optional[float],
+        hospitals: List[Dict[str, Any]],
+        max_routing_targets: int = 15
+    ) -> List[Dict[str, Any]]:
+        """
+        Concurrently calculate driving routes for top nearby hospitals.
+        Attaches 'estimated_time' (or 'Travel time unavailable') to each hospital dict.
+        """
+        if start_lat is None or start_lon is None or not hospitals:
+            for h in hospitals:
+                if "estimated_time" not in h or not h["estimated_time"]:
+                    h["estimated_time"] = "Travel time unavailable"
+            return hospitals
+
+        # Route top N nearest hospitals to keep response fast and avoid upstream rate limiting
+        targets = hospitals[:max_routing_targets]
+        remaining = hospitals[max_routing_targets:]
+
+        async def _route_hospital(h: Dict[str, Any]):
+            h_lat = h.get("latitude")
+            h_lon = h.get("longitude")
+            if h_lat is not None and h_lon is not None:
+                try:
+                    route = await OSRMService.get_route(
+                        float(start_lat), float(start_lon),
+                        float(h_lat), float(h_lon),
+                        profile="driving"
+                    )
+                    if route and "estimated_time" in route:
+                        h["estimated_time"] = route["estimated_time"]
+                        h["routed_distance_km"] = route.get("distance_km")
+                        return
+                except Exception as ex:
+                    logger.debug(f"[OSRM] Failed routing for hospital {h.get('hospital_name')}: {ex}")
+            
+            h["estimated_time"] = "Travel time unavailable"
+
+        # Execute routing tasks concurrently with limit
+        tasks = [_route_hospital(h) for h in targets]
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+        for h in remaining:
+            if "estimated_time" not in h or not h["estimated_time"]:
+                h["estimated_time"] = "Travel time unavailable"
+
+        return hospitals
 
     @staticmethod
     async def get_nearest_road(lat: float, lon: float) -> Optional[Dict[str, Any]]:
@@ -480,7 +584,7 @@ class OSRMService:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 url = f"https://router.project-osrm.org/nearest/v1/driving/{lon},{lat}"
                 params = {"number": 1}
-                response = await client.get(url, params=params)
+                response = await client.get(url, params=params, headers={"User-Agent": "HealthcareNavigationSystem/1.0"})
                 response.raise_for_status()
                 data = response.json()
                 

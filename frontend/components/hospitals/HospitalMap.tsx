@@ -370,3 +370,6 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
     </div>
   );
 };
+
+export default HospitalMap;
+

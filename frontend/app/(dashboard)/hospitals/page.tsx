@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/context/LanguageContext";
 
 const HospitalMap = dynamic(
-  () => import("@/components/hospitals/HospitalMap").then((mod) => mod.HospitalMap),
+  () => import("@/components/hospitals/HospitalMap"),
   {
     ssr: false,
     loading: () => (

@@ -1,10 +1,10 @@
 [
   {
     "scheme_id": "scheme_C01",
-    "scheme_name": "Ayushman Bharat – Pradhan Mantri Jan Arogya Yojana (AB-PMJAY)",
+    "scheme_name": "Ayushman Bharat - Pradhan Mantri Jan Arogya Yojana (AB-PMJAY)",
     "department": "National Health Authority, Ministry of Health and Family Welfare, Government of India",
     "state": "Central / All India (implemented in most States/UTs)",
-    "official_url": "https://pmjay.gov.in/",
+    "official_url": "https://nha.gov.in/PM-JAY",
     "benefits_summary": "Cashless secondary and tertiary hospitalization cover for eligible poor and vulnerable families at empanelled public and private hospitals across India.",
     "coverage_amount_inr": "Up to ₹5 lakh per eligible family per year for listed packages (state-wise implementation may vary)",
     "cashless": true,
@@ -43,14 +43,17 @@
       "AB-PMJAY is the national public health insurance scheme covering secondary and tertiary hospitalization.",
       "Coverage is up to ₹5 lakh per eligible family per year for listed treatment packages.",
       "Implemented across most States/UTs, often integrated with state schemes."
-    ]
+    ],
+    "portal_url": "https://beneficiary.nha.gov.in/",
+    "guidelines_url": "https://pmjay.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_C02",
     "scheme_name": "Ayushman Vay Vandana Card (PM-JAY for 70+)",
     "department": "National Health Authority, Ministry of Health and Family Welfare, Government of India",
     "state": "Central / All India",
-    "official_url": "https://pmjay.gov.in/",
+    "official_url": "https://nha.gov.in/PM-JAY",
     "benefits_summary": "Dedicated Ayushman card for all Indian citizens aged 70 years and above, enabling cashless secondary and tertiary hospital treatment under AB-PMJAY.",
     "coverage_amount_inr": "Up to ₹5 lakh per eligible senior citizen family unit per year under PM-JAY packages",
     "cashless": true,
@@ -89,7 +92,10 @@
       "Launched in 2024 to cover all Indians aged 70+ under PM-JAY.",
       "Provides a distinct Ayushman card for senior citizens.",
       "Uses the same PM-JAY hospital network and package framework."
-    ]
+    ],
+    "portal_url": "https://beneficiary.nha.gov.in/",
+    "guidelines_url": "https://pmjay.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_C03",
@@ -136,14 +142,17 @@
       "CGHS provides comprehensive care rather than a fixed insurance limit.",
       "Eligibility depends on Central Government employment or pension status.",
       "Services are obtained through CGHS facilities and authorized hospitals."
-    ]
+    ],
+    "portal_url": "https://cghs.nic.in/",
+    "guidelines_url": "https://cghs.nic.in/index.php",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_C04",
     "scheme_name": "Employees' State Insurance Scheme (ESIC)",
     "department": "Employees' State Insurance Corporation, Ministry of Labour and Employment, Government of India",
     "state": "Central / Implemented in 668+ districts across India",
-    "official_url": "https://www.esic.nic.in/",
+    "official_url": "https://www.esic.gov.in/",
     "benefits_summary": "Social security and health insurance for organized-sector employees and their families, covering hospitalization, maternity, disability and dependents' benefits.",
     "coverage_amount_inr": "No fixed annual sum insured; benefits as per ESIC rules and wage limits",
     "cashless": true,
@@ -183,7 +192,10 @@
       "ESIC covers organized-sector employees and their families.",
       "Both employer and employee contribute to the scheme.",
       "Now covers 668+ districts across India."
-    ]
+    ],
+    "portal_url": "https://www.esic.gov.in/",
+    "guidelines_url": "https://www.esic.gov.in/health-insurance",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_C05",
@@ -232,14 +244,17 @@
       "Niramaya covers persons with specified disabilities.",
       "Annual premium is ₹250 for BPL and ₹500 for others.",
       "Enrollment through National Trust or registered disability organizations."
-    ]
+    ],
+    "portal_url": "https://thenationaltrust.gov.in/content/scheme/niramaya.php",
+    "guidelines_url": "https://thenationaltrust.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_C06",
     "scheme_name": "Rashtriya Arogya Nidhi (RAN)",
     "department": "Ministry of Health and Family Welfare, Government of India",
     "state": "Central / All India",
-    "official_url": "https://main.mohfw.gov.in/major-programmes/poor-patients-financial-assistance/rashtriya-arogya-nidhi",
+    "official_url": "https://mohfw.gov.in/",
     "benefits_summary": "One-time financial assistance for BPL patients with specified life-threatening diseases receiving treatment in eligible Government hospitals.",
     "coverage_amount_inr": "Case-based one-time grant; no universal fixed amount",
     "cashless": false,
@@ -280,14 +295,17 @@
       "RAN provides a case-based one-time grant, not annual insurance.",
       "Eligibility requires BPL status and a qualifying life-threatening disease.",
       "Assistance is released to the treating Government hospital."
-    ]
+    ],
+    "portal_url": "https://mohfw.gov.in/",
+    "guidelines_url": "https://mohfw.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_C07",
     "scheme_name": "Pradhan Mantri Matru Vandana Yojana (PMMVY)",
     "department": "Ministry of Women and Child Development, Government of India",
     "state": "Central / All India",
-    "official_url": "https://www.spniwcd.wcd.gov.in/pradhan-mantri-vandana-yojna/faqs",
+    "official_url": "https://pmmvy.wcd.gov.in/",
     "benefits_summary": "Direct maternity benefit for eligible pregnant women and lactating mothers from specified disadvantaged groups.",
     "coverage_amount_inr": "₹5000 for first living child; ₹6000 for second living child if the second child is a girl, subject to conditions",
     "cashless": false,
@@ -328,14 +346,17 @@
       "PMMVY provides maternity assistance through DBT.",
       "Benefits depend on pregnancy registration, ANC, childbirth and immunization milestones.",
       "Identity, bank and maternal-child health records are generally required."
-    ]
+    ],
+    "portal_url": "https://pmmvy.wcd.gov.in/",
+    "guidelines_url": "https://wcd.nic.in/schemes/pradhan-mantri-matru-vandana-yojana",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_C08",
     "scheme_name": "Pradhan Mantri Surakshit Matritva Abhiyan (PMSMA)",
     "department": "Ministry of Health and Family Welfare, Government of India",
     "state": "Central / All India",
-    "official_url": "https://pmsma.nhp.gov.in/",
+    "official_url": "https://pmsma.mohfw.gov.in/",
     "benefits_summary": "Free, assured antenatal care on the 9th of every month for all pregnant women at designated government health facilities.",
     "coverage_amount_inr": "Free antenatal services; no fixed monetary limit",
     "cashless": true,
@@ -373,7 +394,10 @@
       "PMSMA guarantees free antenatal care on the 9th of every month.",
       "Aims to detect high-risk pregnancies early and reduce maternal mortality.",
       "Not an insurance scheme; does not cover hospitalization costs."
-    ]
+    ],
+    "portal_url": "https://pmsma.mohfw.gov.in/",
+    "guidelines_url": "https://pmsma.mohfw.gov.in/about-scheme/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_C09",
@@ -421,7 +445,10 @@
       "JSSK provides free delivery and caesarean services in public health institutions.",
       "The programme includes medicines, diagnostics, blood, diet and transport.",
       "It is a Government service guarantee rather than a fixed-sum insurance policy."
-    ]
+    ],
+    "portal_url": "https://nhm.gov.in/",
+    "guidelines_url": "https://nhm.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_C10",
@@ -467,7 +494,10 @@
       "JSY provides cash assistance to encourage institutional delivery.",
       "Eligibility and payment vary by State, residence and beneficiary category.",
       "The programme is a maternity cash benefit, not hospitalization insurance."
-    ]
+    ],
+    "portal_url": "https://nhm.gov.in/",
+    "guidelines_url": "https://nhm.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_C11",
@@ -513,7 +543,10 @@
       "NHM is an umbrella mission supporting public healthcare across India.",
       "Benefits and eligibility vary by programme, including maternal, child, communicable and non-communicable disease services.",
       "It is not a single insurance policy and has no universal sum insured."
-    ]
+    ],
+    "portal_url": "https://nhm.gov.in/",
+    "guidelines_url": "https://nhm.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_TN01",
@@ -560,14 +593,17 @@
       "CMCHIS coverage increased from ₹5 lakh to ₹25 lakh per family per year (August 2026 announcement).",
       "Eligibility requires Tamil Nadu residence and the applicable income criterion.",
       "Existing insurance cards remain valid; revised coverage to be implemented soon."
-    ]
+    ],
+    "portal_url": "https://www.cmchistn.com/",
+    "guidelines_url": "https://www.cmchistn.com/about.php",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_TN02",
     "scheme_name": "Dr. Muthulakshmi Reddy Maternity Benefit Scheme (MRMBS)",
     "department": "Health and Family Welfare Department, Government of Tamil Nadu",
     "state": "Tamil Nadu",
-    "official_url": "https://picme.tn.gov.in/picme_public/mrmbs.pdf",
+    "official_url": "https://picme.tn.gov.in/",
     "benefits_summary": "Maternity assistance scheme providing ₹18000 per eligible beneficiary through cash instalments and two nutrition kits, subject to pregnancy registration, antenatal care, childbirth and immunization conditions.",
     "coverage_amount_inr": "₹18000 per eligible beneficiary, including cash and nutrition-kit benefits, subject to current guidelines",
     "cashless": false,
@@ -609,7 +645,10 @@
       "MRMBS provides ₹18000 maternity assistance through cash and nutrition-kit benefits.",
       "Eligibility depends on pregnancy registration, antenatal care, childbirth and immunization conditions.",
       "PICME, identity, bank and maternal-child health records support payment."
-    ]
+    ],
+    "portal_url": "https://picme.tn.gov.in/",
+    "guidelines_url": "https://picme.tn.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_TN03",
@@ -654,14 +693,17 @@
       "Amma Baby Care Kit is an in-kind newborn-care benefit in Tamil Nadu.",
       "Eligibility generally depends on delivery in an eligible Government institution.",
       "Delivery and mother-child health records support distribution."
-    ]
+    ],
+    "portal_url": "https://www.tn.gov.in/",
+    "guidelines_url": "https://www.tn.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_TN04",
     "scheme_name": "Amma Arokiya Scheme",
     "department": "Health and Family Welfare Department, Government of Tamil Nadu",
     "state": "Tamil Nadu",
-    "official_url": "https://www.nhm.tn.gov.in/",
+    "official_url": "https://www.nhm.tn.gov.in/en",
     "benefits_summary": "Preventive health-screening initiative providing basic health checks and investigations through public health facilities, especially for adults aged 30 years and above.",
     "coverage_amount_inr": "Free or Government-funded screening services; no fixed insurance sum",
     "cashless": true,
@@ -699,14 +741,17 @@
       "Amma Arokiya provides preventive screening through Tamil Nadu public facilities.",
       "The programme focuses particularly on adults aged 30 and above.",
       "It is a screening service and not a fixed-sum insurance scheme."
-    ]
+    ],
+    "portal_url": "https://www.nhm.tn.gov.in/en",
+    "guidelines_url": "https://www.nhm.tn.gov.in/en",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_TN05",
     "scheme_name": "Nammai Kaakkum 48",
     "department": "Health and Family Welfare Department, Government of Tamil Nadu",
     "state": "Tamil Nadu",
-    "official_url": "https://www.tn.gov.in/go.php?dep_id=MTE=&year=MjAyNA==",
+    "official_url": "https://www.cmchistn.com/",
     "benefits_summary": "Tamil Nadu emergency-care programme providing cashless treatment during the first 48 hours after eligible road-traffic accidents and other notified emergencies, subject to current Government rules and hospital authorization.",
     "coverage_amount_inr": "Up to ₹200000 for eligible treatment under the cited revised Tamil Nadu Government provision",
     "cashless": true,
@@ -745,14 +790,17 @@
       "Nammai Kaakkum 48 provides cashless emergency treatment during the first 48 hours.",
       "The cited Tamil Nadu Government material reports a revised ceiling of ₹2 lakh.",
       "Emergency and hospital records are used for authorization and settlement."
-    ]
+    ],
+    "portal_url": "https://www.cmchistn.com/",
+    "guidelines_url": "https://www.tn.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_TN06",
-    "scheme_name": "Nalam 360 – Annual Free Health Check-up for All",
+    "scheme_name": "Nalam 360 - Annual Free Health Check-up for All",
     "department": "Health and Family Welfare Department, Government of Tamil Nadu",
     "state": "Tamil Nadu",
-    "official_url": "https://www.nhm.tn.gov.in/",
+    "official_url": "https://www.nhm.tn.gov.in/en",
     "benefits_summary": "Annual free health check-up for all Tamil Nadu residents aged 30 years and above, offering 14 basic tests at government health facilities, with plans for home-based diagnostic services in metropolitan areas.",
     "coverage_amount_inr": "Free screening services; no fixed insurance amount",
     "cashless": true,
@@ -795,14 +843,17 @@
       "Announced in August 2026 as part of health department reforms.",
       "Provides 14 basic tests annually at 1,257 government facilities.",
       "Supported by a planned Nalam 360 mobile application and Positive Health Policy."
-    ]
+    ],
+    "portal_url": "https://www.nhm.tn.gov.in/en",
+    "guidelines_url": "https://www.nhm.tn.gov.in/en",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_TN07",
     "scheme_name": "Chief Minister's Elderly Health Insurance Scheme",
     "department": "Health and Family Welfare Department, Government of Tamil Nadu",
     "state": "Tamil Nadu",
-    "official_url": "https://www.nhm.tn.gov.in/",
+    "official_url": "https://www.nhm.tn.gov.in/en",
     "benefits_summary": "Free health insurance for Tamil Nadu residents aged 70 years and above, covering super-speciality treatment including cancer care, advanced cardiac surgeries, organ transplants and high-end diagnostics at empanelled government and private hospitals, with no income ceiling.",
     "coverage_amount_inr": "No fixed monetary ceiling stated in announcement; covers specified super-speciality packages",
     "cashless": true,
@@ -843,14 +894,17 @@
       "Announced in August 2026 to cover about 38 lakh senior citizens aged 70+.",
       "No income ceiling; free treatment at empanelled government and private hospitals.",
       "Part of broader health announcements including Nalam 360 and policy reforms."
-    ]
+    ],
+    "portal_url": "https://www.cmchistn.com/",
+    "guidelines_url": "https://www.nhm.tn.gov.in/en",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_TN08",
-    "scheme_name": "Tamil Nadu New Health Insurance Scheme 2026 (Employees)",
+    "scheme_name": "Tamil Nadu New Health Insurance Scheme (Employees)",
     "department": "Finance (Health Insurance) Department, Government of Tamil Nadu",
     "state": "Tamil Nadu",
-    "official_url": "https://treasuries.tn.gov.in/",
+    "official_url": "https://www.tn.gov.in/",
     "benefits_summary": "Health insurance for Tamil Nadu government employees and eligible family members, providing cashless treatment at empanelled hospitals with basic sum insured of ₹7.50 lakh and up to ₹12 lakh for specified illnesses, effective July 2026 for a five-year block.",
     "coverage_amount_inr": "750000 basic; up to 1200000 for specified illnesses; Corpus Fund up to 1500000 for rare/specified illnesses (employees only)",
     "cashless": true,
@@ -891,14 +945,17 @@
       "NHIS 2026 effective from 1 July 2026 to 30 June 2031 for employees and pensioners.",
       "Basic cover ₹7.50 lakh; specified illnesses up to ₹12 lakh; employees have Corpus Fund up to ₹15 lakh.",
       "Enrollment automatic via IFHRMS; monthly subscription deducted from salary."
-    ]
+    ],
+    "portal_url": "https://www.tn.gov.in/",
+    "guidelines_url": "https://www.tn.gov.in/",
+    "verification_status": "VERIFIED"
   },
   {
     "scheme_id": "scheme_TN09",
-    "scheme_name": "Tamil Nadu New Health Insurance Scheme 2026 (Pensioners)",
+    "scheme_name": "Tamil Nadu New Health Insurance Scheme (Pensioners)",
     "department": "Finance (Health Insurance) Department, Government of Tamil Nadu",
     "state": "Tamil Nadu",
-    "official_url": "https://treasuries.tn.gov.in/",
+    "official_url": "https://www.tn.gov.in/",
     "benefits_summary": "Health insurance for Tamil Nadu government pensioners, family pensioners and eligible dependents, with basic sum insured of ₹7.50 lakh and up to ₹12 lakh for specified illnesses, effective July 2026 for a five-year block.",
     "coverage_amount_inr": "750000 basic; up to 1200000 for specified illnesses; no Corpus Fund for pensioners",
     "cashless": true,
@@ -939,6 +996,9 @@
       "NHIS 2026 pensioner component effective 1 July 2026 to 30 June 2031.",
       "Basic cover ₹7.50 lakh; specified illnesses up to ₹12 lakh; no Corpus Fund for pensioners.",
       "Enrollment largely automatic; some categories must submit option form."
-    ]
+    ],
+    "portal_url": "https://www.tn.gov.in/",
+    "guidelines_url": "https://www.tn.gov.in/",
+    "verification_status": "VERIFIED"
   }
 ]

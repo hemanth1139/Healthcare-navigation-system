@@ -639,6 +639,45 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
         </div>
       )}
 
+      {/* Profile Completion Status Banner */}
+      {result.profile_complete === false && result.missing_required_fields && result.missing_required_fields.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                Incomplete Profile Details for Full Assessment
+              </p>
+              <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
+                Some criteria could not be fully verified because your profile is missing:{" "}
+                <span className="font-semibold">{result.missing_required_fields.join(", ")}</span>.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/profile"
+            className="inline-flex items-center gap-1 text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-200/60 dark:bg-amber-900/40 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+          >
+            Update Profile
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
+
+      {result.profile_complete === true && (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3.5 py-2 flex items-center justify-between gap-3 text-[11px] text-emerald-800 dark:text-emerald-300">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="font-semibold">
+              Assessed using your authenticated patient profile data (State, Age, Income &amp; Health details)
+            </span>
+          </div>
+          <Link href="/profile" className="text-emerald-700 dark:text-emerald-300 underline font-medium hover:text-emerald-900 shrink-0">
+            Edit profile
+          </Link>
+        </div>
+      )}
+
       {/* Overall Explanation */}
       <div className={`text-xs leading-relaxed ${cfg.text}`}>
         {renderFormattedText(explanationText)}

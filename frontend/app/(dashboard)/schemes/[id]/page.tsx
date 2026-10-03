@@ -117,17 +117,43 @@ export default function SchemeDetailPage({ params }: { params: Promise<{ id: str
               <Calendar className="w-3.5 h-3.5 text-[#0D9488]" /> Updated {scheme.last_updated}
             </span>
 
-            {scheme.official_url && (
-              <a
-                href={scheme.official_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0D9488] dark:text-[#14B8A6] bg-teal-500/10 hover:bg-teal-500/20 px-3.5 py-1.5 rounded-xl border border-teal-500/20 transition-colors"
-              >
-                <span>Official Government Portal</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {scheme.official_url && (
+                <a
+                  href={scheme.official_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0D9488] dark:text-[#14B8A6] bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 rounded-xl border border-teal-500/20 transition-colors"
+                >
+                  <span>Official Website</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+
+              {scheme.portal_url && scheme.portal_url !== scheme.official_url && (
+                <a
+                  href={scheme.portal_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded-xl border border-indigo-500/20 transition-colors"
+                >
+                  <span>Application Portal</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+
+              {scheme.guidelines_url && (
+                <a
+                  href={scheme.guidelines_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 transition-colors"
+                >
+                  <span>Guidelines</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
           </div>
         </div>
 
