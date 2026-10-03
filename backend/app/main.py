@@ -2,16 +2,19 @@
 Healthcare Navigation System — FastAPI Application Entry Point
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
+import math
 
 from app.config import settings
 from app.core.database import engine, Base
 from app.api.v1.router import api_router
+from app.rag.embeddings import EmbeddingService
+from app.rag.pipeline import _get_vector_store
 
 
 from sqlalchemy import select
@@ -128,3 +131,47 @@ async def health_check():
         "version": settings.APP_VERSION,
         "environment": settings.APP_ENV,
     }
+
+
+@app.get("/api/v1/health/rag", tags=["Health"])
+async def rag_health_check():
+    """Check that the RAG vector store, embeddings, and retrieval are operational."""
+    checks = {
+        "vector_store_loaded": False,
+        "embeddings_working": False,
+        "search_returns_results": False,
+    }
+    details = {}
+
+    try:
+        vector_store = _get_vector_store()
+        checks["vector_store_loaded"] = bool(vector_store.documents)
+        details["document_count"] = len(vector_store.documents)
+        if not vector_store.documents:
+            details["vector_store"] = "No indexed documents are loaded."
+        else:
+            query = "government healthcare scheme benefits and eligibility"
+            embedding = await EmbeddingService.get_embedding(query)
+            first_document_embedding = vector_store.documents[0].get("embedding", [])
+            checks["embeddings_working"] = bool(embedding) and bool(first_document_embedding) and (
+                len(embedding) == len(first_document_embedding)
+            ) and any(value != 0 for value in embedding) and all(
+                isinstance(value, (int, float)) and math.isfinite(value) for value in embedding
+            )
+            if checks["embeddings_working"]:
+                details["embedding_dimension"] = len(embedding)
+                results = vector_store.hybrid_search(embedding, query, k=1)
+                checks["search_returns_results"] = bool(results)
+                details["search_result_count"] = len(results)
+    except Exception as exc:
+        details["error"] = str(exc)
+
+    healthy = all(checks.values())
+    response = {
+        "status": "healthy" if healthy else "degraded",
+        "checks": checks,
+        "details": details,
+    }
+    if not healthy:
+        raise HTTPException(status_code=503, detail=response)
+    return response

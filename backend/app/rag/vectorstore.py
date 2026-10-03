@@ -8,9 +8,12 @@ import os
 import json
 import math
 import re
+import logging
 from collections import Counter, defaultdict
 from typing import List, Dict, Any, Tuple, Optional
 from app.config import settings
+
+logger = logging.getLogger("app.rag.vectorstore")
 
 STORE_DIR = os.path.abspath(settings.VECTOR_STORE_DIRECTORY)
 STORE_PATH = os.path.join(STORE_DIR, "vector_store.json")
@@ -96,6 +99,7 @@ class VectorStore:
         self._ensure_store_dir()
         self.documents: List[Dict[str, Any]] = []
         self.bm25_index: Optional[BM25Index] = None
+        self._loaded_mtime: Optional[float] = None
         self.load()
 
     def _ensure_store_dir(self):
@@ -110,11 +114,25 @@ class VectorStore:
                     self.documents = json.load(f)
                 print(f"[INFO] Vector store loaded: {len(self.documents)} chunks.")
                 self._build_bm25_index()
+                self._loaded_mtime = os.path.getmtime(STORE_PATH)
             except Exception as e:
                 print(f"[WARN] Failed to load vector store: {e}. Starting fresh.")
                 self.documents = []
+                self.bm25_index = None
+                self._loaded_mtime = None
         else:
             self.documents = []
+            self.bm25_index = None
+            self._loaded_mtime = None
+
+    def reload_if_changed(self):
+        """Reload an index replaced by a scheme update while the API is running."""
+        try:
+            current_mtime = os.path.getmtime(STORE_PATH)
+        except OSError:
+            current_mtime = None
+        if current_mtime != self._loaded_mtime:
+            self.load()
 
     def _build_bm25_index(self):
         """Build BM25 index for keyword search."""
@@ -127,6 +145,7 @@ class VectorStore:
         """Persists vector store to JSON file on disk."""
         with open(STORE_PATH, "w", encoding="utf-8") as f:
             json.dump(self.documents, f, indent=2, ensure_ascii=False)
+        self._loaded_mtime = os.path.getmtime(STORE_PATH)
 
     def _save_store(self):
         """Alias for save."""
@@ -149,11 +168,12 @@ class VectorStore:
         self._build_bm25_index()
 
     def similarity_search(
-        self, query_embedding: List[float], k: int = 3
+        self, query_embedding: List[float], query_text: str = "", k: int = 3
     ) -> List[Tuple[str, Dict[str, Any], float]]:
         """
         Cosine similarity search — pure Python, no numpy.
         Returns top-k (chunk_text, metadata, score) tuples.
+        Falls back to BM25 keyword search if cosine similarity scores are too low (indicates embedding mismatch).
         """
         if not self.documents:
             return []
@@ -163,6 +183,15 @@ class VectorStore:
             for doc in self.documents
         ]
         scores.sort(key=lambda x: x[2], reverse=True)
+        
+        # If top score is very low (likely due to embedding mismatch), use BM25 fallback
+        if scores and scores[0][2] < 0.3 and self.bm25_index:
+            logger.info("[VECTORSTORE] Low similarity score detected, falling back to BM25 keyword search")
+            bm25_results = self.bm25_index.search(query_text, k=k)
+            if bm25_results:
+                bm25_scores = [(self.documents[idx]["text"], self.documents[idx]["metadata"], score) for idx, score in bm25_results]
+                return bm25_scores
+        
         return scores[:k]
 
     def hybrid_search(
@@ -191,6 +220,13 @@ class VectorStore:
         if self.bm25_index:
             bm25_results = self.bm25_index.search(query_text, k=len(self.documents))
             bm25_scores = {doc_id: score for doc_id, score in bm25_results}
+
+        # If vector scores are very low (embedding mismatch), use BM25-only
+        max_vec = max(vector_scores.values()) if vector_scores else 0.0
+        if max_vec < 0.3 and bm25_scores:
+            logger.info("[VECTORSTORE] Low vector scores detected, using BM25-only search")
+            bm25_results = self.bm25_index.search(query_text, k=k)
+            return [(self.documents[idx]["text"], self.documents[idx]["metadata"], score) for idx, score in bm25_results]
 
         # Combine scores
         combined_scores = []
@@ -240,6 +276,7 @@ class VectorStore:
         self.bm25_index = None
         if os.path.exists(STORE_PATH):
             os.remove(STORE_PATH)
+        self._loaded_mtime = None
         self._ensure_store_dir()
 
     def __len__(self) -> int:

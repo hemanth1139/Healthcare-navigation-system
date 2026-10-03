@@ -401,6 +401,16 @@ def extract_cumulative_symptoms(
                     if re.search(neg_pattern, text):
                         denied_symptoms.add(canon)
 
+            # Later explicit corrections supersede earlier denials. Keep ordinary
+            # mentions from silently reversing a denial; require correction or
+            # affirmative language in the same user turn.
+            if re.search(r"\b(?:actually|correction|i do have|i do feel|it is present|yes,? i have)\b", text):
+                for canon, syns in SYMPTOM_SYNONYMS.items():
+                    for syn in [canon.replace("_", " ")] + syns:
+                        if re.search(rf"\b{re.escape(syn)}\b", text):
+                            denied_symptoms.discard(canon)
+                            break
+
             # 2. Match positive mentions against SYMPTOM_SYNONYMS
             for canon, syns in SYMPTOM_SYNONYMS.items():
                 if canon in denied_symptoms:
@@ -570,6 +580,9 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "supporting_symptoms": [
             "left_arm_radiation", "shortness_of_breath", "sweating", "dizziness", "nausea"
         ],
+        # Chest pain by itself is not enough to label the completed assessment ACS.
+        # Require at least one associated warning symptom before using this emergency rule.
+        "minimum_supporting_matches": 1,
         "base_confidence": 0.65,
         "max_confidence": 0.96,
         "urgency_tier": "EMERGENCY",
@@ -606,6 +619,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "supporting_symptoms": [
             "joint_warmth_redness", "inability_to_bear_weight", "swelling", "body_aches"
         ],
+        "required_any_symptoms": ["joint_warmth_redness", "inability_to_bear_weight"],
         "base_confidence": 0.70,
         "max_confidence": 0.95,
         "urgency_tier": "EMERGENCY",
@@ -663,6 +677,11 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "supporting_symptoms": [
             "lower_abdominal_pain", "burning_urination", "urinary_frequency_urgency", "hematuria"
         ],
+        "minimum_supporting_matches": 1,
+        "qualifying_text_patterns": [
+            r"\b(severe|significant|worsening|persistent)\b",
+            r"\b(?:[3-9]|[1-9]\d+)\s*(?:days?|weeks?)\b",
+        ],
         "base_confidence": 0.65,
         "max_confidence": 0.92,
         "urgency_tier": "URGENT",
@@ -681,6 +700,7 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "supporting_symptoms": [
             "hematuria", "burning_urination", "nausea", "vomiting", "difficulty_urinating"
         ],
+        "minimum_supporting_matches": 1,
         "base_confidence": 0.65,
         "max_confidence": 0.93,
         "urgency_tier": "URGENT",
@@ -733,6 +753,9 @@ DISEASE_RULES: List[Dict[str, Any]] = [
         "supporting_symptoms": [
             "fever", "nausea", "vomiting", "fatigue"
         ],
+        # A single nonspecific symptom (e.g. a stomach ache) should not be
+        # classified as suspected appendicitis or sent to urgent care.
+        "minimum_supporting_matches": 2,
         "base_confidence": 0.55,
         "max_confidence": 0.90,
         "urgency_tier": "URGENT",
@@ -747,6 +770,9 @@ DISEASE_RULES: List[Dict[str, Any]] = [
     {
         "disease": "Bacterial Pneumonia / Acute Lower Respiratory Infection",
         "required_symptoms": ["cough", "fever"],
+        # Fever and cough alone are common in uncomplicated viral illness.
+        # Require a lower-respiratory severity feature before assigning urgent.
+        "required_any_symptoms": ["shortness_of_breath", "chest_pain"],
         "supporting_symptoms": [
             "shortness_of_breath", "chest_pain", "body_aches", "sweating", "fatigue"
         ],
@@ -991,6 +1017,9 @@ def predict_disease(
         if is_emergency:
             if matched_req_count < len(req):
                 continue
+            required_any = rule.get("required_any_symptoms", [])
+            if required_any and not any(symptom in canonical_symptoms for symptom in required_any):
+                continue
         elif is_urgent:
             # Urgent rules require satisfying mandatory keys
             if match_mode == "any":
@@ -999,6 +1028,10 @@ def predict_disease(
             else:
                 if matched_req_count < len(req):
                     continue
+
+        required_any = rule.get("required_any_symptoms", [])
+        if required_any and not any(s in canonical_symptoms for s in required_any):
+            continue
         else:
             if match_mode == "any":
                 if matched_req_count == 0:
@@ -1006,6 +1039,13 @@ def predict_disease(
             else:
                 if matched_req_count < len(req):
                     continue
+
+        minimum_support = rule.get("minimum_supporting_matches", 0)
+        if matched_sup_count < minimum_support:
+            complaint = (cumulative_data or {}).get("original_complaint", "").lower()
+            text_patterns = rule.get("qualifying_text_patterns", [])
+            if not any(re.search(pattern, complaint) for pattern in text_patterns):
+                continue
 
         req_ratio = matched_req_count / total_req
         sup_ratio = matched_sup_count / total_sup

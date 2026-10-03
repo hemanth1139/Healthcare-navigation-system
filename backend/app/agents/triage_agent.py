@@ -10,7 +10,11 @@ from typing import Dict, Any, List, Optional
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
 from app.config import settings
-from app.ml.rule_based_predictor import extract_cumulative_symptoms, normalize_symptom_list
+from app.ml.rule_based_predictor import (
+    extract_cumulative_symptoms,
+    normalize_symptom_list,
+    predict_disease,
+)
 
 # ─── Mock Fallback Flow (Deterministic Adaptive Clinical Questionnaire) ──────
 
@@ -22,18 +26,20 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
 
     # 1. Immediate Emergency Red-Flag Checks
     # (a) Cardiorespiratory emergency
-    if ("chest pain" in history_text or "chest tightness" in history_text or "heart attack" in history_text) and not any(neg in history_text for neg in ["no chest pain", "not chest pain", "denies chest pain"]):
-        if any(rad in history_text for rad in ["arm", "jaw", "neck", "breathe", "breath", "sweat", "dizzy", "radiat"]):
-            return {
-                "needs_more_info": False,
-                "is_emergency": True,
-                "question": "🚨 Emergency signs detected (potential acute coronary syndrome). Please call emergency services (108 / 112) or go to the nearest emergency department immediately.",
-                "options": None,
-                "symptoms": symptoms or ["chest_pain"],
-            }
+    if "chest_pain" in symptoms and any(
+        finding in symptoms
+        for finding in ["left_arm_radiation", "shortness_of_breath", "sweating", "dizziness", "nausea"]
+    ):
+        return {
+            "needs_more_info": False,
+            "is_emergency": True,
+            "question": "🚨 Emergency signs detected (potential acute coronary syndrome). Please call emergency services (108 / 112) or go to the nearest emergency department immediately.",
+            "options": None,
+            "symptoms": symptoms or ["chest_pain"],
+        }
 
     # (b) Neurological emergency
-    if any(s in history_text for s in ["slurred speech", "facial droop", "arm weakness", "face drooping", "cannot speak", "one side weak"]):
+    if "facial_droop_weakness" in symptoms:
         return {
             "needs_more_info": False,
             "is_emergency": True,
@@ -42,28 +48,26 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
             "symptoms": symptoms or ["facial_droop_weakness"],
         }
 
-    # (c) Meningeal emergency / Thunderclap Headache
-    if "thunderclap" in history_text or ("worst headache" in history_text and "ever" in history_text):
-        return {
-            "needs_more_info": False,
-            "is_emergency": True,
-            "question": "🚨 Sudden explosive 'thunderclap' headache detected. Requires immediate emergency neurological evaluation to rule out acute intracranial hemorrhage.",
-            "options": None,
-            "symptoms": symptoms or ["thunderclap_headache"],
-        }
-
-    if ("fever" in history_text or "temperature" in history_text) and ("stiff neck" in history_text or "neck stiffness" in history_text or "cannot bend neck" in history_text):
-        return {
-            "needs_more_info": False,
-            "is_emergency": True,
-            "question": "🚨 High fever with neck rigidity detected (potential central nervous system infection / meningitis). Seek immediate emergency medical care.",
-            "options": None,
-            "symptoms": symptoms or ["fever", "stiff_neck"],
-        }
+    # (c) Meningeal emergency / Thunderclap Headache - STRICTER CRITERIA
+    # Only trigger if multiple red flags are present
+    has_thunderclap = "thunderclap_headache" in symptoms
+    has_meningeal = "fever" in symptoms and "stiff_neck" in symptoms
+    
+    if has_thunderclap or has_meningeal:
+        # Additional neurological symptoms must be present for emergency
+        neuro_symptoms = {"vomiting", "dizziness", "facial_droop_weakness"}
+        if neuro_symptoms.intersection(symptoms):
+            return {
+                "needs_more_info": False,
+                "is_emergency": True,
+                "question": "🚨 Neurological emergency signs detected. Seek immediate emergency medical care to rule out serious intracranial pathology.",
+                "options": None,
+                "symptoms": symptoms or ["headache", "fever", "stiff_neck"],
+            }
 
     # (d) Acute Urinary Retention Emergency
-    if ("cannot pass urine" in history_text or "unable to urinate" in history_text or "cannot urinate at all" in history_text or "not passed urine" in history_text or "no urine" in history_text):
-        if any(w in history_text for w in ["distended", "full bladder", "lower belly", "lower abdomen", "severe pain", "swelling", "bursting", "hours"]):
+    if "acute_urinary_retention" in symptoms:
+        if "lower_abdominal_pain" in symptoms or any(w in history_text for w in ["full bladder", "distended bladder", "painfully full"]):
             return {
                 "needs_more_info": False,
                 "is_emergency": True,
@@ -73,8 +77,8 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
             }
 
     # (e) Pyelonephritis / Urosepsis Warning
-    if any(u in symptoms for u in ["difficulty_urinating", "burning_urination", "urinary_frequency_urgency", "hematuria"]) and ("fever" in history_text or "chills" in history_text):
-        if any(f in history_text for f in ["flank", "back pain", "kidney", "side pain", "vomiting", "rigors"]):
+    if any(u in symptoms for u in ["difficulty_urinating", "burning_urination", "urinary_frequency_urgency", "hematuria"]) and "fever" in symptoms:
+        if "flank_pain" in symptoms or "vomiting" in symptoms:
             return {
                 "needs_more_info": False,
                 "is_emergency": True,
@@ -84,7 +88,7 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
             }
 
     # (f) Severe Airway / Throat Emergency
-    if ("difficulty swallowing" in history_text or "cannot swallow" in history_text or "throat" in history_text) and any(w in history_text for w in ["saliva", "drooling", "stridor", "cannot breathe", "gasping"]):
+    if ("difficulty swallowing" in history_text or "cannot swallow" in history_text or "throat" in history_text) and any(w in history_text for w in ["drooling", "stridor", "cannot breathe", "gasping", "can't breathe"]):
         return {
             "needs_more_info": False,
             "is_emergency": True,
@@ -94,8 +98,8 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
         }
 
     # (g) Septic joint emergency (Knee/joint pain + fever + hot/swollen/unable to bear weight)
-    if ("knee" in history_text or "joint" in history_text) and ("fever" in history_text or "temperature" in history_text):
-        if any(w in history_text for w in ["hot", "warm", "red", "cannot walk", "cannot bear weight", "swollen"]):
+    if any(s in symptoms for s in ["knee_pain", "joint_pain"]) and "fever" in symptoms:
+        if any(s in symptoms for s in ["joint_warmth_redness", "inability_to_bear_weight"]):
             return {
                 "needs_more_info": False,
                 "is_emergency": True,
@@ -294,27 +298,166 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
             "symptoms": symptoms or ["chest_pain"],
         }
 
-    # ── DOMAIN 5: Headache / Neurological ──
+    # ── DOMAIN 5: Abdominal / Gastrointestinal Complaints ──
+    is_abdominal = any(s in symptoms for s in [
+        "abdominal_pain", "lower_abdominal_pain", "nausea", "vomiting", "diarrhea"
+    ]) or any(w in history_text for w in ["stomach", "belly", "abdomen", "tummy", "diarrhea", "loose stool"])
+    if is_abdominal:
+        has_abdominal_red_flag_screen = any(w in history_text for w in [
+            "severe", "mild", "moderate", "sudden", "gradual", "started", "since", "hours", "days",
+            "blood", "black stool", "faint", "rigid", "swollen abdomen", "no blood", "not severe",
+            "no vomiting", "not vomiting", "no fever"
+        ])
+        if not has_abdominal_red_flag_screen:
+            return {
+                "needs_more_info": True, "is_emergency": False,
+                "question": "Where is the discomfort, when did it start, and is it severe or getting worse? Have you noticed blood, repeated vomiting, fainting, or a hard/swollen abdomen?",
+                "options": [
+                    {"id": "opt1", "label": "Mild and improving", "value": "Mild stomach discomfort, started today, not worsening, no blood or repeated vomiting"},
+                    {"id": "opt2", "label": "Persistent or worsening pain", "value": "Abdominal pain has persisted or is getting worse"},
+                    {"id": "opt3", "label": "Severe warning signs", "value": "Sudden severe abdominal pain with repeated vomiting or fainting"},
+                ], "symptoms": symptoms or ["abdominal_pain"],
+            }
+        return {"needs_more_info": False, "is_emergency": False, "question": None, "options": None,
+                "symptoms": symptoms or ["abdominal_pain"]}
+
+    # ── DOMAIN 6: Cough / Respiratory Complaints ──
+    is_cough = "cough" in symptoms or any(w in history_text for w in ["cough", "wheezing", "phlegm", "mucus"])
+    if is_cough:
+        has_breathing_screen = any(w in history_text for w in [
+            "breathless", "shortness of breath", "difficulty breathing", "can't breathe", "cannot breathe",
+            "breathing normally", "breathing fine", "no shortness of breath", "not breathless"
+        ])
+        has_cough_context = any(w in history_text for w in [
+            "fever", "no fever", "days", "weeks", "started", "since", "blood", "chest pain", "no chest pain"
+        ])
+        if not has_breathing_screen or not has_cough_context:
+            missing = []
+            if not has_breathing_screen:
+                missing.append("whether you are short of breath or breathing comfortably")
+            if not has_cough_context:
+                missing.append("how long you have been coughing and whether you have fever, chest pain, or blood in the mucus")
+            return {
+                "needs_more_info": True, "is_emergency": False,
+                "question": "To understand the cough, please tell me " + " and ".join(missing) + ".",
+                "options": [
+                    {"id": "opt1", "label": "Breathing comfortably", "value": "I am breathing comfortably, no shortness of breath"},
+                    {"id": "opt2", "label": "Breathless or chest pain", "value": "I have shortness of breath or chest pain with this cough"},
+                    {"id": "opt3", "label": "Fever or blood", "value": "I have fever or blood in my cough"},
+                ], "symptoms": symptoms or ["cough"],
+            }
+        return {"needs_more_info": False, "is_emergency": False, "question": None, "options": None,
+                "symptoms": symptoms or ["cough"]}
+
+    # ── DOMAIN 7: Dizziness / Faintness ──
+    is_dizzy = any(s in symptoms for s in ["dizziness", "vertigo", "fainting"]) or any(
+        w in history_text for w in ["dizzy", "dizziness", "vertigo", "lightheaded", "light-headed", "faint"]
+    )
+    if is_dizzy:
+        has_dizziness_screen = any(w in history_text for w in [
+            "face droop", "facial droop", "weakness on one side", "slurred speech", "trouble speaking",
+            "chest pain", "palpitations", "fainted", "did not faint", "not fainted", "no weakness",
+            "no chest pain", "no trouble speaking", "no vision changes", "normal vision"
+        ])
+        if not has_dizziness_screen:
+            return {
+                "needs_more_info": True, "is_emergency": False,
+                "question": "Did this start suddenly, and have you had fainting, chest pain, one-sided weakness, facial drooping, trouble speaking, or new vision changes?",
+                "options": [
+                    {"id": "opt1", "label": "Sudden neurological symptoms", "value": "Sudden dizziness with one-sided weakness, face drooping, or trouble speaking"},
+                    {"id": "opt2", "label": "Fainting or chest symptoms", "value": "Dizziness with fainting, chest pain, or palpitations"},
+                    {"id": "opt3", "label": "None of these", "value": "No fainting, chest pain, weakness, speech, or vision problems"},
+                ], "symptoms": symptoms or ["dizziness"],
+            }
+        return {"needs_more_info": False, "is_emergency": False, "question": None, "options": None,
+                "symptoms": symptoms or ["dizziness"]}
+
+    # ── DOMAIN 8: Headache / Neurological ──
     is_headache = (
         "headache" in symptoms or "thunderclap_headache" in symptoms
         or any(w in history_text for w in ["headache", "head hurt", "migraine", "temple pain", "throbbing head"])
     )
     if is_headache:
-        has_red_flags = any(w in history_text for w in ["stiff neck", "neck", "fever", "thunderclap", "sudden", "vomiting", "vision", "no neck pain", "no fever"])
-        if not has_red_flags and user_turns <= 1:
+        # Check for severity indicators
+        has_severity_info = any(w in history_text for w in ["severe", "mild", "moderate", "bad", "terrible", "worst", "slight", "little", "intense", "extreme"])
+        has_duration_info = any(w in history_text for w in ["days", "hours", "weeks", "today", "yesterday", "started", "began", "onset"])
+        has_location_info = any(w in history_text for w in ["front", "back", "side", "temple", "forehead", "behind eye", "both sides", "one side"])
+        
+        # First turn: Ask about severity and duration
+        if user_turns <= 1:
             return {
                 "needs_more_info": True,
                 "is_emergency": False,
-                "question": "Did this headache come on suddenly like a thunderclap, or is it accompanied by neck stiffness, fever, or nausea?",
+                "question": "How would you describe the severity of your headache, and how long has it been bothering you?",
                 "options": [
-                    {"id": "opt1", "label": "Sudden severe / worst headache ever", "value": "Sudden severe explosive headache"},
-                    {"id": "opt2", "label": "Accompanied by stiff neck and fever", "value": "Accompanied by stiff neck and high fever"},
-                    {"id": "opt3", "label": "Throbbing with nausea / light sensitivity", "value": "Throbbing temple pain with nausea"},
-                    {"id": "opt4", "label": "Dull ache, no fever or neck stiffness", "value": "Dull band-like ache, no fever or neck stiffness"},
+                    {"id": "opt1", "label": "Mild, started today", "value": "Mild headache that started today"},
+                    {"id": "opt2", "label": "Moderate, 2-3 days", "value": "Moderate headache for 2-3 days"},
+                    {"id": "opt3", "label": "Severe, sudden onset", "value": "Severe headache that started suddenly"},
+                    {"id": "opt4", "label": "Worst headache of my life", "value": "This is the worst headache I've ever had"},
                 ],
                 "symptoms": symptoms or ["headache"],
             }
+        
+        # Second turn: Check for red flags if severity is high
+        if user_turns == 2:
+            # Check if user indicated severe or sudden headache
+            if any(w in history_text for w in ["severe", "sudden", "worst", "intense", "extreme"]):
+                # A mention of one item (including a denial such as "no fever")
+                # does not mean the other warning signs have been screened.
+                headache_screen_complete = all((
+                    any(term in history_text for term in terms)
+                    for terms in [
+                        ["stiff neck", "neck stiffness", "no stiff neck", "no neck stiffness", "can bend neck"],
+                        ["fever", "no fever", "afebrile", "temperature is normal"],
+                        ["vomiting", "no vomiting", "not vomiting", "throwing up"],
+                        ["vision changes", "visual changes", "trouble seeing", "no vision changes"],
+                        ["confusion", "no confusion", "drowsy", "alert and oriented"],
+                    ]
+                ))
+                if not headache_screen_complete:
+                    return {
+                        "needs_more_info": True,
+                        "is_emergency": False,
+                        "question": "Do you have any neck stiffness, fever, vomiting, vision changes, or confusion with this headache?",
+                        "options": [
+                            {"id": "opt1", "label": "Yes, stiff neck and fever", "value": "Yes, I have stiff neck and fever"},
+                            {"id": "opt2", "label": "Yes, vomiting and vision changes", "value": "Yes, vomiting and vision changes"},
+                            {"id": "opt3", "label": "No, just the headache", "value": "No neck stiffness, fever, vomiting, or vision changes"},
+                        ],
+                        "symptoms": symptoms or ["headache"],
+                    }
+            else:
+                # Mild/moderate headache - ask about associated symptoms
+                has_associated = any(w in history_text for w in ["nausea", "light", "noise", "sound", "sensitive", "dizzy"])
+                if not has_associated:
+                    return {
+                        "needs_more_info": True,
+                        "is_emergency": False,
+                        "question": "Are you experiencing nausea, sensitivity to light or sound, or dizziness with this headache?",
+                        "options": [
+                            {"id": "opt1", "label": "Yes, nausea and light sensitivity", "value": "Yes, nausea and sensitive to light"},
+                            {"id": "opt2", "label": "Yes, sensitive to noise", "value": "Yes, sensitive to noise"},
+                            {"id": "opt3", "label": "No associated symptoms", "value": "No nausea, light sensitivity, or dizziness"},
+                        ],
+                        "symptoms": symptoms or ["headache"],
+                    }
 
+        # Conclude headache intake - classify urgency based on findings
+        # Emergency: thunderclap + neurological symptoms OR fever + stiff neck + neurological
+        is_thunderclap = "thunderclap" in history_text or ("worst headache" in history_text and "ever" in history_text and "sudden" in history_text)
+        has_neuro = any(w in history_text for w in ["confusion", "vomiting", "vision", "light", "seizure", "pass out", "faint", "drowsy"])
+        has_meningeal = ("fever" in history_text or "temperature" in history_text) and ("stiff neck" in history_text or "neck stiffness" in history_text)
+        
+        if (is_thunderclap and has_neuro) or (has_meningeal and has_neuro):
+            return {
+                "needs_more_info": False,
+                "is_emergency": True,
+                "question": "🚨 Neurological emergency signs detected. Seek immediate emergency medical care.",
+                "options": None,
+                "symptoms": symptoms or ["headache"],
+            }
+        
+        # Non-urgent simple headache
         return {
             "needs_more_info": False,
             "is_emergency": False,
@@ -323,7 +466,7 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
             "symptoms": symptoms or ["headache"],
         }
 
-    # ── DOMAIN 6: Fever / Systemic ──
+    # ── DOMAIN 9: Fever / Systemic ──
     if "fever" in symptoms or "high_fever" in symptoms or "temperature" in history_text:
         has_fever_focus = any(w in history_text for w in ["cough", "throat", "urine", "burning", "rash", "rigors", "shivering", "stomach", "body aches"])
         if not has_fever_focus and user_turns <= 1:
@@ -362,7 +505,7 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
             "symptoms": symptoms or ["fever"],
         }
 
-    # ── DOMAIN 7: General / Fallback Flow ──
+    # ── DOMAIN 10: General / Fallback Flow ──
     if user_turns <= 1:
         return {
             "needs_more_info": True,
@@ -492,6 +635,23 @@ async def run_triage_agent(
         is_emergency = bool(data.get("is_emergency", False))
         needs_more_info = bool(data.get("needs_more_info", True))
 
+        # The generative model may over-escalate from an isolated symptom. Only
+        # close the intake as an emergency when the deterministic rules confirm
+        # a red-flag combination from user-reported positive findings.
+        if is_emergency:
+            cumulative = extract_cumulative_symptoms(messages)
+            deterministic = predict_disease(
+                cumulative["all_symptoms"], cumulative_data=cumulative
+            )
+            is_emergency = bool(deterministic.get("emergency_flag"))
+            if not is_emergency:
+                needs_more_info = True
+                fallback = _get_mock_triage_response(messages, patient_context_summary)
+                data["question"] = fallback.get("question") or (
+                    "Could you tell me when this started and whether you have any other symptoms?"
+                )
+                data["options"] = fallback.get("options")
+
         # Enforce that Turn 1 non-emergency CANNOT mark intake complete
         if user_turns <= 1 and not is_emergency:
             needs_more_info = True
@@ -499,10 +659,6 @@ async def run_triage_agent(
                 mock_resp = _get_mock_triage_response(messages, patient_context_summary)
                 data["question"] = mock_resp.get("question")
                 data["options"] = mock_resp.get("options")
-
-        # Check if user already provided comprehensive details across turns
-        if user_turns >= 4 and not is_emergency:
-            needs_more_info = False
 
         return {
             "needs_more_info": needs_more_info,

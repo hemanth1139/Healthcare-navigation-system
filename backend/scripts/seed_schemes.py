@@ -16,8 +16,7 @@ from sqlalchemy import select, delete
 from app.core.database import engine, Base, AsyncSession, async_sessionmaker
 from app.models.scheme import GovernmentScheme
 from app.models import *  # Ensure all ORM models are imported so metadata includes all tables
-from app.rag.embeddings import EmbeddingService
-from app.rag.vectorstore import VectorStore
+from scripts.reembed_schemes import reembed_schemes
 
 
 def find_schemes_json() -> str:
@@ -48,11 +47,7 @@ async def seed():
 
     print(f"[INFO] Loaded {len(schemes_data)} schemes from JSON.")
 
-    # 1. Clear vector store
-    v_store = VectorStore()
-    v_store.clear()
-
-    # 2. Open DB Session
+    # Open DB Session
     Session = async_sessionmaker(bind=engine, class_=AsyncSession)
     async with Session() as db:
         # Clear existing schemes table for a fresh seed
@@ -99,39 +94,6 @@ async def seed():
             db.add(scheme)
             await db.flush()
 
-            # Generate vectors for chunks
-            chunks = s.get("chunks", [])
-            if not chunks:
-                chunks = [f"{s_name} - {benefits_summary}", f"Eligibility: {eligibility_str}"]
-
-            portal_url = s.get("portal_url") or official_url
-            category_val = s.get("category") or ("State Government" if "Tamil Nadu" in state or "TN" in s_id else "Central Government")
-
-            metadatas = [
-                {
-                    "scheme_id": s_id,
-                    "scheme_name": s_name,
-                    "official_url": official_url,
-                    "portal_url": portal_url,
-                    "department": dept,
-                    "state": state,
-                    "category": category_val,
-                    "chunk_index": c_idx,
-                }
-                for c_idx, _ in enumerate(chunks)
-            ]
-
-            embeddings = await EmbeddingService.get_embeddings(chunks)
-            for text, emb, meta in zip(chunks, embeddings, metadatas):
-                v_store.documents.append({
-                    "text": text,
-                    "embedding": emb,
-                    "metadata": meta,
-                })
-
-        v_store._save_store()
-        print(f"[SUCCESS] Vector store saved with {len(v_store.documents)} chunks across {len(schemes_data)} schemes.")
-
         # Seed Quick Demo User (sarah@example.com)
         from app.models.user import User
         from app.models.profile import PatientProfile
@@ -166,6 +128,8 @@ async def seed():
 
         await db.commit()
 
+    # Always rebuild the RAG index from the same source after scheme data changes.
+    await reembed_schemes()
     print("[SUCCESS] Seeding complete! Schemes & Demo user stored successfully.")
 
 

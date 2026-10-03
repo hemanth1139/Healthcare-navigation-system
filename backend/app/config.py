@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY_4: str = ""
     GOOGLE_API_KEY_5: str = ""
     PRIMARY_LLM_PROVIDER: str = "gemini"
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-3.8-flash"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
 
     # ─── Google OAuth 2.0 ─────────────────────────────────────────────────────

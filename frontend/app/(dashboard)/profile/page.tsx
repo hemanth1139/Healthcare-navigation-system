@@ -83,10 +83,11 @@ export default function ProfilePage() {
     emergencyName: '',
     emergencyPhone: '',
     annualIncome: '',
-    occupation: '',
+    employmentStatus: '',
     familySize: '',
-    maritalStatus: '',
+    rationCardType: '',
     disabilityStatus: '',
+    pregnancyStatus: '',
   });
 
   // Tab 2 Medical Data
@@ -138,10 +139,11 @@ export default function ProfilePage() {
           emergencyName: p.emergencyContactName || p.emergency_contact_name || '',
           emergencyPhone: p.emergencyContactPhone || p.emergency_contact_phone || '',
           annualIncome: p.annualIncome || p.annual_income ? String(p.annualIncome || p.annual_income) : '',
-          occupation: p.occupation || '',
+          employmentStatus: p.employmentStatus || p.employment_status || '',
           familySize: p.familySize || p.family_size ? String(p.familySize || p.family_size) : '',
-          maritalStatus: p.maritalStatus || p.marital_status || '',
+          rationCardType: p.rationCardType || p.ration_card_type || '',
           disabilityStatus: p.disabilityStatus || p.disability_status || '',
+          pregnancyStatus: p.pregnancyStatus || p.pregnancy_status || '',
         });
       }
 
@@ -211,10 +213,11 @@ export default function ProfilePage() {
         emergencyContactName: personalDetails.emergencyName,
         emergencyContactPhone: personalDetails.emergencyPhone,
         annualIncome: personalDetails.annualIncome ? parseFloat(personalDetails.annualIncome) : null,
-        occupation: personalDetails.occupation || null,
+        employmentStatus: personalDetails.employmentStatus || null,
         familySize: personalDetails.familySize ? parseInt(personalDetails.familySize) : null,
-        maritalStatus: personalDetails.maritalStatus || null,
+        rationCardType: personalDetails.rationCardType || null,
         disabilityStatus: personalDetails.disabilityStatus || null,
+        pregnancyStatus: personalDetails.pregnancyStatus || null,
       };
 
       await api.put('/profile', payload);
@@ -756,11 +759,11 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Occupation</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Employment Status</label>
                         <input
                           type="text"
-                          value={personalDetails.occupation}
-                          onChange={(e) => setPersonalDetails({ ...personalDetails, occupation: e.target.value })}
+                          value={personalDetails.employmentStatus}
+                          onChange={(e) => setPersonalDetails({ ...personalDetails, employmentStatus: e.target.value })}
                           placeholder="e.g. Software Engineer"
                           className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-[#0D9488]"
                         />
@@ -776,17 +779,17 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Marital Status</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Ration Card Type</label>
                         <select
-                          value={personalDetails.maritalStatus}
-                          onChange={(e) => setPersonalDetails({ ...personalDetails, maritalStatus: e.target.value })}
+                          value={personalDetails.rationCardType}
+                          onChange={(e) => setPersonalDetails({ ...personalDetails, rationCardType: e.target.value })}
                           className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-[#0D9488]"
                         >
                           <option value="">Select</option>
-                          <option value="Single">Single</option>
-                          <option value="Married">Married</option>
-                          <option value="Widowed">Widowed</option>
-                          <option value="Divorced">Divorced</option>
+                          <option value="BPL">Below Poverty Line (BPL)</option>
+                          <option value="APL">Above Poverty Line (APL)</option>
+                          <option value="Antyodaya">Antyodaya Anna Yojana</option>
+                          <option value="None">None</option>
                         </select>
                       </div>
                       <div>
@@ -796,8 +799,24 @@ export default function ProfilePage() {
                           onChange={(e) => setPersonalDetails({ ...personalDetails, disabilityStatus: e.target.value })}
                           className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-[#0D9488]"
                         >
+                          <option value="">Select</option>
                           <option value="No">No Disability</option>
                           <option value="Yes">Yes, I have a disability</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Pregnancy Status</label>
+                        <select
+                          value={personalDetails.pregnancyStatus}
+                          onChange={(e) => setPersonalDetails({ ...personalDetails, pregnancyStatus: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#0D9488] focus:border-[#0D9488]"
+                        >
+                          <option value="">Select</option>
+                          <option value="Not Applicable">Not Applicable</option>
+                          <option value="First Trimester">First Trimester</option>
+                          <option value="Second Trimester">Second Trimester</option>
+                          <option value="Third Trimester">Third Trimester</option>
+                          <option value="Postpartum">Postpartum</option>
                         </select>
                       </div>
                     </div>
@@ -808,20 +827,24 @@ export default function ProfilePage() {
                         <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">{personalDetails.annualIncome ? `₹${personalDetails.annualIncome}` : 'Not set'}</p>
                       </div>
                       <div className="bg-purple-50 dark:bg-purple-900/30 rounded-2xl p-4">
-                        <span className="text-xs text-purple-600 dark:text-purple-400">Occupation</span>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">{personalDetails.occupation || 'Not set'}</p>
+                        <span className="text-xs text-purple-600 dark:text-purple-400">Employment Status</span>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">{personalDetails.employmentStatus || 'Not set'}</p>
                       </div>
                       <div className="bg-purple-50 dark:bg-purple-900/30 rounded-2xl p-4">
                         <span className="text-xs text-purple-600 dark:text-purple-400">Family Size</span>
                         <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">{personalDetails.familySize ? `${personalDetails.familySize} members` : 'Not set'}</p>
                       </div>
                       <div className="bg-purple-50 dark:bg-purple-900/30 rounded-2xl p-4">
-                        <span className="text-xs text-purple-600 dark:text-purple-400">Marital Status</span>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">{personalDetails.maritalStatus || 'Not set'}</p>
+                        <span className="text-xs text-purple-600 dark:text-purple-400">Ration Card Type</span>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">{personalDetails.rationCardType || 'Not set'}</p>
                       </div>
                       <div className="bg-purple-50 dark:bg-purple-900/30 rounded-2xl p-4">
                         <span className="text-xs text-purple-600 dark:text-purple-400">Disability</span>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">{personalDetails.disabilityStatus}</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">{personalDetails.disabilityStatus || 'Not set'}</p>
+                      </div>
+                      <div className="bg-purple-50 dark:bg-purple-900/30 rounded-2xl p-4">
+                        <span className="text-xs text-purple-600 dark:text-purple-400">Pregnancy Status</span>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">{personalDetails.pregnancyStatus || 'Not set'}</p>
                       </div>
                     </div>
                   )}

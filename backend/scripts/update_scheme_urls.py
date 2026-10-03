@@ -1,5 +1,7 @@
 import json
 import os
+import subprocess
+import sys
 
 URL_MAP = {
     "scheme_C01": {
@@ -162,3 +164,11 @@ with open(json_path, "w", encoding="utf-8") as f:
     json.dump(schemes, f, indent=2, ensure_ascii=False)
 
 print(f"Successfully updated {len(schemes)} schemes in healthcare_schemes.json")
+
+# Persist the edited source to the database, then rebuild embeddings from those rows.
+script_dir = os.path.dirname(os.path.abspath(__file__))
+subprocess.run(
+    [sys.executable, os.path.join(script_dir, "seed_schemes.py")],
+    cwd=os.path.dirname(script_dir),
+    check=True,
+)

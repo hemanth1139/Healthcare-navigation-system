@@ -9,7 +9,6 @@ Includes caching and follow-up suggestions.
 import re
 import os
 import json
-import asyncio
 import logging
 import hashlib
 from datetime import datetime, timezone
@@ -165,6 +164,11 @@ def _get_vector_store() -> VectorStore:
     global _vector_store
     if _vector_store is None:
         _vector_store = VectorStore()
+        # Ensure BM25 index is built for keyword search fallback
+        if _vector_store.bm25_index is None and _vector_store.documents:
+            _vector_store._build_bm25_index()
+    else:
+        _vector_store.reload_if_changed()
     return _vector_store
 
 
@@ -303,20 +307,16 @@ Provide a clear, structured answer:"""
             continue
 
         try:
-            model_name = getattr(settings, "GEMINI_MODEL", "gemini-2.0-flash") or "gemini-2.0-flash"
-            loop = asyncio.get_running_loop()
-            response = await loop.run_in_executor(
-                None,
-                lambda: client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config={
-                        "system_instruction": system_prompt,
-                        "temperature": 0.3,
-                        "max_output_tokens": 1024,
-                    }
-                )
+            model_name = getattr(settings, "GEMINI_MODEL", "gemini-3.8-flash") or "gemini-3.8-flash"
+            chat = client.aio.chats.create(
+                model=model_name,
+                config={
+                    "system_instruction": system_prompt,
+                    "temperature": 0.3,
+                    "max_output_tokens": 1024,
+                },
             )
+            response = await chat.send_message(prompt)
             if response and response.text:
                 logger.info("[RAG] LLM generation success with API key %d", key_idx + 1)
                 return response.text.strip()
@@ -327,6 +327,15 @@ Provide a clear, structured answer:"""
                 logger.warning("[RAG] API key %d quota exhausted, trying next key", key_idx + 1)
                 continue  # Try next API key
             logger.warning("[RAG] LLM generation failed with API key %d: %s", key_idx + 1, e)
+        finally:
+            try:
+                client.close()
+            except Exception:
+                pass
+            try:
+                await client.aio.aclose()
+            except Exception:
+                pass
 
     logger.warning("[RAG] All API keys exhausted for LLM generation")
     return None
@@ -449,10 +458,17 @@ def _parse_pregnancy_val(raw_val: Any) -> Optional[str]:
     if not raw_val:
         return None
     val_str = str(raw_val).lower().strip()
-    if val_str in {"no", "n", "false"}:
+    # Handle frontend values (case-insensitive)
+    if val_str in {"no", "n", "false", "not applicable"}:
         return "No"
     if val_str in {"yes", "y", "true"}:
         return "Yes"
+    # Handle trimester values as pregnant (case-insensitive - match both "first trimester" and "First Trimester")
+    if any(t in val_str for t in ["first trimester", "second trimester", "third trimester"]):
+        return "Yes"
+    # Postpartum could mean recently pregnant, but for eligibility we treat as not currently pregnant
+    if val_str == "postpartum":
+        return "No"
     if re.search(r"\b(not pregnant|not expecting|no longer pregnant)\b", val_str) or re.search(r"\bno\b", val_str):
         return "No"
     if re.search(r"\b(pregnant|expecting|lactating)\b", val_str) or re.search(r"\byes\b", val_str):
@@ -1060,7 +1076,8 @@ class RAGPipeline:
                 age=effective_age,
                 employment=effective_employment,
                 disability=effective_disability,
-                pregnancy=effective_pregnancy
+                pregnancy=effective_pregnancy,
+                state=effective_state
             )
             evaluated_schemes = []
 
@@ -1360,7 +1377,7 @@ class RAGPipeline:
                 ]
                 scores.sort(key=lambda x: x[2], reverse=True)
                 results = scores[:k]
-            all_results = vector_store.similarity_search(query_emb, k=k)
+            all_results = vector_store.similarity_search(query_emb, query_text=q_lower, k=k)
             matched = [r for r in all_results if r[1].get("scheme_id") == top_scheme_id]
             results = matched if matched else all_results
 

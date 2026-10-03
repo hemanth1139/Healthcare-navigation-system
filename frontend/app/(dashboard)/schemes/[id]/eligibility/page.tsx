@@ -65,7 +65,7 @@ export default function SchemeEligibilityResultPage({ params }: { params: Promis
             (profile.city || profile.state) &&
             profile.address &&
             profile.annualIncome &&
-            profile.occupation &&
+            (profile.employmentStatus || profile.employment_status) &&
             profile.familySize
           );
           setIsProfileComplete(hasRequiredFields);

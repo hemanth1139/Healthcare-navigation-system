@@ -1,69 +1,68 @@
-"""
-Personalized Health Tips Agent.
-Analyzes patient profile characteristics (age, allergies, chronic conditions) 
-and compiles personalized, daily health/preventive guidelines.
-Adheres strictly to non-diagnostic, preventive safety guardrails.
+"""Assessment-linked, conservative health guidance.
+
+Tips are selected from reviewed templates using the stored triage assessment. The
+assessment is treated as a navigation result, never as a confirmed diagnosis.
 """
 
-import json
 import uuid
 from datetime import datetime, timezone
-from typing import List, Dict, Any
-from app.config import settings
+from typing import Any, Dict, List, Optional
 
-# Base fallback tips with full escalation and safety guidance
-DEFAULT_TIPS: List[Dict[str, Any]] = [
-    {
-        "tipId": "tip-hydr-01",
-        "title": "Maintain Optimal Daily Hydration",
-        "content": "Drink 2 to 2.5 liters of clean water daily to support kidney filtration, cellular nutrient delivery, and blood pressure regulation.",
-        "category": "General Wellness",
-        "targetCondition": "Baseline Hydration",
-        "escalationGuidance": "Consult a physician if you have diagnosed fluid restriction requirements for congestive heart failure or renal disorders.",
+
+def _tip(title: str, content: str, category: str, condition: str, escalation: str) -> Dict[str, Any]:
+    return {
+        "tipId": f"tip-{uuid.uuid4().hex[:10]}",
+        "title": title,
+        "content": content,
+        "category": category,
+        "targetCondition": condition,
+        "escalationGuidance": escalation,
         "readTime": "2 min read",
-        "createdAt": datetime.now(timezone.utc).isoformat()
-    },
-    {
-        "tipId": "tip-act-02",
-        "title": "Engage in 30 Minutes of Moderate Aerobic Movement",
-        "content": "Low-impact physical activity such as brisk walking, cycling, or swimming strengthens the myocardium and regulates postprandial glucose levels.",
-        "category": "Physical Activity",
-        "targetCondition": "Cardiovascular Conditioning",
-        "escalationGuidance": "Stop immediately and seek emergency medical care if you experience acute chest tightness, severe dizziness, or sudden shortness of breath.",
-        "readTime": "3 min read",
-        "createdAt": datetime.now(timezone.utc).isoformat()
-    },
-    {
-        "tipId": "tip-nutr-03",
-        "title": "Prioritize Dietary Micronutrients & Soluble Fiber",
-        "content": "Incorporate leafy greens, legumes, and antioxidant-rich seasonal fruits to maintain gut microbiome diversity and reduce arterial inflammation.",
-        "category": "Nutrition",
-        "targetCondition": "Metabolic Health",
-        "escalationGuidance": "Discuss significant dietary alterations with a clinical dietitian if managing chronic kidney disease or anticoagulant therapies.",
-        "readTime": "2 min read",
-        "createdAt": datetime.now(timezone.utc).isoformat()
-    },
-    {
-        "tipId": "tip-prev-04",
-        "title": "Establish Consistent Circadian Sleep Hygiene",
-        "content": "Aim for 7-8 hours of uninterrupted sleep in a dark, quiet environment to facilitate nocturnal cortisol regulation and neural memory consolidation.",
-        "category": "Preventive Care",
-        "targetCondition": "Restorative Sleep",
-        "escalationGuidance": "Seek professional medical evaluation if chronic insomnia, nocturnal gasping, or daytime somnolence persists beyond 3 weeks.",
-        "readTime": "2 min read",
-        "createdAt": datetime.now(timezone.utc).isoformat()
-    },
-    {
-        "tipId": "tip-med-05",
-        "title": "Adhere to Timely Medication Scheduling",
-        "content": "Keep an accurate list of all prescribed medications and take doses at consistent hours as directed by your physician to prevent therapeutic fluctuations.",
-        "category": "Medication Safety",
-        "targetCondition": "Therapeutic Adherence",
-        "escalationGuidance": "Never discontinue or alter prescription dosages without consulting your prescribing healthcare provider.",
-        "readTime": "2 min read",
-        "createdAt": datetime.now(timezone.utc).isoformat()
+        "createdAt": datetime.now(timezone.utc).isoformat(),
     }
+
+
+GENERAL_TIPS = [
+    ("Follow the assessment plan", "Use the next-step guidance from your assessment and arrange follow-up if symptoms persist or worsen. This assessment is not a confirmed diagnosis.", "When to Seek Care", "Current assessment", "Seek urgent care if severe or rapidly worsening symptoms develop."),
+    ("Keep a short symptom record", "Note when symptoms started, what makes them better or worse, and any new symptoms. This can help a clinician understand the change over time.", "Self-care", "Symptom tracking", "Contact a clinician if symptoms persist, worsen, or new warning signs appear."),
 ]
+
+DOMAIN_TIPS = {
+    "abdominal": [
+        ("Track the location and pattern", "Note where the discomfort is, when it occurs, and whether it is getting worse. Avoid starting new medicines or laxatives for abdominal pain without advice from a clinician.", "Self-care", "Abdominal symptoms", "Get urgent medical care for sudden severe or worsening pain, fainting, repeated vomiting, blood in vomit or stool, or a hard/swollen abdomen."),
+        ("Choose food and fluids as tolerated", "If you can keep them down, take small amounts of your usual fluids and light food. Do not force food or fluids if they worsen symptoms.", "Self-care", "Abdominal symptoms", "Seek care promptly if you cannot keep fluids down or develop severe pain, fainting, or blood in vomit or stool."),
+    ],
+    "respiratory": [
+        ("Reduce airway irritants", "Rest and avoid smoke, vaping, and other irritants while you have a cough. Follow any existing clinician-provided plan for a chronic breathing condition.", "Self-care", "Cough or respiratory symptoms", "Seek urgent care for difficulty breathing, blue lips, confusion, coughing blood, or rapidly worsening symptoms."),
+        ("Monitor how the cough changes", "Keep track of how long you have been coughing and whether fever, chest discomfort, or breathing difficulty develops.", "Monitoring", "Cough or respiratory symptoms", "Contact a clinician if symptoms worsen or do not improve; seek urgent care for breathing difficulty or coughing blood."),
+    ],
+    "urinary": [
+        ("Do not delay assessment for urinary symptoms", "Arrange the follow-up recommended in your assessment. Do not use leftover antibiotics or someone else’s prescription.", "When to Seek Care", "Urinary symptoms", "Seek urgent care for inability to urinate, fever with flank/back pain, vomiting, or visible blood in urine."),
+        ("Notice changes in urination", "Record any change in frequency, discomfort, urine amount, or urine appearance to share with a clinician.", "Monitoring", "Urinary symptoms", "Get urgent care if you become unable to urinate or develop fever with flank/back pain."),
+    ],
+    "headache": [
+        ("Reduce stimulation while symptoms settle", "Rest somewhere quiet and note when the headache began and whether it is changing. Avoid driving if you feel dizzy or your vision is affected.", "Self-care", "Headache", "Seek emergency care for a sudden worst-ever headache, new weakness, facial droop, confusion, fainting, vision loss, or headache with fever and neck stiffness."),
+        ("Record possible headache patterns", "Note the onset, duration, location, and any associated symptoms to discuss at follow-up.", "Monitoring", "Headache", "Seek urgent care if the headache becomes severe, rapidly worsens, or new neurological symptoms appear."),
+    ],
+    "joint": [
+        ("Avoid movements that worsen joint pain", "Temporarily reduce activities that aggravate the joint and follow the care plan from your assessment. Avoid putting weight on it if walking is unsafe.", "Self-care", "Joint or limb pain", "Seek urgent care if you cannot bear weight, the joint becomes hot/red with fever, or there is major swelling or deformity."),
+        ("Watch for changes in movement or swelling", "Note whether swelling, warmth, redness, or difficulty moving the joint is increasing.", "Monitoring", "Joint or limb pain", "Get prompt medical care for increasing swelling, a hot/red joint with fever, or inability to use the limb."),
+    ],
+    "throat": [
+        ("Choose comfortable fluids and rest your voice", "If swallowing is comfortable, take fluids as tolerated and rest your voice. Do not force food or drink if swallowing is difficult.", "Self-care", "Throat symptoms", "Seek emergency care if you cannot swallow saliva, are drooling, or have difficulty breathing."),
+        ("Monitor swallowing and fever", "Notice whether you can swallow liquids and whether fever, neck swelling, or one-sided throat pain develops.", "Monitoring", "Throat symptoms", "Seek prompt care if swallowing worsens; emergency care is needed for breathing difficulty or inability to swallow saliva."),
+    ],
+    "dizziness": [
+        ("Reduce fall risk while dizzy", "Sit or lie down until the dizziness passes, get up slowly, and avoid driving or climbing while unsteady.", "Safety", "Dizziness or faintness", "Seek emergency care for fainting with chest pain, one-sided weakness, facial droop, trouble speaking, or new vision loss."),
+        ("Note when dizziness occurs", "Record whether it happens when standing, how long it lasts, and any palpitations or fainting to discuss with a clinician.", "Monitoring", "Dizziness or faintness", "Seek urgent care for fainting, chest pain, new neurological symptoms, or worsening dizziness."),
+    ],
+    "chest": [
+        ("Follow the chest-symptom care plan", "Use the assessment’s recommended follow-up and avoid strenuous activity if it brings on chest discomfort.", "When to Seek Care", "Chest symptoms", "Call emergency services for persistent or severe chest pressure, breathlessness, sweating, faintness, or pain spreading to the arm, jaw, or back."),
+    ],
+    "fever": [
+        ("Monitor temperature and new symptoms", "Track your temperature and note any new cough, rash, urinary symptoms, severe pain, or change in alertness. Use only medicines already approved for you by a clinician.", "Monitoring", "Fever", "Seek urgent care for confusion, difficulty breathing, a stiff neck, a concerning rash, or rapidly worsening illness."),
+    ],
+}
 
 
 class HealthTipsAgent:
@@ -72,111 +71,65 @@ class HealthTipsAgent:
         age: int,
         gender: str,
         allergies: str,
-        chronic_conditions: str
+        chronic_conditions: str,
+        assessment: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
-        """
-        Generates personalized, non-diagnostic healthcare guidance based on patient context.
-        """
-        now_iso = datetime.now(timezone.utc).isoformat()
+        """Select consistent, assessment-specific tips; never invent treatment advice."""
+        assessment = assessment or {}
+        disease = str(assessment.get("predicted_disease") or "")
+        action = str(assessment.get("recommended_action") or "").strip()
+        urgency = str(assessment.get("urgency_level") or assessment.get("severity") or "").upper()
+        emergency = bool(assessment.get("emergency_flag")) or "EMERGENCY" in urgency
+        urgent = emergency or "URGENT" in urgency
 
-        # 1. Fallback Rule-Based Tips if no API Key configured
-        if not settings.GOOGLE_API_KEY:
-            custom_tips = [dict(t) for t in DEFAULT_TIPS]
-            
-            # Custom rule-based adaptation for specific chronic conditions
-            if chronic_conditions and "asthma" in chronic_conditions.lower():
-                custom_tips[1] = {
-                    "tipId": "tip-resp-01",
-                    "title": "Monitor Ambient Air Quality & Peak Flow Triggers",
-                    "content": "Avoid strenuous outdoor exertion during high pollen counts or elevated particulate AQI, and keep prescribed rescue inhalers accessible.",
-                    "category": "When to Seek Care",
-                    "targetCondition": "Asthma Management",
-                    "escalationGuidance": "Seek urgent emergency medical care if rescue inhalers fail to relieve wheezing or if speaking in full sentences becomes difficult.",
-                    "readTime": "2 min read",
-                    "createdAt": now_iso
-                }
-            if chronic_conditions and ("diabet" in chronic_conditions.lower() or "sugar" in chronic_conditions.lower()):
-                custom_tips[2] = {
-                    "tipId": "tip-diab-01",
-                    "title": "Routine Glycemic & Peripheral Foot Inspection",
-                    "content": "Monitor daily blood glucose curves and perform evening inspections of the feet for minor blisters or micro-abrasions to prevent diabetic neuropathic complications.",
-                    "category": "Preventive Care",
-                    "targetCondition": "Diabetes Care",
-                    "escalationGuidance": "Contact your endocrinologist promptly if you notice non-healing sores, skin redness, or localized warmth.",
-                    "readTime": "3 min read",
-                    "createdAt": now_iso
-                }
-            if allergies and ("peanut" in allergies.lower() or "penicillin" in allergies.lower() or "dust" in allergies.lower()):
-                custom_tips[4] = {
-                    "tipId": "tip-alg-01",
-                    "title": f"Strict Allergen Avoidance Protocol ({allergies})",
-                    "content": f"Maintain rigorous ingredient review on all foods/pharmaceuticals and communicate your allergy profile ({allergies}) to all attending clinical staff.",
-                    "category": "Medication Safety",
-                    "targetCondition": "Allergy Safeguards",
-                    "escalationGuidance": "Call emergency services immediately if you develop facial swelling, hives, throat constriction, or anaphylactic symptoms.",
-                    "readTime": "2 min read",
-                    "createdAt": now_iso
-                }
-            return custom_tips
+        if emergency:
+            message = action or "Seek emergency medical care now."
+            return [_tip(
+                "Seek emergency care now", message,
+                "When to Seek Care", disease or "Current assessment",
+                "Call local emergency services or go to the nearest emergency department now.",
+            )]
 
-        # 2. Gemini-Powered Adaptive Generation with Strict Clinical Guardrails
-        from app.core.llm import invoke_gemini
-        from langchain_core.messages import SystemMessage, HumanMessage
+        canonical = set(assessment.get("canonical_symptoms") or [])
+        text = " ".join([disease, *[str(s) for s in canonical]]).lower()
+        if any(k in text for k in ["chest", "cardiac", "coronary"]):
+            domain = "chest"
+        elif any(k in text for k in ["urinary", "urine", "renal", "kidney", "cystitis", "pyelonephritis"]):
+            domain = "urinary"
+        elif any(k in text for k in ["headache", "migraine", "thunderclap"]):
+            domain = "headache"
+        elif any(k in text for k in ["throat", "tonsil", "swallow"]):
+            domain = "throat"
+        elif any(k in text for k in ["joint", "knee", "fracture", "musculoskeletal"]):
+            domain = "joint"
+        elif any(k in text for k in ["dizz", "vertigo", "faint"]):
+            domain = "dizziness"
+        elif any(k in text for k in ["cough", "pneumonia", "respiratory", "asthma", "breath"]):
+            domain = "respiratory"
+        elif any(k in text for k in ["fever", "infection", "sepsis"]):
+            domain = "fever"
+        elif any(k in text for k in ["abdominal", "appendicitis", "stomach", "gastro", "nausea", "vomit"]):
+            domain = "abdominal"
+        else:
+            domain = None
 
-        SYSTEM_PROMPT = """You are a Preventive Medicine and Clinical Wellness Assistant.
-Given patient context (Age, Gender, Allergies, Chronic Conditions), generate exactly 4 to 5 personalized, non-diagnostic wellness and preventive guidance tips.
+        selected: List[tuple] = []
+        if urgent:
+            selected.append((
+                "Follow the urgent care recommendation",
+                action or "Arrange prompt medical assessment as recommended by your symptom assessment.",
+                "When to Seek Care", disease or "Current assessment",
+                "Seek emergency care immediately if symptoms become severe or rapidly worsen.",
+            ))
+        selected.extend(DOMAIN_TIPS.get(domain, GENERAL_TIPS))
 
-SAFETY AND COMPLIANCE RULES:
-1. DO NOT provide definitive medical diagnoses or prescribe specific medications.
-2. Provide general preventive care, nutrition, hydration, sleep, lifestyle, and safety guidance.
-3. Every tip MUST include clear "escalationGuidance" stating when the patient should seek professional medical attention.
-4. Response MUST be strictly valid JSON (array of objects):
-[
-  {
-    "title": "Concise, actionable tip title",
-    "content": "Practical, evidence-informed guidance (2-3 sentences)",
-    "category": "General Wellness" | "Preventive Care" | "Medication Safety" | "When to Seek Care" | "Nutrition" | "Physical Activity",
-    "targetCondition": "E.g. Cardiovascular Health / Sleep Hygiene / Allergy Safeguards",
-    "escalationGuidance": "Clear instruction on when to contact a doctor or visit emergency room",
-    "readTime": "2 min read"
-  }
-]
-"""
-        user_info = (
-            f"Patient Profile Context:\n"
-            f"- Age: {age}\n"
-            f"- Gender: {gender}\n"
-            f"- Allergies: {allergies or 'None reported'}\n"
-            f"- Chronic Conditions: {chronic_conditions or 'None reported'}"
-        )
+        # Chronic conditions/allergies are surfaced as a safety caveat without
+        # inventing a contraindication for an unspecified profile.
+        if allergies or chronic_conditions:
+            caution = "Consider your recorded allergies and health conditions when following general self-care advice; confirm anything uncertain with your clinician."
+            first = list(selected[0])
+            first[1] = f"{first[1]} {caution}"
+            selected[0] = tuple(first)
 
-        try:
-            res_text = await invoke_gemini([
-                SystemMessage(content=SYSTEM_PROMPT),
-                HumanMessage(content=user_info)
-            ], temperature=0.2)
-            
-            if "```json" in res_text:
-                res_text = res_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in res_text:
-                res_text = res_text.split("```")[1].split("```")[0].strip()
-                
-            parsed = json.loads(res_text)
-            if isinstance(parsed, list) and len(parsed) > 0:
-                result = []
-                for idx, t in enumerate(parsed):
-                    result.append({
-                        "tipId": f"gen-tip-{idx+1}-{uuid.uuid4().hex[:6]}",
-                        "title": t.get("title", "Clinical Wellness Tip"),
-                        "content": t.get("content", ""),
-                        "category": t.get("category", "General Wellness"),
-                        "targetCondition": t.get("targetCondition", "Preventive Care"),
-                        "escalationGuidance": t.get("escalationGuidance", "Consult your physician for personalized medical advice."),
-                        "readTime": t.get("readTime", "2 min read"),
-                        "createdAt": now_iso
-                    })
-                return result
-            return DEFAULT_TIPS
-        except Exception as e:
-            print(f"[ERROR] Health tips LLM failed: {e}. Returning clinical template guidelines.")
-            return DEFAULT_TIPS
+        limit = 2 if urgent else 3
+        return [_tip(*row) for row in selected[:limit]]

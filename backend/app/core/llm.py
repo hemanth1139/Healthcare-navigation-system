@@ -8,19 +8,102 @@ import os
 import asyncio
 import logging
 from typing import List, Optional, Tuple
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import BaseMessage
 from app.config import settings
 
 logger = logging.getLogger("app.core.llm")
 
 # ─── Normalized Gemini Model Roster ──────────────────────────────────────────
-# Standard official Google GenAI model IDs
-CANDIDATE_MODELS: List[str] = [
-    "gemini-2.0-flash",        # Primary fast multimodal reasoning model
-    "gemini-1.5-flash",        # Stable high-throughput fallback
-    "gemini-1.5-pro",          # Deep reasoning fallback
+# Gemini 2.0 and 1.5 IDs were removed from the old fallback list; 2.0 Flash is
+# shut down. Keep the configured model first only when it is in the supported
+# roster, then advance through current stable text-generation models.
+SUPPORTED_MODELS: List[str] = [
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-2.5-flash",
 ]
+configured_model = getattr(settings, "GEMINI_MODEL", "")
+CANDIDATE_MODELS: List[str] = ([configured_model] if configured_model in SUPPORTED_MODELS else [])
+CANDIDATE_MODELS.extend(model for model in SUPPORTED_MODELS if model not in CANDIDATE_MODELS)
+
+
+def _content_text(content) -> str:
+    """Flatten LangChain text blocks for the Google Gen AI chat API."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict):
+                if block.get("text"):
+                    parts.append(str(block["text"]))
+            elif block is not None:
+                parts.append(str(block))
+        return "".join(parts)
+    return str(content) if content is not None else ""
+
+
+async def _invoke_model(
+    model_name: str,
+    api_key: str,
+    messages: List[BaseMessage],
+    temperature: float,
+    timeout_seconds: float,
+) -> str:
+    """Send a LangChain message sequence through the supported async chat API."""
+    from google import genai
+    from google.genai import types
+
+    system_parts = []
+    turns = []
+    for message in messages:
+        role = getattr(message, "type", "")
+        content = _content_text(getattr(message, "content", ""))
+        if not content:
+            continue
+        if role == "system":
+            system_parts.append(content)
+        elif role in ("human", "user"):
+            turns.append(("user", content))
+        elif role in ("ai", "assistant"):
+            turns.append(("model", content))
+        else:
+            # Tool output is context supplied to the model, not executable tooling.
+            turns.append(("user", content))
+
+    if not turns:
+        raise ValueError("Gemini chat requires at least one non-system message.")
+
+    final_role, final_text = turns[-1]
+    if final_role != "user":
+        # This preserves a useful request for callers that provide an assistant
+        # message last, while keeping the SDK conversation role sequence valid.
+        final_text = "Continue with the response. " + final_text
+    history = [
+        types.Content(role=role, parts=[types.Part.from_text(text=text)])
+        for role, text in turns[:-1]
+    ]
+    client = genai.Client(api_key=api_key)
+    try:
+        chat = client.aio.chats.create(
+            model=model_name,
+            history=history,
+            config=types.GenerateContentConfig(
+                system_instruction="\n\n".join(system_parts) or None,
+                temperature=temperature,
+            ),
+        )
+        response = await asyncio.wait_for(
+            chat.send_message(final_text), timeout=timeout_seconds
+        )
+        return _content_text(getattr(response, "text", "")).strip()
+    finally:
+        try:
+            client.close()
+        finally:
+            await client.aio.aclose()
 
 # Configured API keys (supports up to 5 keys for rotation to manage free tier quotas)
 def _get_api_keys() -> List[str]:
@@ -40,12 +123,15 @@ def _get_api_keys() -> List[str]:
 def _classify_error(exc: Exception) -> Tuple[int, str]:
     """Classifies exceptions into HTTP status code and clinical category."""
     err_str = str(exc).lower()
-    
+
     if "404" in err_str or "not found" in err_str or "is not found" in err_str or "unsupported" in err_str:
         return 404, "MODEL_NOT_FOUND"
     if "429" in err_str or "quota" in err_str or "resource_exhausted" in err_str or "rate limit" in err_str:
         return 429, "RESOURCE_EXHAUSTED"
-    if "401" in err_str or "403" in err_str or "permission_denied" in err_str or "unauthenticated" in err_str or "api_key_invalid" in err_str:
+    # Handle 400 INVALID_ARGUMENT with API key invalid messages as auth failure
+    if "400" in err_str and ("api key not valid" in err_str or "api_key_invalid" in err_str or "invalid api key" in err_str):
+        return 401, "AUTH_FAILURE"
+    if "401" in err_str or "403" in err_str or "permission_denied" in err_str or "unauthenticated" in err_str:
         return 401, "AUTH_FAILURE"
     if isinstance(exc, asyncio.TimeoutError) or "timeout" in err_str or "deadline_exceeded" in err_str:
         return 408, "TIMEOUT"
@@ -79,24 +165,9 @@ async def invoke_gemini(
                 break
             for attempt in range(1, max_retries_per_model + 1):
                 try:
-                    llm = ChatGoogleGenerativeAI(
-                        model=model_name,
-                        temperature=temperature,
-                        max_retries=0,
-                        timeout=timeout_seconds,
-                        google_api_key=active_key
+                    cleaned = await _invoke_model(
+                        model_name, active_key, messages, temperature, timeout_seconds
                     )
-
-                    response = await asyncio.wait_for(
-                        llm.ainvoke(messages),
-                        timeout=timeout_seconds
-                    )
-                    
-                    content = response.content if hasattr(response, "content") else str(response)
-                    if isinstance(content, list):
-                        content = "".join(str(part.get("text", "")) if isinstance(part, dict) else str(part) for part in content)
-                    
-                    cleaned = str(content).strip()
                     if cleaned:
                         return cleaned
 

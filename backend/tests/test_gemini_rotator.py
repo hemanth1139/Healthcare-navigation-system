@@ -6,7 +6,7 @@ fallback degradation, and credential confidentiality.
 
 import pytest
 import asyncio
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from langchain_core.messages import HumanMessage
 from app.core.llm import invoke_gemini, _classify_error, CANDIDATE_MODELS
 
@@ -27,17 +27,8 @@ async def test_gemini_404_model_not_found_advances_immediately():
     without wasteful retry loops on the nonexistent model.
     """
     with patch("app.core.llm._get_api_keys", return_value=["test_api_key_valid"]):
-        with patch("app.core.llm.ChatGoogleGenerativeAI") as mock_chat:
-            # Model 1 fails with 404, Model 2 succeeds
-            mock_inst1 = MagicMock()
-            mock_inst1.ainvoke = AsyncMock(side_effect=Exception("404 Model not found"))
-            
-            mock_inst2 = MagicMock()
-            mock_resp = MagicMock()
-            mock_resp.content = "Grounded clinical triage advice"
-            mock_inst2.ainvoke = AsyncMock(return_value=mock_resp)
-
-            mock_chat.side_effect = [mock_inst1, mock_inst2]
+        with patch("app.core.llm._invoke_model", new_callable=AsyncMock) as mock_invoke:
+            mock_invoke.side_effect = [Exception("404 Model not found"), "Grounded clinical triage advice"]
 
             res = await invoke_gemini(
                 [HumanMessage(content="Hello doctor")],
@@ -48,7 +39,7 @@ async def test_gemini_404_model_not_found_advances_immediately():
 
             assert res == "Grounded clinical triage advice"
             # Model 1 called exactly once (skipped immediately on 404), then Model 2 called
-            assert mock_chat.call_count == 2
+            assert mock_invoke.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -57,18 +48,12 @@ async def test_gemini_429_quota_exhausted_retries_with_backoff_then_falls_back()
     Verify that 429 quota exhaustion executes bounded backoff and then falls back to secondary model.
     """
     with patch("app.core.llm._get_api_keys", return_value=["test_api_key_valid"]):
-        with patch("app.core.llm.ChatGoogleGenerativeAI") as mock_chat:
-            # Model 1 fails with 429 twice (max retries = 2)
-            mock_inst1 = MagicMock()
-            mock_inst1.ainvoke = AsyncMock(side_effect=Exception("429 Quota exhausted for project"))
-
-            # Model 2 succeeds
-            mock_inst2 = MagicMock()
-            mock_resp = MagicMock()
-            mock_resp.content = "Fallback model response"
-            mock_inst2.ainvoke = AsyncMock(return_value=mock_resp)
-
-            mock_chat.side_effect = [mock_inst1, mock_inst2]
+        with patch("app.core.llm._invoke_model", new_callable=AsyncMock) as mock_invoke:
+            mock_invoke.side_effect = [
+                Exception("429 Quota exhausted for project"),
+                Exception("429 Quota exhausted for project"),
+                "Fallback model response",
+            ]
 
             with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
                 res = await invoke_gemini(
@@ -89,16 +74,11 @@ async def test_gemini_timeout_advances_to_fallback():
     Verify that network timeout advances to fallback model cleanly.
     """
     with patch("app.core.llm._get_api_keys", return_value=["test_api_key_valid"]):
-        with patch("app.core.llm.ChatGoogleGenerativeAI") as mock_chat:
-            mock_inst1 = MagicMock()
-            mock_inst1.ainvoke = AsyncMock(side_effect=asyncio.TimeoutError("Call timed out"))
-
-            mock_inst2 = MagicMock()
-            mock_resp = MagicMock()
-            mock_resp.content = "Healthy recovered response"
-            mock_inst2.ainvoke = AsyncMock(return_value=mock_resp)
-
-            mock_chat.side_effect = [mock_inst1, mock_inst2]
+        with patch("app.core.llm._invoke_model", new_callable=AsyncMock) as mock_invoke:
+            mock_invoke.side_effect = [
+                asyncio.TimeoutError("Call timed out"),
+                "Healthy recovered response",
+            ]
 
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 res = await invoke_gemini(
@@ -117,10 +97,8 @@ async def test_gemini_key_never_exposed_in_exception():
     """
     secret_key = "AIzaSySecretGoogleApiKey999"
     with patch("app.core.llm._get_api_keys", return_value=[secret_key]):
-        with patch("app.core.llm.ChatGoogleGenerativeAI") as mock_chat:
-            mock_inst = MagicMock()
-            mock_inst.ainvoke = AsyncMock(side_effect=Exception("503 Service unavailable"))
-            mock_chat.return_value = mock_inst
+        with patch("app.core.llm._invoke_model", new_callable=AsyncMock) as mock_invoke:
+            mock_invoke.side_effect = Exception("503 Service unavailable")
 
             with patch("asyncio.sleep", new_callable=AsyncMock):
                 with pytest.raises(Exception) as exc_info:

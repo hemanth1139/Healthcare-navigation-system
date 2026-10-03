@@ -280,7 +280,16 @@ class HospitalService:
 
         # 5. Format to HospitalOut Schema
         results = [HospitalOut.from_dict(h, h["hospital_id"]) for h in capped_results]
-        return results
+        
+        # Return as HospitalSearchResponse with metadata
+        return HospitalSearchResponse(
+            hospitals=results,
+            status="success",
+            message=f"Found {len(results)} hospitals within {radius_km} km",
+            requested_radius_km=radius_km,
+            actual_radius_km=radius_km,
+            data_source="cached" if len(local_matched) >= 3 else "live"
+        )
 
     @staticmethod
     async def get_hospital_by_id(db: AsyncSession, hospital_id: UUID) -> Hospital:

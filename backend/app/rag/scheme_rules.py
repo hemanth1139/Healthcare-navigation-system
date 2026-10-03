@@ -221,13 +221,13 @@ def filter_schemes_by_profile(
     for scheme in all_schemes:
         flags = analyze_scheme(scheme)
 
-        if flags["is_tn"] and state and state != "Tamil Nadu":
+        if flags["is_tn"] and state and state.lower() != "tamil nadu":
             continue
 
         # Maternity schemes: only for females, and only if pregnant or applicable
-        if flags["maternity"] and gender_l and gender_l not in ["female", "f", "woman"]:
+        if flags["maternity"] and gender_l and gender_l.lower() not in ["female", "f", "woman"]:
             continue
-        if flags["maternity"] and pregnancy == "No":
+        if flags["maternity"] and pregnancy in ["No", None]:
             continue
 
         # Newborn schemes: only for babies (0-1 year), filter out for adults
