@@ -25,6 +25,8 @@ import {
   ClipboardList,
   AlertTriangle,
   User,
+  AlertCircle,
+  RotateCw,
 } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
@@ -63,6 +65,8 @@ export default function SchemesLandingPage() {
   const [eligibilityResult, setEligibilityResult] = useState<MultiDocEligibilityResult | null>(null);
   const [activeQueryId, setActiveQueryId] = useState<string | null>(null);
   const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
+  const [queryError, setQueryError] = useState<{ title: string; message: string; isRetryable: boolean } | null>(null);
+  const [lastFailedQuery, setLastFailedQuery] = useState<{ text: string; additionalInfo?: Record<string, any> } | null>(null);
 
   // Intake card state — shown when user types an open-ended query
   const [showIntakeCard, setShowIntakeCard] = useState(false);
@@ -130,9 +134,55 @@ export default function SchemesLandingPage() {
     checkProfile();
   }, []);
 
+  const parseErrorMessage = (err: any): { title: string; message: string; isRetryable: boolean } => {
+    if (!err?.response) {
+      // Genuine network connectivity error or server unreachable
+      return {
+        title: "Connection Error",
+        message: "Unable to reach the government schemes server. Please verify your network connection and ensure the backend service is running.",
+        isRetryable: true,
+      };
+    }
+
+    const status = err.response.status;
+    const detail = err.response.data?.detail || err.response.data?.message;
+
+    if (status === 401 || status === 403) {
+      return {
+        title: "Authentication Required",
+        message: "Your session may have expired. Please sign in again to evaluate scheme eligibility.",
+        isRetryable: false,
+      };
+    }
+
+    if (status === 422 || status === 400) {
+      return {
+        title: "Invalid Query Parameters",
+        message: detail || "Please check your query text or demographic details and try again.",
+        isRetryable: false,
+      };
+    }
+
+    if (status >= 500) {
+      return {
+        title: "Eligibility Analysis Unavailable",
+        message: "The eligibility assessment service encountered a temporary error while processing the official scheme guidelines. Please retry in a moment.",
+        isRetryable: true,
+      };
+    }
+
+    return {
+      title: "Query Error",
+      message: detail || "An unexpected issue occurred while evaluating your scheme eligibility. Please try again.",
+      isRetryable: true,
+    };
+  };
+
   /** Core query function — submits to the RAG pipeline */
   const runQuery = async (text: string, additionalInfo?: Record<string, any>) => {
     setQueryLoading(true);
+    setQueryError(null);
+    setLastFailedQuery(null);
     setEligibilityResult(null);
     setActiveQueryId(null);
     setFollowUpSuggestions([]);
@@ -149,8 +199,9 @@ export default function SchemesLandingPage() {
       loadHistory();
     } catch (err: any) {
       console.error("Eligibility query failed:", err);
-      const detail = err?.response?.data?.detail || err?.message || "Please check your network and try again.";
-      alert(`Eligibility Analysis: ${detail}`);
+      const parsed = parseErrorMessage(err);
+      setQueryError(parsed);
+      setLastFailedQuery({ text, additionalInfo });
     } finally {
       setQueryLoading(false);
     }
@@ -163,10 +214,10 @@ export default function SchemesLandingPage() {
     await runQuery(text);
   };
 
-
   /** Called when MultiDocEligibilityCard's interview panel submits answers */
   const handleContinueInterview = async (queryId: string, additionalInfo: Record<string, any>) => {
     setQueryLoading(true);
+    setQueryError(null);
     try {
       const { eligibilityResult: result } = await schemeApi.continueEligibility(queryId, additionalInfo);
       setEligibilityResult(result);
@@ -175,10 +226,18 @@ export default function SchemesLandingPage() {
       loadHistory();
     } catch (err: any) {
       console.error("Continue eligibility failed:", err);
-      const detail = err?.response?.data?.detail || err?.message || "Please try again.";
-      alert(`Could not process your answers: ${detail}`);
+      const parsed = parseErrorMessage(err);
+      setQueryError(parsed);
     } finally {
       setQueryLoading(false);
+    }
+  };
+
+  const retryLastQuery = () => {
+    if (lastFailedQuery) {
+      runQuery(lastFailedQuery.text, lastFailedQuery.additionalInfo);
+    } else if (question.trim()) {
+      runQuery(question.trim());
     }
   };
 
@@ -316,6 +375,35 @@ export default function SchemesLandingPage() {
           </div>
         )}
       </Card>
+
+      {/* Query Error Alert Banner */}
+      {queryError && (
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-heading font-bold text-sm text-red-900 dark:text-red-200">
+                {queryError.title}
+              </h3>
+              <p className="text-xs text-red-700 dark:text-red-300 mt-0.5 max-w-2xl">
+                {queryError.message}
+              </p>
+            </div>
+          </div>
+          {queryError.isRetryable && (
+            <button
+              onClick={retryLastQuery}
+              disabled={queryLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shrink-0 cursor-pointer transition-colors disabled:opacity-50"
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+              <span>Retry Analysis</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Multi-Document Eligibility Result */}
       {eligibilityResult && (

@@ -30,38 +30,76 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Handle 401 Token Refresh automatically
+// In-flight refresh token state & queue to prevent concurrent duplicate refresh requests
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+let inFlightRefreshPromise: Promise<AuthResponse> | null = null;
+
+const subscribeTokenRefresh = (cb: (token: string) => void) => {
+  refreshSubscribers.push(cb);
+};
+
+const onRefreshed = (token: string) => {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+};
+
+const onRefreshFailed = () => {
+  refreshSubscribers = [];
+};
+
+// Response Interceptor: Handle 401 Token Refresh automatically with concurrency protection
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    const isAuthEndpoint = originalRequest?.url?.includes("/auth/login") ||
-                           originalRequest?.url?.includes("/auth/register") ||
-                           originalRequest?.url?.includes("/auth/refresh");
+    const isAuthEndpoint =
+      originalRequest?.url?.includes("/auth/login") ||
+      originalRequest?.url?.includes("/auth/register") ||
+      originalRequest?.url?.includes("/auth/refresh");
 
     // If 401 Unauthorized on non-auth endpoint and request hasn't been retried yet
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
       const refreshToken = getRefreshToken();
 
-      if (refreshToken) {
-        try {
-          // Attempt token refresh call
-          const refreshRes = await authApi.refreshToken(refreshToken);
-          saveAuthTokens(refreshRes.tokens);
-          
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${refreshRes.tokens.accessToken}`;
-          }
-          return api(originalRequest);
-        } catch (refreshErr) {
-          // Refresh failed: session expired or invalid
-          clearAuthSession();
-          return Promise.reject(refreshErr);
-        }
-      } else {
+      if (!refreshToken) {
         clearAuthSession();
+        return Promise.reject(error);
+      }
+
+      // If another refresh request is already in-flight, queue this request until the new token arrives
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((newToken: string) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            }
+            resolve(api(originalRequest));
+          });
+        });
+      }
+
+      isRefreshing = true;
+
+      try {
+        // Attempt token refresh call
+        const refreshRes = await authApi.refreshToken(refreshToken);
+        saveAuthTokens(refreshRes.tokens);
+        onRefreshed(refreshRes.tokens.accessToken);
+
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${refreshRes.tokens.accessToken}`;
+        }
+        return api(originalRequest);
+      } catch (refreshErr) {
+        // Refresh failed: session expired or invalid
+        onRefreshFailed();
+        clearAuthSession();
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
       }
     }
 
@@ -203,9 +241,31 @@ export const authApi = {
       return mockResponse;
     }
 
-    const { data } = await api.post<AuthResponse>("/auth/refresh", { refreshToken });
-    saveAuthTokens(data.tokens);
-    return data;
+    if (!refreshToken || !refreshToken.trim()) {
+      throw new Error("No refresh token provided.");
+    }
+
+    // Reuse in-flight refresh promise if one is already pending
+    if (inFlightRefreshPromise) {
+      return inFlightRefreshPromise;
+    }
+
+    inFlightRefreshPromise = (async () => {
+      try {
+        // Use direct axios instance to prevent attaching an expired Authorization Bearer header
+        const { data } = await axios.post<AuthResponse>(
+          `${API_BASE_URL}/auth/refresh`,
+          { refreshToken },
+          { headers: { "Content-Type": "application/json" } }
+        );
+        saveAuthTokens(data.tokens);
+        return data;
+      } finally {
+        inFlightRefreshPromise = null;
+      }
+    })();
+
+    return inFlightRefreshPromise;
   },
 
   getCurrentUser: async (): Promise<User> => {
