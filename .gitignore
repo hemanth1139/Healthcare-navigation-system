@@ -61,10 +61,17 @@ build/
 # ChromaDB vector store (large, regenerable)
 backend/app/rag/chroma_store/
 
+# ML model cache (sentence-transformers, HuggingFace, etc.) — very large
+.cache/
+backend/.cache/
+
 # ML model artifacts (large binaries)
 backend/app/ml/artifacts/*.pkl
 backend/app/ml/artifacts/*.json
 backend/app/ml/artifacts/*.ubj
+
+# Vector store data (regenerable)
+backend/app/rag/vector_store/
 
 # vercel
 .vercel
@@ -76,7 +83,11 @@ next-env.d.ts
 # SQLite & Uploaded Media
 *.db
 *.sqlite3
+*.bak
 backend/app/uploads/*
 !backend/app/uploads/.gitkeep
 
+# Backup / generated files
+*.backup
+frontend/package-lock.json.backup
 
