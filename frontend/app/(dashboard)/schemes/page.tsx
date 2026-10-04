@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { GovernmentScheme, SchemeQuery, MultiDocEligibilityResult } from "@/types/scheme";
 import { schemeApi } from "@/lib/schemeApi";
 import { api } from "@/lib/api";
@@ -78,7 +78,7 @@ export default function SchemesLandingPage() {
   // Profile completion check
   const [isProfileComplete, setIsProfileComplete] = useState(false);
 
-  const fetchSchemes = async () => {
+  const fetchSchemes = useCallback(async () => {
     setLoading(true);
     try {
       const data = await schemeApi.getSchemes(selectedCategory, searchQuery);
@@ -88,7 +88,7 @@ export default function SchemesLandingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, searchQuery]);
 
   const loadHistory = async () => {
     setHistoryLoading(true);
@@ -104,7 +104,7 @@ export default function SchemesLandingPage() {
 
   useEffect(() => {
     fetchSchemes();
-  }, [selectedCategory, searchQuery]);
+  }, [fetchSchemes]);
 
   useEffect(() => {
     loadHistory();

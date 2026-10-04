@@ -28,7 +28,8 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
   const userMarkerRef = useRef<L.Marker | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
 
-  // Initialize Leaflet Map
+  // Initialize Leaflet Map — intentionally runs only once on mount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (typeof window === "undefined" || !mapContainerRef.current) return;
 
@@ -250,7 +251,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
           console.warn("[HospitalMap] Failed to fit bounds:", e);
         }
       }
-  }, [hospitals, selectedHospitalId, userCoords, isMapReady]);
+  }, [hospitals, selectedHospitalId, userCoords, isMapReady, onSelectHospital]);
 
   // Recenter controls
   const handleRecenter = () => {

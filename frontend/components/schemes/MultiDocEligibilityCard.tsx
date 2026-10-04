@@ -216,8 +216,8 @@ type FlexCriterion = EligibilityCriterion & {
 };
 
 const CriterionRow: React.FC<{ criterion: EligibilityCriterion }> = ({ criterion }) => {
-  if (!criterion) return null;
   const [expanded, setExpanded] = useState(false);
+  if (!criterion) return null;
   const flex = criterion as FlexCriterion;
   const criterionResult = (criterion.criterion_result || flex.criterionResult || "UNKNOWN") as CriterionResult;
   const cfg = CRITERION_CONFIG[criterionResult] || CRITERION_CONFIG.UNKNOWN;

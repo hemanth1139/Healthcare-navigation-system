@@ -31,22 +31,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const loadChatData = async () => {
-    const conv = await mockChatApi.getConversation(conversationId);
-    if (!conv) {
-      router.push("/symptom-chat");
-      return;
-    }
-    setConversation(conv);
-    setHasEmergencyAlert(!!conv.hasEmergencyAlert);
-
-    const msgs = await mockChatApi.getMessages(conversationId);
-    setMessages(msgs);
-  };
-
   useEffect(() => {
+    const loadChatData = async () => {
+      const conv = await mockChatApi.getConversation(conversationId);
+      if (!conv) {
+        router.push("/symptom-chat");
+        return;
+      }
+      setConversation(conv);
+      setHasEmergencyAlert(!!conv.hasEmergencyAlert);
+
+      const msgs = await mockChatApi.getMessages(conversationId);
+      setMessages(msgs);
+    };
+
     loadChatData();
-  }, [conversationId]);
+  }, [conversationId, router]);
 
   // Auto-scroll to bottom whenever messages list updates
   useEffect(() => {
