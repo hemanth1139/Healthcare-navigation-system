@@ -9,7 +9,8 @@ export interface ModalProps {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
-  maxWidth?: "sm" | "md" | "lg" | "xl";
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
+  fitViewport?: boolean;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -19,6 +20,7 @@ export const Modal: React.FC<ModalProps> = ({
   subtitle,
   children,
   maxWidth = "md",
+  fitViewport = false,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -47,6 +49,7 @@ export const Modal: React.FC<ModalProps> = ({
     md: "max-w-md",
     lg: "max-w-lg",
     xl: "max-w-xl",
+    "2xl": "max-w-3xl",
   };
 
   return (
@@ -67,7 +70,7 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`relative w-full ${maxWidthStyles[maxWidth]} bg-white dark:bg-slate-900 rounded-2xl shadow-clinical-lg border border-slate-200 dark:border-slate-700 p-6 z-10 animate-modalIn focus:outline-none`}
+        className={`relative w-full ${maxWidthStyles[maxWidth]} max-h-[calc(100vh-2rem)] overflow-y-auto ${fitViewport ? "md:overflow-hidden" : ""} bg-white dark:bg-slate-900 rounded-2xl shadow-clinical-lg border border-slate-200 dark:border-slate-700 p-6 z-10 animate-modalIn focus:outline-none`}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 dark:border-slate-700 pb-4 mb-4">

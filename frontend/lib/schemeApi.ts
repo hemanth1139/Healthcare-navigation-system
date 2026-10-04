@@ -20,6 +20,9 @@ interface RawScheme {
   cashless?: boolean;
   coverageAmount?: string;
   coverage_amount?: string;
+  benefits_summary?: string;
+  matched_criteria?: string[];
+  pending_criteria?: string[];
   eligibility?: string;
   benefits?: string;
   officialUrl?: string;
@@ -98,6 +101,24 @@ interface RawEvidence {
   officialUrl?: string;
   relevance_score?: number;
   relevanceScore?: number;
+  scheme_id?: string;
+  schemeId?: string;
+  scheme_name?: string;
+  schemeName?: string;
+  government_level?: string;
+  governmentLevel?: string;
+  status?: string;
+  match_percentage?: number;
+  matchPercentage?: number;
+  coverage_amount?: string;
+  coverageAmount?: string;
+  benefits_summary?: string;
+  benefitsSummary?: string;
+  matched_criteria?: string[];
+  matchedCriteria?: string[];
+  pending_criteria?: string[];
+  pendingCriteria?: string[];
+  relevance_score_float?: number;
 }
 
 interface RawEligibilityPayload {
@@ -111,6 +132,13 @@ interface RawEligibilityPayload {
   overallStatus?: EligibilityStatus;
   overall_explanation?: string;
   overallExplanation?: string;
+  query_type?: string;
+  queryType?: string;
+  match_percentage?: number | null;
+  matchPercentage?: number | null;
+  relevance_score?: number | null;
+  relevanceScore?: number | null;
+  schemes?: Record<string, unknown>[];
   criteria_breakdown?: RawCriterion[];
   criteriaBreakdown?: RawCriterion[];
   missing_information?: string[];
@@ -181,9 +209,12 @@ function mapQueryAndEligibility(
   const eligibilityResult: MultiDocEligibilityResult = {
     query_id: rawEligibility?.query_id || rawEligibility?.queryId || query.query_id,
     scheme_id: rawEligibility?.scheme_id || rawEligibility?.schemeId || query.scheme_id,
+    query_type: rawEligibility?.query_type || rawEligibility?.queryType,
     user_question: rawEligibility?.user_question || rawEligibility?.userQuestion || query.user_question,
     overall_status: (rawEligibility?.overall_status || rawEligibility?.overallStatus || "POSSIBLY_ELIGIBLE") as EligibilityStatus,
     overall_explanation: rawEligibility?.overall_explanation || rawEligibility?.overallExplanation || query.ai_response,
+    match_percentage: rawEligibility?.match_percentage ?? rawEligibility?.matchPercentage ?? null,
+    relevance_score: rawEligibility?.relevance_score ?? rawEligibility?.relevanceScore ?? null,
     criteria_breakdown: (rawEligibility?.criteria_breakdown || rawEligibility?.criteriaBreakdown || []).map((c: RawCriterion) => ({
       criterion_id: c.criterion_id || c.criterionId || "",
       criterion_name: c.criterion_name || c.criterionName || "Criterion",
@@ -211,13 +242,24 @@ function mapQueryAndEligibility(
       source: m.source || "UNKNOWN",
     })),
     all_evidence_sources: (rawEligibility?.all_evidence_sources || rawEligibility?.allEvidenceSources || []).map((e: RawEvidence) => ({
+      ...e,
       chunk_id: e.chunk_id || e.chunkId || "chk_1",
       document_title: e.document_title || e.documentTitle || "Official Document",
+      scheme_id: e.scheme_id || e.schemeId,
+      scheme_name: e.scheme_name || e.schemeName,
+      government_level: e.government_level || e.governmentLevel,
+      status: e.status,
+      match_percentage: e.match_percentage ?? e.matchPercentage,
+      coverage_amount: e.coverage_amount || e.coverageAmount,
+      benefits_summary: e.benefits_summary || e.benefitsSummary,
+      matched_criteria: e.matched_criteria || e.matchedCriteria,
+      pending_criteria: e.pending_criteria || e.pendingCriteria,
       page_number: e.page_number || e.pageNumber,
       excerpt: e.excerpt || "",
       official_url: e.official_url || e.officialUrl || "https://pmjay.gov.in",
       relevance_score: e.relevance_score || e.relevanceScore,
     })),
+    schemes: rawEligibility?.schemes || [],
     queried_at: rawEligibility?.queried_at || rawEligibility?.queriedAt || new Date().toISOString(),
   };
 

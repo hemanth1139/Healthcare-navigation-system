@@ -22,6 +22,9 @@ export interface EvidenceSource {
   match_percentage?: number;       // Criteria match percentage
   relevance_score?: number;        // Contextual relevance score (0-100)
   coverage_amount?: string;
+  benefits_summary?: string;
+  matched_criteria?: string[];
+  pending_criteria?: string[];
   excerpt: string;                 // Relevant text chunk retrieved from ChromaDB
   official_url: string;
   page_number?: number;

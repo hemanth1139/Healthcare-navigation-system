@@ -12,6 +12,7 @@ export interface NearbyHospitalsQueryParams {
   maxDistanceKm?: number;
   sortBy?: "distance" | "name" | "rating" | string;
   maxResults?: number;  // Maximum number of results to return (default 50 for OSM)
+  demoOnly?: boolean;
 }
 
 export interface HospitalSearchResponse {
@@ -21,6 +22,16 @@ export interface HospitalSearchResponse {
   requested_radius_km?: number;
   actual_radius_km?: number;
   data_source: "live" | "cached" | "fallback";
+}
+
+export interface HospitalRouteResponse {
+  distance_km: number;
+  duration_minutes: number;
+  estimated_time?: string;
+  geometry?: {
+    type: "LineString";
+    coordinates: [number, number][];
+  } | null;
 }
 
 /**
@@ -81,6 +92,9 @@ export const hospitalApi = {
     if (params.maxResults) {
       payload.max_results = params.maxResults;
     }
+    if (params.demoOnly) {
+      payload.demo_only = true;
+    }
 
     const { data } = await api.post<HospitalSearchResponse>("/hospitals/nearby", payload);
 
@@ -139,7 +153,7 @@ export const hospitalApi = {
     endLat: number,
     endLon: number,
     profile: string = "driving"
-  ): Promise<{ distance_km: number; duration_minutes: number; geometry?: any } | null> => {
+  ): Promise<HospitalRouteResponse | null> => {
     try {
       const { data } = await api.post("/hospitals/route", {
         start_lat: startLat,
@@ -148,6 +162,7 @@ export const hospitalApi = {
         end_lon: endLon,
         profile,
       });
+      if (data?.error) return null;
       return data;
     } catch (error) {
       console.error("[hospitalApi] Routing failed:", error);

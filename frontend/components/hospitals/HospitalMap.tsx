@@ -3,8 +3,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { HospitalWithDistance } from "@/types/hospital";
-import { Navigation, MapPin, ZoomIn, ZoomOut, Maximize, ExternalLink, Building2 } from "lucide-react";
+import { Navigation, ZoomIn, ZoomOut, ExternalLink, Building2, LocateFixed } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { hospitalApi } from "@/lib/hospitalApi";
 
 export interface HospitalMapProps {
   hospitals: HospitalWithDistance[];
@@ -12,6 +13,51 @@ export interface HospitalMapProps {
   userCoords?: { latitude: number; longitude: number } | null;
   onSelectHospital: (hospital: HospitalWithDistance) => void;
   onOpenDetail?: (hospital: HospitalWithDistance) => void;
+}
+
+function getSafeDirectionsUrl(hospital: HospitalWithDistance): string {
+  const fallbackUrl = `https://www.google.com/maps/dir/?api=1&destination=${hospital.latitude},${hospital.longitude}`;
+  try {
+    const suppliedUrl = new URL(hospital.google_maps_url || fallbackUrl);
+    const allowedHosts = new Set(["www.google.com", "maps.google.com", "openstreetmap.org", "www.openstreetmap.org"]);
+    return suppliedUrl.protocol === "https:" && allowedHosts.has(suppliedUrl.hostname)
+      ? suppliedUrl.toString()
+      : fallbackUrl;
+  } catch {
+    return fallbackUrl;
+  }
+}
+
+function createHospitalPopup(hospital: HospitalWithDistance): HTMLElement {
+  const root = document.createElement("div");
+  root.style.cssText = "font-family: sans-serif; font-size: 12px; max-width: 220px; line-height: 1.4;";
+
+  const title = document.createElement("div");
+  title.textContent = hospital.hospital_name;
+  title.style.cssText = "font-weight: 700; color: #0F172A; font-size: 13px; margin-bottom: 2px;";
+  root.appendChild(title);
+
+  const details = document.createElement("div");
+  const distance = hospital.distance_km < 1
+    ? `${Math.round(hospital.distance_km * 1000)} m`
+    : `${hospital.distance_km.toFixed(1)} km`;
+  details.textContent = `${hospital.hospital_type || "Hospital"} · ${distance}`;
+  details.style.cssText = "color: #64748B; font-size: 11px; margin-bottom: 6px;";
+  root.appendChild(details);
+
+  const address = document.createElement("div");
+  address.textContent = hospital.address || "Address not available";
+  address.style.cssText = "color: #334155; font-size: 11px; margin-bottom: 6px;";
+  root.appendChild(address);
+
+  const directions = document.createElement("a");
+  directions.href = getSafeDirectionsUrl(hospital);
+  directions.target = "_blank";
+  directions.rel = "noopener noreferrer";
+  directions.textContent = "Get directions ↗";
+  directions.style.cssText = "display:inline-block;background:#0D9488;color:white;padding:4px 8px;border-radius:6px;text-decoration:none;font-weight:600;font-size:10px;";
+  root.appendChild(directions);
+  return root;
 }
 
 export const HospitalMap: React.FC<HospitalMapProps> = ({
@@ -25,7 +71,10 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<{ [key: string]: L.Marker }>({});
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const routeLayerRef = useRef<L.Polyline | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [routePreview, setRoutePreview] = useState<"idle" | "loading" | "road" | "estimated">("idle");
+  const [routePreviewTime, setRoutePreviewTime] = useState<string | null>(null);
 
   // Initialize Leaflet Map — intentionally runs only once on mount.
   useEffect(() => {
@@ -36,7 +85,8 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
       mapInstanceRef.current = null;
     }
 
-    // Default center: userCoords or first hospital or Chennai
+    // Default center: userCoords (GPS location) or first hospital or Chennai
+    // Note: userCoords is used for map center, hospitals are plotted at their actual locations
     const initialLat =
       userCoords?.latitude ?? (hospitals.length > 0 ? hospitals[0].latitude : 13.0827);
     const initialLng =
@@ -48,7 +98,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
       zoomControl: false,
     });
 
-    // Add OpenStreetMap standard tiles (most reliable, no API key)
+    // OpenStreetMap standard tiles (100% free, no API key required, no watermark)
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -199,41 +249,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
             icon: customIcon,
             zIndexOffset: isSelected ? 900 : 100,
           }).addTo(map);
-
-          const popupContent = `
-            <div style="font-family: inherit; font-size: 12px; max-width: 220px; line-height: 1.4;">
-              <div style="font-weight: 700; color: #0F172A; font-size: 13px; margin-bottom: 2px;">
-                ${hosp.hospital_name}
-              </div>
-              <div style="color: #64748B; font-size: 11px; margin-bottom: 6px;">
-                ${hosp.hospital_type || "Hospital"} • <b>${
-          hosp.distance_km < 1
-            ? Math.round(hosp.distance_km * 1000) + " m"
-            : hosp.distance_km.toFixed(1) + " km"
-        }</b>
-            </div>
-            <div style="color: #334155; font-size: 11px; margin-bottom: 6px;">
-              ${hosp.address}
-            </div>
-            <a href="${
-              hosp.google_maps_url ||
-              `https://www.google.com/maps/dir/?api=1&destination=${hosp.latitude},${hosp.longitude}`
-            }" target="_blank" rel="noopener noreferrer" style="
-              display: inline-block;
-              background: #0D9488;
-              color: #ffffff;
-              padding: 4px 8px;
-              border-radius: 6px;
-              text-decoration: none;
-              font-weight: 600;
-              font-size: 10px;
-            ">
-              Get Directions ↗
-            </a>
-          </div>
-        `;
-
-          marker.bindPopup(popupContent);
+          marker.bindPopup(createHospitalPopup(hosp));
 
           marker.on("click", () => {
             onSelectHospital(hosp);
@@ -274,6 +290,74 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
         }
       }
   }, [hospitals, selectedHospitalId, userCoords, isMapReady, onSelectHospital]);
+
+  // Preview a real road route for the selected hospital when GPS coordinates
+  // are available. Without GPS, keep the distance-based time clearly labelled
+  // as an estimate.
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    routeLayerRef.current?.remove();
+    routeLayerRef.current = null;
+
+    const selected = hospitals.find((hospital) => hospital.hospital_id === selectedHospitalId);
+    if (!isMapReady || !map || !selected) {
+      setRoutePreview("idle");
+      setRoutePreviewTime(null);
+      return;
+    }
+    if (userCoords?.latitude == null || userCoords?.longitude == null) {
+      setRoutePreview("estimated");
+      setRoutePreviewTime(selected.estimated_time || null);
+      return;
+    }
+
+    let cancelled = false;
+    setRoutePreview("loading");
+    setRoutePreviewTime(null);
+    hospitalApi.getRoute(
+      userCoords.latitude,
+      userCoords.longitude,
+      selected.latitude,
+      selected.longitude,
+    ).then((route) => {
+      if (cancelled) return;
+      const coordinates = route?.geometry?.coordinates;
+      if (Array.isArray(coordinates) && coordinates.length > 1) {
+        const points = coordinates
+          .filter((point) => Number.isFinite(point[0]) && Number.isFinite(point[1]))
+          .map(([longitude, latitude]) => [latitude, longitude] as L.LatLngTuple);
+        if (points.length > 1) {
+          routeLayerRef.current = L.polyline(points, {
+            color: "#0D9488",
+            weight: 5,
+            opacity: 0.85,
+            lineCap: "round",
+            lineJoin: "round",
+          }).addTo(map);
+          map.fitBounds(routeLayerRef.current.getBounds(), {
+            padding: [50, 50],
+            maxZoom: 14,
+          });
+          setRoutePreview("road");
+          setRoutePreviewTime(route?.estimated_time || selected.estimated_time || null);
+          return;
+        }
+      }
+      setRoutePreview("estimated");
+      setRoutePreviewTime(selected.estimated_time || null);
+    }).catch(() => {
+      if (!cancelled) {
+        setRoutePreview("estimated");
+        setRoutePreviewTime(selected.estimated_time || null);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      routeLayerRef.current?.remove();
+      routeLayerRef.current = null;
+    };
+  }, [hospitals, selectedHospitalId, userCoords, isMapReady]);
 
   // Recenter controls
   const handleRecenter = () => {
@@ -342,6 +426,14 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
         </span>
       </div>
 
+      {/* Map marker legend */}
+      <div className="absolute top-14 left-4 z-10 bg-white/95 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-200/80 shadow-sm flex flex-col gap-1.5 text-[10px] font-semibold text-slate-700">
+        <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-teal-600" />Your location</div>
+        <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />Government hospital</div>
+        <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-600" />Other hospital</div>
+        <div className="flex items-center gap-2"><span className="w-4 border-t-2 border-teal-600" />Selected route</div>
+      </div>
+
       {/* Selected Hospital Bottom Card overlay */}
       {selectedHospital && (
         <div className="absolute bottom-4 left-4 right-4 z-10 bg-white p-3.5 rounded-2xl border border-[#0D9488]/40 shadow-clinical-lg flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2 duration-150">
@@ -359,6 +451,15 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
                   : `${selectedHospital.distance_km.toFixed(1)} km away`}
                 {selectedHospital.hospital_type ? ` • ${selectedHospital.hospital_type}` : ""}
               </p>
+              <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                {routePreview === "loading" ? (
+                  "Loading road route…"
+                ) : routePreview === "road" ? (
+                  <><LocateFixed className="w-3 h-3" /> Road route{routePreviewTime ? ` · ${routePreviewTime}` : ""}</>
+                ) : (
+                  <>Estimated time{routePreviewTime ? ` · ${routePreviewTime}` : ""}</>
+                )}
+              </p>
             </div>
           </div>
 
@@ -374,10 +475,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
             )}
 
             <a
-              href={
-                selectedHospital.google_maps_url ||
-                `https://www.google.com/maps/dir/?api=1&destination=${selectedHospital.latitude},${selectedHospital.longitude}`
-              }
+              href={getSafeDirectionsUrl(selectedHospital)}
               target="_blank"
               rel="noopener noreferrer"
               className="shrink-0"

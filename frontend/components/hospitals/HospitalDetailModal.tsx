@@ -3,7 +3,6 @@
 import React from "react";
 import { HospitalWithDistance } from "@/types/hospital";
 import { Modal } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/Button";
 import {
   MapPin,
   Phone,
@@ -13,7 +12,7 @@ import {
   ShieldAlert,
   Building2,
   ExternalLink,
-  CheckCircle2,
+  Star,
   Stethoscope,
   Info,
 } from "lucide-react";
@@ -37,9 +36,9 @@ export const HospitalDetailModal: React.FC<HospitalDetailModalProps> = ({
 
   const formatDistance = (distKm: number) => {
     if (distKm < 1) {
-      return `${Math.round(distKm * 1000)} m away`;
+      return `${Math.round(distKm * 1000)}m`;
     }
-    return `${distKm.toFixed(1)} km away`;
+    return `${distKm.toFixed(1)}km`;
   };
 
   const hasValidPhone = Boolean(hospital.phone && hospital.phone.trim().length > 4);
@@ -48,65 +47,80 @@ export const HospitalDetailModal: React.FC<HospitalDetailModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={hospital.hospital_name}
-      subtitle={`${formatDistance(hospital.distance_km)}${
-        hospital.estimated_time ? ` • ${hospital.estimated_time}` : ""
-      }`}
+      title=""
+      subtitle=""
+      maxWidth="2xl"
+      fitViewport
     >
-      <div className="flex flex-col gap-5 pt-1">
-        {/* Type & Emergency Room Banner */}
-        <div className="flex flex-wrap items-center gap-2">
-          {hospital.hospital_type && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200 px-3 py-1 rounded-xl">
-              <Building2 className="w-3.5 h-3.5" />
-              <span>{hospital.hospital_type}</span>
-            </span>
-          )}
-
-          {hospital.has_emergency_room && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-800 bg-rose-50 border border-rose-200 px-3 py-1 rounded-xl">
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
-              <span>24/7 Emergency & Trauma Center</span>
-            </span>
-          )}
-        </div>
-
-        {/* Address & Coordinates */}
-        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-col gap-2">
-          <div className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-800">
-            <MapPin className="w-4 h-4 text-[#0D9488] shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">{hospital.address}</p>
-              <p className="text-slate-500 text-xs">
-                {hospital.city ? `${hospital.city}, ` : ""}
-                {hospital.state || ""}
-              </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+        {/* Header Section with Hospital Name and Rating */}
+        <div className="flex flex-col gap-2 md:col-span-2">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+                {hospital.hospital_name}
+              </h2>
+              <div className="flex items-center gap-2 mt-2">
+                {hospital.rating && (
+                  <div className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-1 rounded-lg">
+                    <Star className="w-4 h-4 fill-amber-500" />
+                    <span className="text-sm font-bold">{hospital.rating.toFixed(1)}</span>
+                  </div>
+                )}
+                <span className="text-sm text-slate-500">
+                  {formatDistance(hospital.distance_km)} away
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-2 border-t border-slate-200/60">
-            <span>
-              Coordinates: {hospital.latitude.toFixed(4)}, {hospital.longitude.toFixed(4)}
-            </span>
-            <span className="text-[#0D9488] font-bold">{formatDistance(hospital.distance_km)}</span>
+          {/* Type & Emergency Badges */}
+          <div className="flex flex-wrap gap-1.5">
+            {hospital.hospital_type && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-lg">
+                <Building2 className="w-3.5 h-3.5" />
+                <span>{hospital.hospital_type}</span>
+              </span>
+            )}
+            {hospital.has_emergency_room && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-3 py-1.5 rounded-lg">
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                <span>24/7 Emergency</span>
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Contact Numbers & Website Links */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        {/* Address Card */}
+        <div className="md:col-span-2 bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200 rounded-2xl p-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-100 text-[#0D9488] flex items-center justify-center shrink-0">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-slate-900">{hospital.address}</p>
+              <p className="text-sm text-slate-600 mt-1">
+                {hospital.city && `${hospital.city}, `}
+                {hospital.state || "Tamil Nadu"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions Grid */}
+        <div className="grid grid-cols-2 gap-2">
           {hasValidPhone && (
             <a
               href={`tel:${hospital.phone?.replace(/[^\d+]/g, "")}`}
               aria-label={`Call ${hospital.hospital_name}`}
-              className="flex items-center justify-between bg-slate-50 hover:bg-[#F0FDFA] p-3.5 rounded-2xl border border-slate-200 hover:border-[#0D9488] font-bold text-[#0D9488] transition-all group"
+              className="group"
             >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-teal-100/60 text-[#0D9488] flex items-center justify-center">
-                  <Phone className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="text-[10px] uppercase text-slate-500 font-bold">Helpline / Front Desk</span>
-                  <span className="text-xs text-slate-900 group-hover:text-[#0D9488]">{hospital.phone}</span>
+              <div className="bg-white border-2 border-slate-200 hover:border-[#0D9488] hover:bg-[#F0FDFA] rounded-xl p-2 transition-all cursor-pointer">
+                <div className="flex flex-col items-center gap-1">
+                  <div className="w-9 h-9 rounded-lg bg-teal-100 text-[#0D9488] flex items-center justify-center group-hover:bg-[#0D9488] group-hover:text-white transition-colors">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-700 group-hover:text-[#0D9488]">Call Now</span>
                 </div>
               </div>
             </a>
@@ -117,36 +131,81 @@ export const HospitalDetailModal: React.FC<HospitalDetailModalProps> = ({
               href={hospital.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-between bg-slate-50 hover:bg-[#F0FDFA] p-3.5 rounded-2xl border border-slate-200 hover:border-[#0D9488] font-bold text-[#0D9488] transition-all group truncate"
+              className="group"
             >
-              <div className="flex items-center gap-2.5 truncate">
-                <div className="w-8 h-8 rounded-xl bg-teal-100/60 text-[#0D9488] flex items-center justify-center shrink-0">
-                  <Globe className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col text-left truncate">
-                  <span className="text-[10px] uppercase text-slate-500 font-bold">Official Portal</span>
-                  <span className="text-xs text-slate-900 group-hover:text-[#0D9488] truncate">
-                    Visit Website
-                  </span>
+              <div className="bg-white border-2 border-slate-200 hover:border-[#0D9488] hover:bg-[#F0FDFA] rounded-xl p-2 transition-all cursor-pointer">
+                <div className="flex flex-col items-center gap-1">
+                  <div className="w-9 h-9 rounded-lg bg-teal-100 text-[#0D9488] flex items-center justify-center group-hover:bg-[#0D9488] group-hover:text-white transition-colors">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-700 group-hover:text-[#0D9488]">Website</span>
                 </div>
               </div>
-              <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-[#0D9488] shrink-0" />
             </a>
+          )}
+
+          <a
+            href={directionsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Get directions to ${hospital.hospital_name}`}
+            className="group col-span-2"
+          >
+            <div className="bg-gradient-to-r from-[#0D9488] to-[#0F766E] hover:from-[#0F766E] hover:to-[#115E59] rounded-xl p-3 transition-all cursor-pointer">
+              <div className="flex items-center justify-center gap-3">
+                <Navigation className="w-5 h-5 text-white" />
+                <span className="text-sm font-bold text-white">Get Directions on Google Maps</span>
+                <ExternalLink className="w-4 h-4 text-white/80" />
+              </div>
+            </div>
+          </a>
+        </div>
+
+        {/* Info Cards */}
+        <div className="grid grid-cols-1 gap-2">
+          {hospital.opening_hours && (
+            <div className="bg-white border border-slate-200 rounded-xl p-3">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Operating Hours</p>
+                  <p className="text-sm font-semibold text-slate-900 mt-1">{hospital.opening_hours}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hospital.beds != null && (
+            <div className="bg-white border border-slate-200 rounded-xl p-3">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Bed Capacity</p>
+                  <p className="text-sm font-semibold text-slate-900 mt-1">{hospital.beds.toLocaleString()} beds</p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
-        {/* Clinical Specialties */}
+        {/* Specialties Section */}
         {hospital.specialties && hospital.specialties.length > 0 && (
-          <div className="flex flex-col gap-2.5 pt-2 border-t border-slate-100">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-              <Stethoscope className="w-4 h-4 text-[#0D9488]" />
-              <span>Available Specialties & Departments</span>
+          <div className="bg-white border border-slate-200 rounded-xl p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-7 h-7 rounded-lg bg-teal-100 text-[#0D9488] flex items-center justify-center">
+                <Stethoscope className="w-3.5 h-3.5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Specialties & Departments</h3>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {hospital.specialties.map((spec) => (
                 <span
                   key={spec}
-                  className="text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-[#F0FDFA] hover:text-[#0D9488] px-3 py-1.5 rounded-xl border border-slate-200 transition-colors"
+                  className="text-[11px] font-medium text-slate-700 bg-slate-100 hover:bg-teal-50 hover:text-[#0D9488] px-2 py-1.5 rounded-lg border border-slate-200 transition-colors"
                 >
                   {spec}
                 </span>
@@ -155,56 +214,33 @@ export const HospitalDetailModal: React.FC<HospitalDetailModalProps> = ({
           </div>
         )}
 
-        {/* Transparency Notice */}
-        <div className="flex items-start gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200/60 text-[11px] text-slate-500">
-          <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-          <span>
-            Hospital location and department information are indexed from verified regional healthcare directories. Please verify specific outpatient appointment schedules directly with the hospital before visiting.
-          </span>
-        </div>
-
-        {/* Primary Action Buttons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-          {hasValidPhone ? (
-            <a
-              href={`tel:${hospital.phone?.replace(/[^\d+]/g, "")}`}
-              aria-label={`Call ${hospital.hospital_name}`}
-              className="w-full"
-            >
-              <Button
-                variant="secondary"
-                size="lg"
-                fullWidth
-                className="border-slate-200 text-slate-700 hover:text-[#0D9488] rounded-xl font-bold"
+        {/* Contact Info (if phone exists but not shown in quick actions) */}
+        {hasValidPhone && (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Phone className="w-5 h-5 text-[#0D9488]" />
+                <div>
+                  <p className="text-xs text-slate-500">Helpline Number</p>
+                  <p className="text-sm font-semibold text-slate-900">{hospital.phone}</p>
+                </div>
+              </div>
+              <a
+                href={`tel:${hospital.phone?.replace(/[^\d+]/g, "")}`}
+                className="text-sm font-semibold text-[#0D9488] hover:underline"
               >
-                <Phone className="w-4 h-4 mr-2 text-[#0D9488]" />
-                <span>Call Hospital</span>
-              </Button>
-            </a>
-          ) : (
-            <Button
-              variant="secondary"
-              size="lg"
-              fullWidth
-              disabled
-              className="border-slate-200 text-slate-400 rounded-xl"
-            >
-              <span>No Phone Available</span>
-            </Button>
-          )}
+                Call Now
+              </a>
+            </div>
+          </div>
+        )}
 
-          <a
-            href={directionsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Get directions to ${hospital.hospital_name}`}
-            className="w-full"
-          >
-            <Button variant="primary" size="lg" fullWidth className="rounded-xl font-bold">
-              <Navigation className="w-4 h-4 mr-2" />
-              <span>Get Directions</span>
-            </Button>
-          </a>
+        {/* Info Notice */}
+        <div className="md:col-span-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
+          <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-amber-900 leading-snug">
+            Hospital services, hours, and bed capacity may change. Please contact the hospital directly to confirm emergency availability and appointment details before visiting.
+          </p>
         </div>
       </div>
     </Modal>

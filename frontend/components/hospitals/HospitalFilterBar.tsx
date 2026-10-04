@@ -19,6 +19,7 @@ export interface HospitalFilterBarProps {
 }
 
 const TAMIL_NADU_DISTRICT_OPTIONS = [
+  { value: "Rajalakshmi Engineering College, Thandalam", label: "Rajalakshmi Engineering College, Thandalam" },
   { value: "Chennai, Tamil Nadu", label: "Chennai (Primary Hub)" },
   { value: "Coimbatore, Tamil Nadu", label: "Coimbatore" },
   { value: "Madurai, Tamil Nadu", label: "Madurai" },
@@ -62,6 +63,7 @@ const SPECIALTIES = [
 const DISTANCE_OPTIONS = [
   { value: 5, label: "Within 5 km" },
   { value: 10, label: "Within 10 km" },
+  { value: 20, label: "Within 20 km" },
   { value: 25, label: "Within 25 km" },
   { value: 50, label: "Within 50 km" },
   { value: 0, label: "Any Distance" },
@@ -100,7 +102,7 @@ export const HospitalFilterBar: React.FC<HospitalFilterBarProps> = ({
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4 text-[#0D9488]" />
           <span className="font-heading font-bold text-sm text-[#0F172A]">
-            Filter Tamil Nadu Facilities
+            Filter hospitals
           </span>
           <span className="text-xs font-mono font-bold text-[#0D9488] bg-[#F0FDFA] px-2.5 py-0.5 rounded-full border border-[#0D9488]/20">
             {resultCount} {resultCount === 1 ? "hospital" : "hospitals"} in scope

@@ -80,7 +80,7 @@ export default function PredictionResultPage({ params }: { params?: { id?: strin
     }
 
     api
-      .get(`/predictions/${id}`)
+      .get(`/predictions/by-id/${id}`)
       .then(({ data }) => {
         if (isMounted && data) {
           setReport(data);

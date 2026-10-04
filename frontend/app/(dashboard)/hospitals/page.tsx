@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { HospitalWithDistance } from "@/types/hospital";
@@ -11,7 +11,7 @@ import { HospitalList } from "@/components/hospitals/HospitalList";
 import { HospitalDetailModal } from "@/components/hospitals/HospitalDetailModal";
 import { LocationSelectorModal } from "@/components/hospitals/LocationSelectorModal";
 import { HospitalLoadingSkeleton } from "@/components/hospitals/HospitalLoadingSkeleton";
-import { Map, List, MapPin, AlertCircle, RefreshCw, Navigation, Building2, CheckCircle2, Stethoscope } from "lucide-react";
+import { Map, List, MapPin, AlertCircle, RefreshCw, Navigation, Building2, CheckCircle2, Stethoscope, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -39,20 +39,31 @@ export default function HospitalsPage() {
   const initialSpecialist = normalizeSpecialty(rawSpecialist);
   const { t, language } = useLanguage();
 
-  // Location State (Default: Chennai, Tamil Nadu)
-  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [locationName, setLocationName] = useState<string>("Chennai, Tamil Nadu");
+  // Default to the fixed Thandalam presentation catalogue; users can still
+  // select a different area or request GPS from the location dialog.
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number }>({
+    latitude: 13.009644,
+    longitude: 80.004336,
+  });
+  const [locationName, setLocationName] = useState<string>("Rajalakshmi Engineering College, Thandalam");
   const [isUsingGps, setIsUsingGps] = useState<boolean>(false);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(true); // Always true to show Thandalam hospitals
   const [isGpsOutsideTn, setIsGpsOutsideTn] = useState<boolean>(false);
   const [locationPermissionDenied, setLocationPermissionDenied] = useState<boolean>(false);
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState<boolean>(false);
+  const gpsRequestIdRef = useRef(0);
+
+  // Auto-request GPS on mount to get user location for map center, but keep demo mode for hospitals
+  useEffect(() => {
+    requestGpsLocation();
+  }, []);
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [hospitalType, setHospitalType] = useState<string>("All");
   const [specialtyFilter, setSpecialtyFilter] = useState<string>(initialSpecialist);
-  const [maxDistance, setMaxDistance] = useState<number>(0); // 0 = Any Distance
+  const [maxDistance, setMaxDistance] = useState<number>(20);
   const [sortBy, setSortBy] = useState<string>("distance");
 
   // React to URL query parameter changes on client navigation
@@ -72,57 +83,49 @@ export default function HospitalsPage() {
   const [detailModalHospital, setDetailModalHospital] = useState<HospitalWithDistance | null>(null);
   const [mobileView, setMobileView] = useState<"list" | "map">("list");
 
-  // Detect GPS Location
+  // Detect GPS Location - Only updates map center, keeps Thandalam hospitals
   const requestGpsLocation = useCallback(() => {
+    const requestId = ++gpsRequestIdRef.current;
     setIsLocating(true);
     setFetchError(null);
 
     if (typeof window !== "undefined" && "geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          if (requestId !== gpsRequestIdRef.current) return;
           const { latitude, longitude } = position.coords;
           setIsLocating(false);
 
-          if (isCoordWithinTamilNadu(latitude, longitude)) {
-            setUserCoords({ latitude, longitude });
-            setIsUsingGps(true);
-            setIsGpsOutsideTn(false);
-            setLocationPermissionDenied(false);
-            setLocationName("Live GPS (Tamil Nadu)");
-          } else {
-            // Outside Tamil Nadu
-            setUserCoords({ latitude, longitude });
-            setIsUsingGps(false);
+          // Update userCoords for map center only
+          setUserCoords({ latitude, longitude });
+          setIsUsingGps(true);
+          setLocationPermissionDenied(false);
+
+          if (!isCoordWithinTamilNadu(latitude, longitude)) {
             setIsGpsOutsideTn(true);
-            setLocationPermissionDenied(false);
-            setLocationName("Chennai, Tamil Nadu (Default Hub)");
           }
         },
         (error) => {
+          if (requestId !== gpsRequestIdRef.current) return;
           console.warn("[Geolocation] Unavailable or denied:", error.message);
           setIsLocating(false);
           setIsUsingGps(false);
           setIsGpsOutsideTn(false);
           setLocationPermissionDenied(true);
-          setLocationName("Chennai, Tamil Nadu");
-          setUserCoords({ latitude: 13.0827, longitude: 80.2707 });
+          // Keep Thandalam coordinates as fallback
+          setUserCoords({ latitude: 13.009644, longitude: 80.004336 });
         },
-        { timeout: 10000, enableHighAccuracy: true }
+        { timeout: 15000, enableHighAccuracy: true, maximumAge: 0 }
       );
     } else {
       setIsLocating(false);
       setLocationPermissionDenied(true);
-      setLocationName("Chennai, Tamil Nadu");
-      setUserCoords({ latitude: 13.0827, longitude: 80.2707 });
+      // Keep Thandalam coordinates as fallback
+      setUserCoords({ latitude: 13.009644, longitude: 80.004336 });
     }
   }, []);
 
-  // Request location once on mount
-  useEffect(() => {
-    requestGpsLocation();
-  }, [requestGpsLocation]);
-
-  // Fetch Hospitals from Real Backend API (Strictly Tamil Nadu)
+  // Fetch Hospitals from Real Backend API (Always uses Thandalam demo data)
   const fetchHospitals = useCallback(async () => {
     setLoading(true);
     setFetchError(null);
@@ -130,14 +133,15 @@ export default function HospitalsPage() {
 
     try {
       const response = await hospitalApi.getNearbyHospitals({
-        latitude: isUsingGps && userCoords ? userCoords.latitude : undefined,
-        longitude: isUsingGps && userCoords ? userCoords.longitude : undefined,
-        locationQuery: !isUsingGps ? locationName : undefined,
+        latitude: 13.009644, // Always use Thandalam coordinates for hospitals
+        longitude: 80.004336,
+        locationQuery: undefined,
         search: searchQuery,
         specialty: specialtyFilter,
         hospitalType: hospitalType,
         maxDistanceKm: maxDistance > 0 ? maxDistance : undefined,
         sortBy: sortBy,
+        demoOnly: true, // Always true to show Thandalam hospitals
       });
 
       // Handle search status messages
@@ -168,9 +172,6 @@ export default function HospitalsPage() {
       setLoading(false);
     }
   }, [
-    userCoords,
-    isUsingGps,
-    locationName,
     searchQuery,
     specialtyFilter,
     hospitalType,
@@ -178,20 +179,36 @@ export default function HospitalsPage() {
     sortBy,
   ]);
 
-  // Trigger fetch when query parameters update (with 500ms debounce to prevent API rate-limiting)
+  // Trigger fetch when query parameters update (with 200ms debounce for responsive updates)
   useEffect(() => {
     const timerId = setTimeout(() => {
       fetchHospitals();
-    }, 500);
+    }, 200);
     return () => clearTimeout(timerId);
   }, [fetchHospitals]);
 
   // Handle Manual Location Selection
   const handleSelectManualLocation = (newLocationText: string) => {
+    gpsRequestIdRef.current += 1;
+    setIsLocating(false);
+    setIsDemoMode(false);
     setIsUsingGps(false);
     setIsGpsOutsideTn(false);
     setLocationPermissionDenied(false);
     setLocationName(newLocationText);
+  };
+
+  const useThandalamDemoLocation = () => {
+    gpsRequestIdRef.current += 1;
+    setIsLocating(false);
+    setIsDemoMode(true);
+    setIsUsingGps(false);
+    setIsGpsOutsideTn(false);
+    setLocationPermissionDenied(false);
+    setLocationName("Rajalakshmi Engineering College, Thandalam");
+    setUserCoords({ latitude: 13.009644, longitude: 80.004336 });
+    setMaxDistance(20);
+    setSortBy("distance");
   };
 
   // Reset all filters
@@ -199,7 +216,7 @@ export default function HospitalsPage() {
     setSearchQuery("");
     setHospitalType("All");
     setSpecialtyFilter("");
-    setMaxDistance(0);
+    setMaxDistance(isDemoMode ? 20 : 0);
     setSortBy("distance");
   };
 
@@ -213,9 +230,9 @@ export default function HospitalsPage() {
 
   // Compute clean scope label for display
   const activeScopeDisplay = useMemo(() => {
-    if (isUsingGps) return "Your GPS Position (Tamil Nadu)";
-    return locationName || "Chennai, Tamil Nadu";
-  }, [isUsingGps, locationName]);
+    // Always show Thandalam as the hospital location
+    return "Rajalakshmi Engineering College, Thandalam";
+  }, []);
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto pb-16 lg:pb-8">
@@ -228,13 +245,13 @@ export default function HospitalsPage() {
             </h1>
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#0D9488] bg-[#F0FDFA] px-3 py-1 rounded-full border border-[#0D9488]/20 flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5" />
-              <span>Tamil Nadu, India</span>
+              <span>{isDemoMode ? "Thandalam Demo Area" : "Tamil Nadu, India"}</span>
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#64748B]">
             {language === "ta"
               ? "தமிழ்நாடு முழுவதும் உள்ள அரசு மற்றும் முன்னணி சிறப்பு மருத்துவமனைகளைக் கண்டறியவும்."
-              : "Find verified government medical colleges, trauma centers, and specialized hospitals across Tamil Nadu."}
+              : "Showing hospitals near Rajalakshmi Engineering College, Thandalam. Map centered on your location."}
           </p>
         </div>
 
@@ -248,72 +265,60 @@ export default function HospitalsPage() {
             />
             <div className="flex flex-col text-left">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                {isUsingGps ? "Live GPS Active" : "Selected District"}
+                {isUsingGps ? "Map: Your GPS Location" : "Map: Default Location"}
               </span>
               <span className="text-xs font-bold text-slate-800 max-w-[160px] sm:max-w-[210px] truncate">
-                {locationName}
+                Hospitals: Thandalam
               </span>
             </div>
           </div>
 
           <Button
             type="button"
-            onClick={() => setIsLocationModalOpen(true)}
+            onClick={requestGpsLocation}
+            disabled={isLocating}
             variant="secondary"
             size="sm"
             className="rounded-xl text-xs font-bold shrink-0 border-slate-200"
           >
-            <MapPin className="w-3.5 h-3.5 mr-1 text-[#0D9488]" />
-            <span>Change</span>
+            <Navigation className={`w-3.5 h-3.5 mr-1 ${isLocating ? "animate-spin" : ""}`} />
+            <span>{isLocating ? "Locating..." : "Center Map on You"}</span>
           </Button>
         </div>
       </div>
 
-      {/* GPS Outside Tamil Nadu Notification */}
-      {isGpsOutsideTn && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 animate-in fade-in">
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-            <span>
-              Your current device location is outside Tamil Nadu. The directory is currently focused on hospitals in <b>Tamil Nadu, India</b>.
-            </span>
-          </div>
+      {/* GPS Location Info Banner */}
+      {isUsingGps && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-emerald-900">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleSelectManualLocation("Chennai, Tamil Nadu")}
-              className="font-bold underline text-amber-800 hover:text-amber-950 cursor-pointer"
-            >
-              View Chennai Hospitals
-            </button>
-            <span>•</span>
-            <button
-              type="button"
-              onClick={() => handleSelectManualLocation("All Tamil Nadu")}
-              className="font-bold underline text-amber-800 hover:text-amber-950 cursor-pointer"
-            >
-              All Tamil Nadu
-            </button>
+            <Navigation className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>
+              Map centered on your GPS location. Showing hospitals near <b>Rajalakshmi Engineering College, Thandalam</b>.
+            </span>
           </div>
         </div>
       )}
 
-      {/* Location Permission Denied Warning */}
-      {locationPermissionDenied && !isUsingGps && !isGpsOutsideTn && (
-        <div className="bg-slate-100 border border-slate-200/80 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-700">
+      {/* Location Permission Denied Banner */}
+      {locationPermissionDenied && !isUsingGps && (
+        <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs text-slate-700">
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-[#0D9488] shrink-0" />
             <span>
-              Showing healthcare facilities for <b>{locationName}</b>. Select a specific district or Chennai locality below.
+              GPS permission denied. Map centered on default location. Showing hospitals near <b>Rajalakshmi Engineering College, Thandalam</b>.
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsLocationModalOpen(true)}
-            className="font-bold text-[#0D9488] hover:underline cursor-pointer text-left"
-          >
-            Choose District / Area →
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={requestGpsLocation}
+              disabled={isLocating}
+              className="px-2.5 py-1 rounded-lg bg-[#0D9488] hover:bg-[#0F766E] text-white font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <Navigation className={`w-3 h-3 ${isLocating ? "animate-spin" : ""}`} />
+              <span>{isLocating ? "Requesting..." : "Enable GPS"}</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -324,7 +329,7 @@ export default function HospitalsPage() {
         onSearchSubmit={() => fetchHospitals()}
       />
 
-      {/* Filter & Sort Controls with Integrated District Selector */}
+      {/* Filter & Sort Controls - District selector disabled as we always show Thandalam hospitals */}
       <HospitalFilterBar
         selectedDistrict={locationName}
         onDistrictChange={handleSelectManualLocation}
@@ -460,7 +465,7 @@ export default function HospitalsPage() {
           <HospitalMap
             hospitals={hospitals}
             selectedHospitalId={selectedHospitalId}
-            userCoords={isUsingGps ? userCoords : null}
+            userCoords={isUsingGps || isDemoMode ? userCoords : null}
             onSelectHospital={handleSelectHospital}
             onOpenDetail={handleOpenDetail}
           />

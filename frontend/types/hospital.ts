@@ -16,6 +16,7 @@ export interface Hospital {
   rating?: number;
   opening_hours?: string;
   beds?: number;
+  travel_time_source?: "road_route" | "estimated" | "unavailable";
 }
 
 export interface HospitalRecommendation {

@@ -96,7 +96,7 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
               {hospital.has_emergency_room && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full shrink-0">
                   <ShieldAlert className="w-3 h-3 text-rose-600" />
-                  <span>24/7 Emergency</span>
+                  <span>Emergency services</span>
                 </span>
               )}
             </div>
@@ -133,6 +133,13 @@ export const HospitalCard: React.FC<HospitalCardProps> = ({
           <div className="flex items-center gap-1.5 font-semibold text-slate-700">
             <Clock className="w-4 h-4 text-slate-400" />
             <span>{hospital.estimated_time}</span>
+            <span className="text-[9px] font-medium text-slate-500">
+              {hospital.travel_time_source === "road_route"
+                ? "Road route"
+                : hospital.travel_time_source === "unavailable"
+                  ? "Unavailable"
+                  : "Estimated"}
+            </span>
           </div>
         )}
       </div>

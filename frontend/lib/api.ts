@@ -15,20 +15,29 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 120000, // Increased to 2 minutes for RAG processing
+  timeout: 30000, // Reduced to 30 seconds for better UX
+});
+
+// Separate API client for long-running RAG/scheme queries
+export const slowApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  timeout: 90000, // 90 seconds for RAG processing
 });
 
 // Request Interceptor: Attach Bearer Authorization token
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = getAccessToken();
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+const attachToken = (config: InternalAxiosRequestConfig) => {
+  const token = getAccessToken();
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+};
+
+api.interceptors.request.use(attachToken, (error) => Promise.reject(error));
+slowApi.interceptors.request.use(attachToken, (error) => Promise.reject(error));
 
 // In-flight refresh token state & queue to prevent concurrent duplicate refresh requests
 let isRefreshing = false;
@@ -95,6 +104,61 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshErr) {
         // Refresh failed: session expired or invalid
+        onRefreshFailed();
+        clearAuthSession();
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// Add same interceptor to slowApi
+slowApi.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    const isAuthEndpoint =
+      originalRequest?.url?.includes("/auth/login") ||
+      originalRequest?.url?.includes("/auth/register") ||
+      originalRequest?.url?.includes("/auth/refresh");
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
+      originalRequest._retry = true;
+      const refreshToken = getRefreshToken();
+
+      if (!refreshToken) {
+        clearAuthSession();
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        return new Promise((resolve) => {
+          subscribeTokenRefresh((newToken: string) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            }
+            resolve(slowApi(originalRequest));
+          });
+        });
+      }
+
+      isRefreshing = true;
+
+      try {
+        const refreshRes = await authApi.refreshToken(refreshToken);
+        saveAuthTokens(refreshRes.tokens);
+        onRefreshed(refreshRes.tokens.accessToken);
+
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${refreshRes.tokens.accessToken}`;
+        }
+        return slowApi(originalRequest);
+      } catch (refreshErr) {
         onRefreshFailed();
         clearAuthSession();
         return Promise.reject(refreshErr);
