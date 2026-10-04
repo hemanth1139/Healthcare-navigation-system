@@ -35,8 +35,10 @@ def _blob(scheme: Dict[str, Any]) -> str:
 
 def is_tn_scheme(scheme: Dict[str, Any]) -> bool:
     sid = str(scheme.get("scheme_id") or "")
+    if sid.startswith("scheme_C"):
+        return False
     state = str(scheme.get("state") or "")
-    return sid.startswith("scheme_TN") or "Tamil Nadu" in state or scheme.get("category") == "State Government"
+    return sid.startswith("scheme_TN") or scheme.get("category") == "State Government" or (state.strip().lower() == "tamil nadu")
 
 
 def parse_age_bounds(age_group: str) -> Tuple[Optional[int], Optional[int]]:
@@ -70,6 +72,8 @@ def parse_income_ceiling(income_limit: str) -> Optional[float]:
         return None
     if "secc" in t and not re.search(r"\d{4,}", t):
         return 500000.0
+    if any(w in t for w in ["bpl", "low-income", "low income"]) and not re.search(r"\d{4,}", t):
+        return 120000.0
     lakh = re.search(r"(\d+(?:\.\d+)?)\s*lakh", t)
     if lakh:
         return float(lakh.group(1)) * 100000.0
@@ -118,12 +122,14 @@ def analyze_scheme(scheme: Dict[str, Any]) -> Dict[str, Any]:
         w in text
         for w in ["newborn", "infant", "baby care", "neonatal"]
     )
-    disability = any(
-        w in text
-        for w in ["disabilit", "autism", "cerebral palsy", "udid", "niramaya"]
-    )
     central_govt = "central government employee" in text or "cghs" in text
     esic = "esic" in text or "esic-covered" in text or "organised-sector" in text or "organized-sector" in text
+    disability = (
+        scheme.get("scheme_id") == "scheme_C05"
+        or "udid" in beneficiaries.lower()
+        or "national trust" in text.lower()
+        or ("disabilit" in beneficiaries.lower() and not esic)
+    )
     pensioner = "pensioner" in text and "employee" not in name.lower()
     tn_employee = (
         ("government employee" in text or "government employees" in text)
@@ -131,7 +137,10 @@ def analyze_scheme(scheme: Dict[str, Any]) -> Dict[str, Any]:
         and not pensioner
         and not central_govt
     )
-    secc_or_bpl = any(w in (income_raw + " " + beneficiaries).lower() for w in ["secc", "bpl", "low-income", "low income"])
+    secc_or_bpl = any(w in (income_raw + " " + beneficiaries + " " + str(ec.get("bpl_or_secc_required", ""))).lower() for w in ["secc", "bpl", "low-income", "low income"])
+
+    if secc_or_bpl and income_ceiling is None:
+        income_ceiling = 120000.0
 
     return {
         "scheme_id": scheme.get("scheme_id"),
@@ -221,7 +230,7 @@ def filter_schemes_by_profile(
     for scheme in all_schemes:
         flags = analyze_scheme(scheme)
 
-        if flags["is_tn"] and state and state.lower() != "tamil nadu":
+        if flags["is_tn"] and state and "tamil nadu" not in state.lower():
             continue
 
         # Maternity schemes: only for females, and only if pregnant or applicable
@@ -355,8 +364,8 @@ def _crit(
 def evaluate_scheme_from_json(
     scheme: Dict[str, Any],
     effective_state: Optional[str],
-    effective_age: Optional[int],
-    effective_income: Optional[float],
+    effective_age: Optional[Any],
+    effective_income: Optional[Any],
     effective_employment: Optional[str] = None,
     effective_disability: Optional[str] = None,
     effective_pregnancy: Optional[str] = None,
@@ -372,13 +381,38 @@ def evaluate_scheme_from_json(
     missing: List[Dict[str, Any]] = []
     gender_l = (gender or "").lower()
 
+    # Sanitize effective_age
+    parsed_age: Optional[int] = None
+    if effective_age is not None:
+        try:
+            parsed_age = int(float(str(effective_age).strip()))
+        except (ValueError, TypeError):
+            parsed_age = None
+
+    # Sanitize effective_income
+    parsed_income: Optional[float] = None
+    if effective_income is not None:
+        try:
+            if isinstance(effective_income, (int, float)):
+                parsed_income = float(effective_income)
+            else:
+                from app.rag.pipeline import _parse_income_val
+                p = _parse_income_val(effective_income)
+                if p is not None:
+                    parsed_income = p
+                else:
+                    digits = re.sub(r"[^\d.]", "", str(effective_income))
+                    parsed_income = float(digits) if digits else None
+        except (ValueError, TypeError):
+            parsed_income = None
+
     # Residency (TN schemes only)
     if flags["is_tn"]:
         if effective_state is not None:
-            ok = effective_state == "Tamil Nadu"
+            ok = "tamil nadu" in str(effective_state).lower()
             criteria.append(_crit(
                 "cr_residency", "State Residency",
-                "PASS" if ok else "FAIL", True, effective_state,
+                "PASS" if ok else "FAIL", True, str(effective_state),
                 "Resident of Tamil Nadu",
                 f"Resident of {effective_state}. {'Eligible for this Tamil Nadu scheme.' if ok else 'This scheme is only for Tamil Nadu residents.'}",
                 state_source, "state", evidence,
@@ -406,16 +440,16 @@ def evaluate_scheme_from_json(
     # Age only when JSON specifies a bound
     if flags["age_min"] is not None or flags["age_max"] is not None:
         req = flags["age_group"] or "Age as per official rules"
-        if effective_age is not None:
+        if parsed_age is not None:
             ok = True
-            if flags["age_min"] is not None and effective_age < flags["age_min"]:
+            if flags["age_min"] is not None and parsed_age < flags["age_min"]:
                 ok = False
-            if flags["age_max"] is not None and effective_age > flags["age_max"]:
+            if flags["age_max"] is not None and parsed_age > flags["age_max"]:
                 ok = False
             criteria.append(_crit(
                 "cr_age_limit", "Age Group",
-                "PASS" if ok else "FAIL", True, f"{effective_age} years old", req,
-                f"Official age group: {req}. Your age is {effective_age}.",
+                "PASS" if ok else "FAIL", True, f"{parsed_age} years old", req,
+                f"Official age group: {req}. Your age is {parsed_age}.",
                 age_source, "age", evidence,
             ))
         else:
@@ -440,12 +474,12 @@ def evaluate_scheme_from_json(
     # Income only when JSON has a ceiling or SECC/BPL targeting
     if flags["income_ceiling"] is not None:
         req = flags["income_raw"]
-        if effective_income is not None:
-            ok = effective_income <= flags["income_ceiling"]
+        if parsed_income is not None:
+            ok = parsed_income <= flags["income_ceiling"]
             criteria.append(_crit(
                 "cr_income_doc", "Income / Socio-Economic Category",
                 "PASS" if ok else "FAIL", True,
-                f"₹{int(effective_income):,} / year", req,
+                f"₹{int(parsed_income):,} / year", req,
                 f"Official income rule: {req}.",
                 income_source, "annual_income", evidence,
             ))

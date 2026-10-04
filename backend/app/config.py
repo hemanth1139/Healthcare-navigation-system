@@ -55,20 +55,13 @@ class Settings(BaseSettings):
     GOOGLE_API_KEY_4: str = ""
     GOOGLE_API_KEY_5: str = ""
     PRIMARY_LLM_PROVIDER: str = "gemini"
-    GEMINI_MODEL: str = "gemini-3.8-flash"
+    GEMINI_MODEL: str = "gemini-3.5-flash"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
 
     # ─── Google OAuth 2.0 ─────────────────────────────────────────────────────
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
 
-    # ─── Google Maps ──────────────────────────────────────────────────────────
-    GOOGLE_MAPS_API_KEY: str = ""
-
-    # ─── Cloudinary ───────────────────────────────────────────────────────────
-    CLOUDINARY_CLOUD_NAME: str = ""
-    CLOUDINARY_API_KEY: str = ""
-    CLOUDINARY_API_SECRET: str = ""
 
     # ─── RAG Vector Store ────────────────────────────────────────────────────
     VECTOR_STORE_DIRECTORY: str = "./app/rag/vector_store"

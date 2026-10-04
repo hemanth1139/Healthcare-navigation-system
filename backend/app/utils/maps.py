@@ -572,7 +572,7 @@ class OSRMService:
             return dict(cached[1])
 
         try:
-            async with httpx.AsyncClient(timeout=6.0) as client:
+            async with httpx.AsyncClient(timeout=1.5) as client:
                 url = f"https://router.project-osrm.org/route/v1/{profile}/{start_lon},{start_lat};{end_lon},{end_lat}"
                 params = {
                     "overview": "false",
@@ -600,8 +600,7 @@ class OSRMService:
                 
                 return None
                 
-        except Exception as e:
-            logger.warning(f"[OSRM] Routing unavailable between ({start_lat},{start_lon}) and ({end_lat},{end_lon}): {e}")
+        except Exception:
             return None
 
     @staticmethod
@@ -609,21 +608,38 @@ class OSRMService:
         start_lat: Optional[float],
         start_lon: Optional[float],
         hospitals: List[Dict[str, Any]],
-        max_routing_targets: int = 15
+        max_routing_targets: int = 10
     ) -> List[Dict[str, Any]]:
         """
         Concurrently calculate driving routes for top nearby hospitals.
-        Attaches 'estimated_time' (or 'Travel time unavailable') to each hospital dict.
+        Pre-assigns instant kinematic travel times, then attempts OSRM enhancement with fast 1.5s timeout.
         """
-        if start_lat is None or start_lon is None or not hospitals:
-            for h in hospitals:
-                if "estimated_time" not in h or not h["estimated_time"]:
-                    h["estimated_time"] = "Travel time unavailable"
+        if not hospitals:
+            return hospitals
+
+        def _compute_kinematic_time(dist_km: float) -> str:
+            if dist_km <= 0.05:
+                return "< 1 min drive"
+            # Actual road distance is ~1.25x straight-line distance
+            # Urban traffic speed in Tamil Nadu is ~24 km/h (0.4 km/min)
+            road_dist = dist_km * 1.25
+            mins = max(2.0, (road_dist / 24.0) * 60.0)
+            return format_travel_time(mins)
+
+        # Pre-assign instant realistic travel times based on distance
+        for h in hospitals:
+            d = h.get("distance_km")
+            if d is not None:
+                h["estimated_time"] = _compute_kinematic_time(float(d))
+                h["routed_distance_km"] = round(float(d) * 1.25, 2)
+            else:
+                h["estimated_time"] = "Travel time unavailable"
+
+        if start_lat is None or start_lon is None:
             return hospitals
 
         # Route top N nearest hospitals to keep response fast and avoid upstream rate limiting
         targets = hospitals[:max_routing_targets]
-        remaining = hospitals[max_routing_targets:]
 
         async def _route_hospital(h: Dict[str, Any]):
             h_lat = h.get("latitude")
@@ -638,19 +654,12 @@ class OSRMService:
                     if route and "estimated_time" in route:
                         h["estimated_time"] = route["estimated_time"]
                         h["routed_distance_km"] = route.get("distance_km")
-                        return
-                except Exception as ex:
-                    logger.debug(f"[OSRM] Failed routing for hospital {h.get('hospital_name')}: {ex}")
-            
-            h["estimated_time"] = "Travel time unavailable"
+                except Exception:
+                    pass
 
-        # Execute routing tasks concurrently with limit
+        # Execute routing tasks concurrently with fast timeout
         tasks = [_route_hospital(h) for h in targets]
         await asyncio.gather(*tasks, return_exceptions=True)
-
-        for h in remaining:
-            if "estimated_time" not in h or not h["estimated_time"]:
-                h["estimated_time"] = "Travel time unavailable"
 
         return hospitals
 

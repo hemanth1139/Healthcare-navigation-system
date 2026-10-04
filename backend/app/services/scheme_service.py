@@ -7,7 +7,7 @@ import logging
 from uuid import UUID, uuid4
 from datetime import date, datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, desc
+from sqlalchemy import select, or_, desc, cast, String
 from typing import List, Optional, Dict, Any
 
 logger = logging.getLogger("app.services.scheme_service")
@@ -144,35 +144,95 @@ class SchemeService:
         query = select(GovernmentScheme).order_by(GovernmentScheme.scheme_name.asc())
 
         if category_filter and category_filter != "All":
-            if category_filter == "Central Government":
+            norm_cat = category_filter.strip().lower()
+            if norm_cat in ["central", "central government"]:
                 query = query.where(
                     or_(
-                        GovernmentScheme.category == "Central Government",
+                        GovernmentScheme.category.ilike("%Central%"),
                         GovernmentScheme.state.ilike("%Central%"),
                         GovernmentScheme.state.ilike("%All India%"),
                     )
                 )
-            elif category_filter == "State Government":
+            elif norm_cat in ["state", "state government", "tamil nadu"]:
                 query = query.where(
-                    and_(
-                        ~GovernmentScheme.state.ilike("%All India%"),
-                        GovernmentScheme.category == "State Government"
+                    or_(
+                        GovernmentScheme.category.ilike("%State%"),
+                        GovernmentScheme.state.ilike("%Tamil Nadu%"),
                     )
-                ) if False else query.where(GovernmentScheme.category == category_filter)
+                )
+            elif norm_cat in ["health ministry", "ministry of health"]:
+                query = query.where(
+                    or_(
+                        GovernmentScheme.department.ilike("%Health%"),
+                        GovernmentScheme.department.ilike("%Family Welfare%"),
+                        GovernmentScheme.department.ilike("%National Health%"),
+                    )
+                )
+            elif norm_cat in ["senior care", "senior", "elderly"]:
+                query = query.where(
+                    or_(
+                        GovernmentScheme.scheme_name.ilike("%Vay Vandana%"),
+                        GovernmentScheme.scheme_name.ilike("%Elderly%"),
+                        GovernmentScheme.scheme_name.ilike("%Pension%"),
+                        GovernmentScheme.eligibility.ilike("%70%"),
+                        GovernmentScheme.eligibility.ilike("%60%"),
+                        GovernmentScheme.eligibility.ilike("%senior%"),
+                        GovernmentScheme.eligibility.ilike("%elderly%"),
+                        GovernmentScheme.benefits.ilike("%senior%"),
+                        GovernmentScheme.benefits.ilike("%elderly%"),
+                    )
+                )
+            elif norm_cat in ["maternal health", "maternal", "maternity", "women & child"]:
+                query = query.where(
+                    or_(
+                        GovernmentScheme.scheme_name.ilike("%Matru%"),
+                        GovernmentScheme.scheme_name.ilike("%Matritva%"),
+                        GovernmentScheme.scheme_name.ilike("%Janani%"),
+                        GovernmentScheme.scheme_name.ilike("%Maternity%"),
+                        GovernmentScheme.scheme_name.ilike("%Baby%"),
+                        GovernmentScheme.eligibility.ilike("%pregnant%"),
+                        GovernmentScheme.eligibility.ilike("%matern%"),
+                        GovernmentScheme.eligibility.ilike("%lactating%"),
+                        GovernmentScheme.benefits.ilike("%pregnant%"),
+                        GovernmentScheme.benefits.ilike("%matern%"),
+                        GovernmentScheme.benefits.ilike("%delivery%"),
+                    )
+                )
             else:
-                query = query.where(GovernmentScheme.category == category_filter)
+                query = query.where(
+                    or_(
+                        GovernmentScheme.category.ilike(f"%{category_filter}%"),
+                        GovernmentScheme.department.ilike(f"%{category_filter}%"),
+                        GovernmentScheme.scheme_name.ilike(f"%{category_filter}%"),
+                    )
+                )
 
         if search_query and search_query.strip():
-            term = f"%{search_query.strip()}%"
-            query = query.where(
-                or_(
-                    GovernmentScheme.scheme_name.ilike(term),
-                    GovernmentScheme.department.ilike(term),
-                    GovernmentScheme.eligibility.ilike(term),
-                    GovernmentScheme.benefits.ilike(term),
-                    GovernmentScheme.state.ilike(term),
-                )
-            )
+            raw_term = search_query.strip().lower()
+            terms_to_match = [f"%{raw_term}%"]
+            if "heart" in raw_term or "cardiac" in raw_term:
+                terms_to_match.extend(["%cardio%", "%cardiac%", "%heart%"])
+            elif "pregnant" in raw_term or "baby" in raw_term or "pregnancy" in raw_term:
+                terms_to_match.extend(["%matern%", "%delivery%", "%infant%", "%baby%"])
+            elif "sugar" in raw_term or "diabetes" in raw_term:
+                terms_to_match.extend(["%diabet%", "%sugar%"])
+            elif "kidney" in raw_term or "renal" in raw_term:
+                terms_to_match.extend(["%dialysis%", "%nephro%", "%kidney%"])
+            elif "cancer" in raw_term or "tumor" in raw_term:
+                terms_to_match.extend(["%oncol%", "%cancer%"])
+
+            search_conditions = []
+            for t in set(terms_to_match):
+                search_conditions.extend([
+                    GovernmentScheme.scheme_name.ilike(t),
+                    GovernmentScheme.department.ilike(t),
+                    GovernmentScheme.eligibility.ilike(t),
+                    GovernmentScheme.benefits.ilike(t),
+                    GovernmentScheme.state.ilike(t),
+                    cast(GovernmentScheme.key_covered_conditions, String).ilike(t),
+                    cast(GovernmentScheme.eligibility_criteria, String).ilike(t),
+                ])
+            query = query.where(or_(*search_conditions))
 
         result = await db.execute(query)
         schemes = result.scalars().all()

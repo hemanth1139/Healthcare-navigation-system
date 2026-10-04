@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { HospitalWithDistance } from "@/types/hospital";
 import { Navigation, MapPin, ZoomIn, ZoomOut, Maximize, ExternalLink, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -29,7 +28,6 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
   const [isMapReady, setIsMapReady] = useState(false);
 
   // Initialize Leaflet Map — intentionally runs only once on mount.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (typeof window === "undefined" || !mapContainerRef.current) return;
 
@@ -60,13 +58,36 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
     mapInstanceRef.current = map;
     setIsMapReady(true);
 
+    // Initial resize to ensure tiles render even if container layout settled after mount
+    const timer = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 200);
+
+    // Observe container size changes (e.g. responsive layout, mobile/desktop toggle)
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && mapContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
     return () => {
+      clearTimeout(timer);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
       setIsMapReady(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update Markers when hospitals, selectedHospitalId, or userCoords change
@@ -246,6 +267,7 @@ export const HospitalMap: React.FC<HospitalMapProps> = ({
         }
       } else if (bounds.isValid() && hospitals.length > 0) {
         try {
+          map.invalidateSize();
           map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
         } catch (e) {
           console.warn("[HospitalMap] Failed to fit bounds:", e);

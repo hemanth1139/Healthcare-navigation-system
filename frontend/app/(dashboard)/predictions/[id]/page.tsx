@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   Sparkles,
   AlertTriangle,
@@ -65,8 +66,9 @@ interface PredictionReport {
   predicted_at?: string;
 }
 
-export default function PredictionResultPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function PredictionResultPage({ params }: { params?: { id?: string } }) {
+  const routeParams = useParams();
+  const id = (routeParams?.id as string) || params?.id || "";
   const [report, setReport] = useState<PredictionReport | null>(null);
   const [loading, setLoading] = useState(true);
 

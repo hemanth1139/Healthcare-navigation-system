@@ -6,7 +6,7 @@ from uuid import UUID
 from datetime import date
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 
 from app.models.user import User
@@ -182,7 +182,12 @@ class DashboardService:
             select(SchemeQuery)
             .options(selectinload(SchemeQuery.scheme))
             .join(Conversation, SchemeQuery.conversation_id == Conversation.conversation_id, isouter=True)
-            .where((Conversation.profile_id == profile.profile_id) | (SchemeQuery.conversation_id == None))
+            .where(
+                or_(
+                    SchemeQuery.profile_id == profile.profile_id,
+                    Conversation.profile_id == profile.profile_id,
+                )
+            )
             .order_by(SchemeQuery.created_at.desc())
             .limit(3)
         )
@@ -245,7 +250,12 @@ class DashboardService:
         tot_sq_res = await db.execute(
             select(func.count(SchemeQuery.query_id))
             .join(Conversation, SchemeQuery.conversation_id == Conversation.conversation_id, isouter=True)
-            .where((Conversation.profile_id == profile.profile_id) | (SchemeQuery.conversation_id == None))
+            .where(
+                or_(
+                    SchemeQuery.profile_id == profile.profile_id,
+                    Conversation.profile_id == profile.profile_id,
+                )
+            )
         )
         total_schemes_checked = tot_sq_res.scalar() or 0
 

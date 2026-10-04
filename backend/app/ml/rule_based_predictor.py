@@ -401,13 +401,20 @@ def extract_cumulative_symptoms(
                     if re.search(neg_pattern, text):
                         denied_symptoms.add(canon)
 
-            # Later explicit corrections supersede earlier denials. Keep ordinary
-            # mentions from silently reversing a denial; require correction or
-            # affirmative language in the same user turn.
-            if re.search(r"\b(?:actually|correction|i do have|i do feel|it is present|yes,? i have)\b", text):
+            # A direct affirmative correction supersedes an earlier denial.
+            # Do not let "yes, no <symptom>" reverse the denial.
+            if re.search(r"\b(?:yes|yeah|yep|actually|correction|i do have|i do feel|it is present)\b", text):
                 for canon, syns in SYMPTOM_SYNONYMS.items():
                     for syn in [canon.replace("_", " ")] + syns:
-                        if re.search(rf"\b{re.escape(syn)}\b", text):
+                        denied_here = re.search(
+                            rf"\b(?:no|not|denies|denied|without|don't have|dont have|do not have|never had|none of)\b[^.\n]*\b{re.escape(syn)}\b",
+                            text,
+                        )
+                        affirmative_here = re.search(
+                            rf"\b(?:yes|yeah|yep|actually|correction|i do have|i do feel|it is present)\b[^.\n]*\b{re.escape(syn)}\b",
+                            text,
+                        )
+                        if affirmative_here and not denied_here:
                             denied_symptoms.discard(canon)
                             break
 
@@ -1250,10 +1257,14 @@ Respond in JSON format:
         ], temperature=0.2)
 
         import json
+        import re
         if "```json" in res_text:
             res_text = res_text.split("```json")[1].split("```")[0].strip()
         elif "```" in res_text:
             res_text = res_text.split("```")[1].split("```")[0].strip()
+
+        # Heal common LLM JSON hallucination: trailing commas
+        res_text = re.sub(r',\s*([\]}])', r'\1', res_text)
 
         data = json.loads(res_text)
         if data.get("explanation"):

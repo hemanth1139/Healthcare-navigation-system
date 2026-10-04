@@ -198,18 +198,25 @@ def _load_all_schemes() -> List[Dict[str, Any]]:
 
 
 # ─── Gemini LLM Client ──────────────────────────────────────────────────────
+def _is_usable_key(key: Optional[str]) -> bool:
+    if not key or not isinstance(key, str):
+        return False
+    k = key.strip()
+    return bool(k) and not k.startswith("your-") and not k.startswith("AIzaSyDummy") and len(k) > 15
+
+
 def _get_api_keys() -> List[str]:
     """Get all configured Google API keys for rotation."""
     keys = []
     # Primary key
     primary = getattr(settings, "GOOGLE_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
-    if primary:
-        keys.append(primary)
+    if _is_usable_key(primary):
+        keys.append(primary.strip())
     # Secondary keys for rotation
     for i in range(2, 6):
         key = os.getenv(f"GOOGLE_API_KEY_{i}", "") or getattr(settings, f"GOOGLE_API_KEY_{i}", "")
-        if key and key not in keys:
-            keys.append(key)
+        if _is_usable_key(key) and key.strip() not in keys:
+            keys.append(key.strip())
     return keys
 
 
@@ -306,27 +313,42 @@ Provide a clear, structured answer:"""
         if not client:
             continue
 
+        models_to_try = [
+            getattr(settings, "GEMINI_MODEL", "gemini-3.5-flash") or "gemini-3.5-flash",
+            "gemini-3.5-flash",
+            "gemini-flash-latest",
+            "gemini-3.8-flash",
+            "gemini-2.5-flash",
+        ]
+        # Deduplicate while preserving order
+        seen_models = set()
+        dedup_models = []
+        for m in models_to_try:
+            if m and m not in seen_models:
+                seen_models.add(m)
+                dedup_models.append(m)
+
         try:
-            model_name = getattr(settings, "GEMINI_MODEL", "gemini-3.8-flash") or "gemini-3.8-flash"
-            chat = client.aio.chats.create(
-                model=model_name,
-                config={
-                    "system_instruction": system_prompt,
-                    "temperature": 0.3,
-                    "max_output_tokens": 1024,
-                },
-            )
-            response = await chat.send_message(prompt)
-            if response and response.text:
-                logger.info("[RAG] LLM generation success with API key %d", key_idx + 1)
-                return response.text.strip()
-        except Exception as e:
-            err_str = str(e).lower()
-            # Check for quota exhausted errors
-            if "429" in err_str or "quota" in err_str or "resource_exhausted" in err_str:
-                logger.warning("[RAG] API key %d quota exhausted, trying next key", key_idx + 1)
-                continue  # Try next API key
-            logger.warning("[RAG] LLM generation failed with API key %d: %s", key_idx + 1, e)
+            for model_name in dedup_models:
+                try:
+                    chat = client.aio.chats.create(
+                        model=model_name,
+                        config={
+                            "system_instruction": system_prompt,
+                            "temperature": 0.3,
+                            "max_output_tokens": 1024,
+                        },
+                    )
+                    response = await chat.send_message(prompt)
+                    if response and response.text:
+                        logger.info("[RAG] LLM generation success with API key %d, model %s", key_idx + 1, model_name)
+                        return response.text.strip()
+                except Exception as e:
+                    err_str = str(e).lower()
+                    if "429" in err_str or "quota" in err_str or "resource_exhausted" in err_str:
+                        logger.warning("[RAG] API key %d quota exhausted, trying next key", key_idx + 1)
+                        break
+                    logger.warning("[RAG] LLM generation failed with model %s, key %d: %s", model_name, key_idx + 1, e)
         finally:
             try:
                 client.close()
@@ -881,6 +903,12 @@ class RAGPipeline:
         """
         vector_store = _get_vector_store()
         query_type = _classify_query_type(query_text, scoped_scheme_id)
+        
+        # Reroute PERSONAL_ELIGIBILITY to MULTI_SCHEME if no specific scheme is recognized
+        if query_type == "PERSONAL_ELIGIBILITY" and not scoped_scheme_id:
+            top_id, _, _ = resolve_scheme_context(query_text, None, vector_store)
+            if top_id == "UNRECOGNIZED_SCHEME":
+                query_type = "MULTI_SCHEME_ELIGIBILITY_QUERY"
 
         # Check cache first (for informational queries only, not personal eligibility)
         cache_key = f"rag:{hashlib.md5((query_text + str(scoped_scheme_id)).encode()).hexdigest()}"
@@ -1210,25 +1238,9 @@ class RAGPipeline:
                         "relevance_score_float": round(s["relevance_score"] / 100.0, 2),
                     })
 
-            # Call Gemini LLM to generate intelligent multi-scheme summary if available
-            # Context compression: Use only top 5 most relevant chunks
-            chunk_excerpts = [s["excerpt"] for s in multi_chunks[:5]]
-            llm_text = await _generate_llm_response(
-                query_text=query_text or "What healthcare schemes am I eligible for?",
-                retrieved_chunks=chunk_excerpts,
-                scheme_name="Government Healthcare Schemes",
-                query_type="GENERAL_INFORMATION",
-                patient_context={
-                    "age": effective_age,
-                    "state": effective_state,
-                    "annual_income": effective_income,
-                    "employment_status": effective_employment,
-                    "disability_status": effective_disability,
-                    "pregnancy_status": effective_pregnancy,
-                }
-            )
-            if llm_text:
-                summary_text = f"{summary_text}\n\n{llm_text}"
+            # Removed the LLM call here because the python-generated summary_text
+            # is mathematically accurate, concise, and sufficient. The LLM often
+            # hallucinated or truncated the response.
 
             top_scheme = evaluated_schemes[0] if evaluated_schemes else None
             top_scheme_name = top_scheme["scheme_name"] if top_scheme else "Government Healthcare Schemes"
@@ -1256,9 +1268,10 @@ class RAGPipeline:
                     "relevance_score": top_scheme["relevance_score"] if top_scheme else 100,
                     "overall_status": "ELIGIBLE" if eligible_schemes else "NOT_ELIGIBLE",
                     "overall_explanation": summary_text,
-                    "criteria_breakdown": top_scheme["criteria"] if top_scheme else [],
+                    "criteria_breakdown": [],  # Do not render a single scheme's criteria breakdown on a multi-scheme query
                     "missing_information": [],
                     "structured_missing_criteria": [],
+
                     "all_evidence_sources": multi_chunks,
                     "profile_complete": True,
                     "missing_required_fields": [],

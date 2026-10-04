@@ -25,6 +25,22 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
     history_text = " ".join([m.get("content", "").lower() for m in messages if m.get("sender") == "user"])
 
     # 1. Immediate Emergency Red-Flag Checks
+    if any(
+        phrase in history_text
+        for phrase in [
+            "can't breathe", "cannot breathe", "barely breathe", "barely breathing",
+            "gasping for air", "severe shortness of breath", "struggling to breathe",
+            "unable to breathe", "can't catch my breath", "cannot catch my breath",
+        ]
+    ):
+        return {
+            "needs_more_info": False,
+            "is_emergency": True,
+            "question": "🚨 Severe breathing difficulty requires immediate emergency care. Call emergency services (108 / 112) now.",
+            "options": None,
+            "symptoms": symptoms or ["shortness_of_breath"],
+        }
+
     # (a) Cardiorespiratory emergency
     if "chest_pain" in symptoms and any(
         finding in symptoms
@@ -635,22 +651,29 @@ async def run_triage_agent(
         is_emergency = bool(data.get("is_emergency", False))
         needs_more_info = bool(data.get("needs_more_info", True))
 
-        # The generative model may over-escalate from an isolated symptom. Only
-        # close the intake as an emergency when the deterministic rules confirm
-        # a red-flag combination from user-reported positive findings.
-        if is_emergency:
-            cumulative = extract_cumulative_symptoms(messages)
-            deterministic = predict_disease(
-                cumulative["all_symptoms"], cumulative_data=cumulative
+        # Deterministic safety rules and explicit fallback red flags take
+        # precedence over the model, including when the model misses a red flag.
+        cumulative = extract_cumulative_symptoms(messages)
+        deterministic = predict_disease(
+            cumulative["all_symptoms"], cumulative_data=cumulative
+        )
+        fallback = _get_mock_triage_response(messages, patient_context_summary)
+        if deterministic.get("emergency_flag") or fallback.get("is_emergency"):
+            is_emergency = True
+            needs_more_info = False
+            data["question"] = fallback.get("question") or (
+                "EMERGENCY ALERT: Immediate clinical evaluation is required."
             )
-            is_emergency = bool(deterministic.get("emergency_flag"))
-            if not is_emergency:
-                needs_more_info = True
-                fallback = _get_mock_triage_response(messages, patient_context_summary)
-                data["question"] = fallback.get("question") or (
-                    "Could you tell me when this started and whether you have any other symptoms?"
-                )
-                data["options"] = fallback.get("options")
+            data["options"] = None
+        elif is_emergency:
+            # A model-only escalation without rule or explicit fallback support
+            # remains an intake question rather than a completed emergency.
+            is_emergency = False
+            needs_more_info = True
+            data["question"] = fallback.get("question") or (
+                "Could you tell me when this started and whether you have any other symptoms?"
+            )
+            data["options"] = fallback.get("options")
 
         # Enforce that Turn 1 non-emergency CANNOT mark intake complete
         if user_turns <= 1 and not is_emergency:

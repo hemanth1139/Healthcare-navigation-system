@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   User,
@@ -109,7 +109,7 @@ export default function ProfilePage() {
     setTimeout(() => setToastMsg(null), 3500);
   };
 
-  const fetchProfileData = async () => {
+  const fetchProfileData = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMsg(null);
@@ -189,11 +189,11 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchProfileData();
-  }, [user]);
+  }, [fetchProfileData]);
 
   // SAVE PERSONAL PROFILE
   const handlePersonalSave = async (e: React.FormEvent) => {
@@ -1313,7 +1313,7 @@ export default function ProfilePage() {
                         <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">100</p>
                       </div>
                       <div>
-                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Women's Helpline</span>
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Women&apos;s Helpline</span>
                         <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">181</p>
                       </div>
                       <div>

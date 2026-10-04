@@ -49,7 +49,8 @@ async def test_hospital_nearby_and_cache_flow(db_session: AsyncSession):
         }
         res_nearby = await ac.post("/api/v1/hospitals/nearby", json=payload, headers=headers)
         assert res_nearby.status_code == 200
-        hospitals = res_nearby.json()
+        data = res_nearby.json()
+        hospitals = data.get("hospitals", data) if isinstance(data, dict) else data
         
         assert len(hospitals) >= 1
         assert "hospital_id" in hospitals[0]
@@ -91,7 +92,8 @@ async def test_hospital_location_query_and_filters(db_session: AsyncSession):
         }
         res = await ac.post("/api/v1/hospitals/nearby", json=payload, headers=headers)
         assert res.status_code == 200
-        hospitals = res.json()
+        data = res.json()
+        hospitals = data.get("hospitals", data) if isinstance(data, dict) else data
         assert len(hospitals) >= 1
         for h in hospitals:
             assert h.get("state") == "Tamil Nadu"
@@ -104,7 +106,8 @@ async def test_hospital_location_query_and_filters(db_session: AsyncSession):
         }
         res_spec = await ac.post("/api/v1/hospitals/nearby", json=payload_spec, headers=headers)
         assert res_spec.status_code == 200
-        spec_hospitals = res_spec.json()
+        data_spec = res_spec.json()
+        spec_hospitals = data_spec.get("hospitals", data_spec) if isinstance(data_spec, dict) else data_spec
         assert len(spec_hospitals) >= 1
         for h in spec_hospitals:
             assert h.get("state") == "Tamil Nadu"
@@ -159,7 +162,8 @@ async def test_tamil_nadu_districts_discovery(db_session: AsyncSession):
             payload = {"locationQuery": dist_name}
             res = await ac.post("/api/v1/hospitals/nearby", json=payload, headers=headers)
             assert res.status_code == 200
-            hospitals = res.json()
+            data_dist = res.json()
+            hospitals = data_dist.get("hospitals", data_dist) if isinstance(data_dist, dict) else data_dist
             assert len(hospitals) >= 1, f"Expected at least 1 hospital in {dist_name}"
             for h in hospitals:
                 assert h.get("state") == "Tamil Nadu"
@@ -179,7 +183,8 @@ async def test_gps_outside_tamil_nadu_safety(db_session: AsyncSession):
         }
         res = await ac.post("/api/v1/hospitals/nearby", json=payload, headers=headers)
         assert res.status_code == 200
-        hospitals = res.json()
+        data_out = res.json()
+        hospitals = data_out.get("hospitals", data_out) if isinstance(data_out, dict) else data_out
         # Should return Chennai/TN hospitals with zero out-of-state records
         assert len(hospitals) >= 1
         for h in hospitals:

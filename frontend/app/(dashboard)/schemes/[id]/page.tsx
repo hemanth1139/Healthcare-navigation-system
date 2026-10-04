@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { GovernmentScheme, SchemeQuery } from "@/types/scheme";
 import { schemeApi } from "@/lib/schemeApi";
 import { SchemeQueryPanel } from "@/components/schemes/SchemeQueryPanel";
@@ -23,8 +24,9 @@ import {
   XCircle,
 } from "lucide-react";
 
-export default function SchemeDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function SchemeDetailPage({ params }: { params?: { id?: string } }) {
+  const routeParams = useParams();
+  const id = (routeParams?.id as string) || params?.id || "";
 
   const [scheme, setScheme] = useState<GovernmentScheme | null>(null);
   const [loading, setLoading] = useState(true);

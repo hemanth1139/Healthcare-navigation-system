@@ -100,3 +100,12 @@ class HospitalSearchResponse(BaseModel):
     data_source: str = "live"  # live, cached, fallback
 
     model_config = {"populate_by_name": True}
+
+    def __len__(self) -> int:
+        return len(self.hospitals)
+
+    def __iter__(self):
+        return iter(self.hospitals)
+
+    def __getitem__(self, index):
+        return self.hospitals[index]

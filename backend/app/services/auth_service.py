@@ -102,7 +102,10 @@ class AuthService:
         # 1. Verify token with Google public tokeninfo API
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
-                res = await client.get(f"https://oauth2.googleapis.com/tokeninfo?id_token={credential}")
+                res = await client.get(
+                    "https://oauth2.googleapis.com/tokeninfo",
+                    params={"id_token": credential},
+                )
                 if res.status_code == 200:
                     google_user_info = res.json()
         except Exception as e:
@@ -121,7 +124,20 @@ class AuthService:
             except Exception as e:
                 print(f"[WARN] google-auth verify error: {e}")
 
-        if not google_user_info or "email" not in google_user_info:
+        expected_audience = settings.GOOGLE_CLIENT_ID
+        token_audience = google_user_info.get("aud") if google_user_info else None
+        email_verified = google_user_info.get("email_verified") if google_user_info else None
+        if isinstance(email_verified, str):
+            email_verified = email_verified.lower() == "true"
+
+        if (
+            not google_user_info
+            or not expected_audience
+            or token_audience != expected_audience
+            or not email_verified
+            or not google_user_info.get("email")
+            or not google_user_info.get("sub")
+        ):
             raise AuthError("Google authentication failed. Invalid or expired Google token.", "GOOGLE_TOKEN_INVALID")
 
         email = google_user_info["email"].lower().strip()

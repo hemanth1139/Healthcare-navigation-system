@@ -94,7 +94,7 @@ class HospitalService:
                     if geocoded:
                         latitude, longitude = geocoded["latitude"], geocoded["longitude"]
                     else:
-                        latitude, longitude = 13.0827, 80.2707
+                        raise NotFoundError(f"Location '{location_query}'")
             elif is_statewide:
                 latitude, longitude = 10.7905, 78.7047
             else:
@@ -102,7 +102,7 @@ class HospitalService:
 
         # Ensure search center is within Tamil Nadu geographic boundaries (Lat: 8.0-13.75, Lon: 76.0-80.4)
         if latitude < 8.0 or latitude > 13.75 or longitude < 76.0 or longitude > 80.4:
-            latitude, longitude = 13.0827, 80.2707
+            raise NotFoundError(f"Location '{location_query or 'Coordinates'}' is outside Tamil Nadu")
 
         radius_km = payload.max_distance_km if payload.max_distance_km and payload.max_distance_km > 0 else 25
         if is_statewide and not payload.max_distance_km:
@@ -113,6 +113,7 @@ class HospitalService:
         db_res = await db.execute(stmt)
         db_hospitals = list(db_res.scalars().all())
 
+        seen_keys = set()
         local_matched = []
         for h in db_hospitals:
             h_lat = float(h.latitude) if h.latitude is not None else latitude
@@ -127,6 +128,26 @@ class HospitalService:
             h_id = str(h.hospital_id)
             h_gpid = h.google_place_id or f"local_{h_id}"
             h_state_val = h.state or "Tamil Nadu"
+
+            # Filter out mock/corrupted fallback entries or generic placeholder names
+            if (
+                not h_name
+                or h_name.strip().lower() in ("hospital", "clinic", "health centre")
+                or "offset from location" in h_addr.lower()
+                or h_gpid.startswith("fallback_")
+            ):
+                continue
+
+            # Strict in-memory deduplication by normalized name and close proximity (200m)
+            h_name_lower = h_name.lower().strip()
+            is_duplicate = False
+            for m in local_matched:
+                if m["hospital_name"].lower().strip() == h_name_lower:
+                    if haversine_distance(h_lat, h_lon, m["latitude"], m["longitude"]) < 0.2:
+                        is_duplicate = True
+                        break
+            if is_duplicate:
+                continue
 
             # Strict Geographic & District Isolation
             if location_query and not is_statewide:

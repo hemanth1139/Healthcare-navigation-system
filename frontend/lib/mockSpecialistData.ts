@@ -18,8 +18,9 @@ export const specialistApi = {
             associated_symptoms: data.symptoms || [],
           };
         }
-      } catch (err) {
-        console.warn("[API] Failed to fetch specialist recommendation from API:", err);
+      } catch (err: any) {
+        console.error("[API] Failed to fetch specialist recommendation from API:", err);
+        throw new Error(err?.response?.data?.detail || "Failed to fetch recommendation from the server.");
       }
     }
 

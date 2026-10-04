@@ -74,13 +74,20 @@ class HealthTipsAgent:
         chronic_conditions: str,
         assessment: Optional[Dict[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
-        """Select consistent, assessment-specific tips; never invent treatment advice."""
+        """Select consistent, assessment-specific tips. Uses LLM to generate 5 'Do/Avoid' tips."""
+        import json
+        import logging
+        from langchain_core.messages import SystemMessage, HumanMessage
+        from app.core.llm import invoke_gemini
+        
+        logger = logging.getLogger("app.agents.tips_agent")
         assessment = assessment or {}
         disease = str(assessment.get("predicted_disease") or "")
         action = str(assessment.get("recommended_action") or "").strip()
         urgency = str(assessment.get("urgency_level") or assessment.get("severity") or "").upper()
         emergency = bool(assessment.get("emergency_flag")) or "EMERGENCY" in urgency
         urgent = emergency or "URGENT" in urgency
+        canonical = assessment.get("canonical_symptoms", [])
 
         if emergency:
             message = action or "Seek emergency medical care now."
@@ -90,7 +97,75 @@ class HealthTipsAgent:
                 "Call local emergency services or go to the nearest emergency department now.",
             )]
 
-        canonical = set(assessment.get("canonical_symptoms") or [])
+        system_prompt = (
+            "You are a conservative clinical wellness assistant. Your task is to generate EXACTLY 5 preventive health tips "
+            "based on the user's symptoms and suspected condition. "
+            "IMPORTANT: Focus strongly on 'What to do' and 'What to avoid'.\n"
+            "DO NOT provide definitive medical diagnoses or prescribe medications.\n"
+            "Format your output strictly as a JSON array of objects, with each object having these keys:\n"
+            "- title: string (short actionable title)\n"
+            "- content: string (detailed advice, including what to do or what to avoid)\n"
+            "- category: string (e.g., 'Nutrition', 'Physical Activity', 'General Wellness', 'Self-care', 'Monitoring')\n"
+            "- condition: string (the target condition or symptom)\n"
+            "- escalation: string (when to seek immediate care)"
+        )
+
+        user_prompt = (
+            f"Patient Details: Age {age}, Gender: {gender}.\n"
+            f"Known Allergies: {allergies or 'None'}.\n"
+            f"Chronic Conditions: {chronic_conditions or 'None'}.\n"
+            f"Suspected Condition / Disease: {disease or 'General mild symptoms'}.\n"
+            f"Reported Symptoms: {', '.join([str(s) for s in canonical]) if canonical else 'None specifically reported'}.\n"
+            f"Urgency Level: {urgency}.\n\n"
+            "Please generate exactly 5 personalized health tips for this patient. Ensure you include practical advice on what to do and what to avoid."
+        )
+
+        try:
+            response_text = await invoke_gemini(
+                messages=[SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)],
+                feature="health_tips_generation",
+                temperature=0.3
+            )
+            
+            # Extract JSON array from response
+            import re
+            match = re.search(r'\[.*\]', response_text, re.DOTALL)
+            if match:
+                tips_data = json.loads(match.group(0))
+                
+                selected_tips = []
+                for t in tips_data[:5]:
+                    content_str = t.get("content", "")
+                    if allergies or chronic_conditions:
+                        caution = " (Please adapt based on your specific allergies and chronic conditions.)"
+                        if caution not in content_str:
+                            content_str += caution
+
+                    selected_tips.append(_tip(
+                        t.get("title", "Wellness Tip"),
+                        content_str,
+                        t.get("category", "General Wellness"),
+                        t.get("condition", disease or "Current assessment"),
+                        t.get("escalation", "Seek prompt medical care if symptoms worsen."),
+                    ))
+                
+                # If urgent, prepend standard urgent care tip
+                if urgent:
+                    selected_tips.insert(0, _tip(
+                        "Follow the urgent care recommendation",
+                        action or "Arrange prompt medical assessment as recommended.",
+                        "When to Seek Care", disease or "Current assessment",
+                        "Seek emergency care immediately if symptoms become severe or rapidly worsen.",
+                    ))
+                    return selected_tips[:5]
+                
+                if selected_tips:
+                    return selected_tips
+
+        except Exception as e:
+            logger.error(f"Failed to generate dynamic health tips: {e}")
+
+        # Fallback to static tips
         text = " ".join([disease, *[str(s) for s in canonical]]).lower()
         if any(k in text for k in ["chest", "cardiac", "coronary"]):
             domain = "chest"
@@ -113,7 +188,7 @@ class HealthTipsAgent:
         else:
             domain = None
 
-        selected: List[tuple] = []
+        selected = []
         if urgent:
             selected.append((
                 "Follow the urgent care recommendation",
@@ -123,8 +198,6 @@ class HealthTipsAgent:
             ))
         selected.extend(DOMAIN_TIPS.get(domain, GENERAL_TIPS))
 
-        # Chronic conditions/allergies are surfaced as a safety caveat without
-        # inventing a contraindication for an unspecified profile.
         if allergies or chronic_conditions:
             caution = "Consider your recorded allergies and health conditions when following general self-care advice; confirm anything uncertain with your clinician."
             first = list(selected[0])

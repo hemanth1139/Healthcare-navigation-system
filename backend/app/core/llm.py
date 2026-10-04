@@ -16,12 +16,11 @@ logger = logging.getLogger("app.core.llm")
 # ─── Normalized Gemini Model Roster ──────────────────────────────────────────
 # Gemini 2.0 and 1.5 IDs were removed from the old fallback list; 2.0 Flash is
 # shut down. Keep the configured model first only when it is in the supported
-# roster, then advance through current stable text-generation models.
 SUPPORTED_MODELS: List[str] = [
+    "gemini-3.5-flash",
+    "gemini-flash-latest",
     "gemini-3.8-flash",
     "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
     "gemini-2.5-flash",
 ]
 configured_model = getattr(settings, "GEMINI_MODEL", "")
@@ -105,18 +104,28 @@ async def _invoke_model(
         finally:
             await client.aio.aclose()
 
+def _is_usable_key(k: str) -> bool:
+    if not k or not isinstance(k, str):
+        return False
+    clean = k.strip()
+    # Reject placeholders like 'your-third-gemini-api-key-here' or '<your-key>'
+    if clean.lower().startswith("your-") or "gemini-api-key" in clean.lower() or len(clean) < 10:
+        return False
+    return True
+
+
 # Configured API keys (supports up to 5 keys for rotation to manage free tier quotas)
 def _get_api_keys() -> List[str]:
     keys = []
     # Primary key
     primary = getattr(settings, "GOOGLE_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "")
-    if primary:
-        keys.append(primary)
+    if _is_usable_key(primary):
+        keys.append(primary.strip())
     # Secondary keys for rotation
     for i in range(2, 6):
         key = os.getenv(f"GOOGLE_API_KEY_{i}", "") or getattr(settings, f"GOOGLE_API_KEY_{i}", "")
-        if key and key not in keys:
-            keys.append(key)
+        if _is_usable_key(key) and key.strip() not in keys:
+            keys.append(key.strip())
     return keys
 
 
@@ -144,7 +153,7 @@ async def invoke_gemini(
     messages: List[BaseMessage],
     feature: str = "general_inference",
     temperature: float = 0.2,
-    timeout_seconds: float = 3.0,
+    timeout_seconds: float = 10.0,
     max_retries_per_model: int = 1
 ) -> str:
     """

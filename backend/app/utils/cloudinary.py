@@ -24,26 +24,7 @@ class FileUploadManager:
         """
         Uploads file content and returns (public_url, public_id).
         """
-        # If Cloudinary is configured (requires CLOUDINARY_URL or CLOUDINARY_API_KEY)
-        cloudinary_url = os.getenv("CLOUDINARY_URL") or getattr(settings, "CLOUDINARY_URL", None)
-        if cloudinary_url:
-            print("[INFO] Cloudinary configuration detected. Attempting Cloudinary upload...")
-            try:
-                import cloudinary
-                import cloudinary.uploader
-
-                upload_result = cloudinary.uploader.upload(
-                    file_content,
-                    resource_type="auto",
-                    folder="healthcare_scheme_documents"
-                )
-                secure_url = upload_result.get("secure_url")
-                public_id = upload_result.get("public_id")
-                return secure_url, public_id
-            except Exception as e:
-                print(f"[ERROR] Cloudinary upload failed: {e}. Falling back to local storage.")
-
-        # Fallback Local Storage
+        # Local Storage Only
         FileUploadManager.ensure_upload_dir()
 
         safe_name = os.path.basename(file_name).replace(" ", "_")
@@ -64,16 +45,6 @@ class FileUploadManager:
         Deletes the file from Cloudinary or local storage.
         """
         try:
-            # If public_id is on Cloudinary (not stored as local filename) and Cloudinary is configured
-            if public_id and not os.path.exists(os.path.join(UPLOAD_DIR, public_id)):
-                import cloudinary
-                import cloudinary.uploader
-                try:
-                    cloudinary.uploader.destroy(public_id)
-                    return True
-                except Exception as e:
-                    print(f"[WARN] Cloudinary deletion error: {e}")
-
             # Check local file deletion
             if public_id:
                 local_path = os.path.join(UPLOAD_DIR, public_id)

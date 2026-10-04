@@ -109,7 +109,9 @@ class RecordService:
             cloudinary_url=uploaded_url,
             cloudinary_public_id=public_id,
             category=record_type or "Medical Report",
-            is_pii_redacted=True,
+            # Only extracted text is scrubbed. The original uploaded file is
+            # retained as-is, so do not claim that the file itself is redacted.
+            is_pii_redacted=False,
             fhir_resource=scrubbed_text
         )
         db.add(rec)
@@ -120,8 +122,20 @@ class RecordService:
 
     @staticmethod
     async def get_record(db: AsyncSession, user: User, record_id: UUID) -> MedicalRecord:
-        """Fetch record by ID."""
-        result = await db.execute(select(MedicalRecord).where(MedicalRecord.record_id == record_id))
+        """Fetch a record only when it belongs to the authenticated patient."""
+        profile_result = await db.execute(
+            select(PatientProfile).where(PatientProfile.user_id == user.user_id)
+        )
+        profile = profile_result.scalar_one_or_none()
+        if not profile:
+            raise NotFoundError("Medical Record")
+
+        result = await db.execute(
+            select(MedicalRecord).where(
+                MedicalRecord.record_id == record_id,
+                MedicalRecord.profile_id == profile.profile_id,
+            )
+        )
         rec = result.scalar_one_or_none()
         if not rec:
             raise NotFoundError("Medical Record")

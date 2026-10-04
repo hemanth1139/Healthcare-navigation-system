@@ -178,9 +178,12 @@ export default function HospitalsPage() {
     sortBy,
   ]);
 
-  // Trigger fetch when query parameters update
+  // Trigger fetch when query parameters update (with 500ms debounce to prevent API rate-limiting)
   useEffect(() => {
-    fetchHospitals();
+    const timerId = setTimeout(() => {
+      fetchHospitals();
+    }, 500);
+    return () => clearTimeout(timerId);
   }, [fetchHospitals]);
 
   // Handle Manual Location Selection

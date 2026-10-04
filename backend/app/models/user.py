@@ -32,6 +32,7 @@ class User(Base):
     # Preferred language from settings
     preferred_language: Mapped[str] = mapped_column(String(10), default="en")
     preferred_theme: Mapped[str] = mapped_column(String(20), default="dark")
+    enable_notifications: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -24,8 +24,9 @@ import { api } from "@/lib/api";
 import { SeverityUrgencyAssessment } from "@/types/assessment";
 import { Spinner } from "@/components/ui/Spinner";
 
-export default function HistoryDetailPage({ params }: { params: Promise<{ historyId: string }> }) {
-  const { historyId } = use(params);
+export default function HistoryDetailPage({ params }: { params?: { historyId?: string } }) {
+  const routeParams = useParams();
+  const historyId = (routeParams?.historyId as string) || params?.historyId || "";
   const router = useRouter();
 
   const [predictionData, setPredictionData] = useState<any>(null);
@@ -139,10 +140,10 @@ export default function HistoryDetailPage({ params }: { params: Promise<{ histor
             <Card className="p-4 bg-slate-50 border-slate-200 flex flex-col gap-1.5">
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
                 <MessageSquareQuote className="w-4 h-4 text-teal-600" />
-                <span>Patient's Original Stated Complaint</span>
+                <span>Patient&apos;s Original Stated Complaint</span>
               </div>
               <p className="text-sm italic font-medium text-slate-900 bg-white p-2.5 rounded-lg border border-slate-200">
-                "{predictionData.original_complaint}"
+                &ldquo;{predictionData.original_complaint}&rdquo;
               </p>
             </Card>
           )}
