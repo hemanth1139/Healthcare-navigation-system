@@ -14,11 +14,15 @@ from app.config import settings
 from app.core.database import engine, Base
 from app.api.v1.router import api_router
 from app.rag.embeddings import EmbeddingService
-from app.rag.pipeline import _get_vector_store
+from app.rag.pipeline import _get_vector_store, _load_all_schemes, _vector_store
 
 
 from sqlalchemy import select
 from app.models.scheme import GovernmentScheme
+
+def get_preloaded_vector_store():
+    """Get the pre-loaded vector store instance."""
+    return _vector_store_instance
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -82,6 +86,31 @@ async def lifespan(app: FastAPI):
                 print("[SUCCESS] Quick Demo user sarah@example.com created successfully.")
     except Exception as e:
         print(f"[WARN] Automatic seeding check failed: {e}")
+
+    # Pre-load Vector Store for performance
+    try:
+        print("[INFO] Pre-loading RAG vector store...")
+        vector_store = _get_vector_store()
+        if vector_store and vector_store.documents:
+            print(f"[SUCCESS] Vector store loaded with {len(vector_store.documents)} chunks")
+        else:
+            print("[WARN] Vector store empty or failed to load")
+    except Exception as e:
+        print(f"[WARN] Vector store pre-loading failed: {e}")
+
+    # Pre-load Embedding Model for performance
+    global _embedding_model_loaded
+    try:
+        print("[INFO] Pre-loading SentenceTransformers embedding model...")
+        from app.rag.embeddings import _get_sentence_model
+        model = _get_sentence_model()
+        if model:
+            _embedding_model_loaded = True
+            print("[SUCCESS] Embedding model loaded successfully")
+        else:
+            print("[WARN] Embedding model failed to load (will use Gemini or fallback)")
+    except Exception as e:
+        print(f"[WARN] Embedding model pre-loading failed: {e}")
 
     yield
     print("[STOP] Shutting down Healthcare Navigator API")

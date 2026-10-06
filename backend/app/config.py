@@ -49,6 +49,7 @@ class Settings(BaseSettings):
 
 
     # ─── LLM Providers ────────────────────────────────────────────────────────
+    # Gemini for RAG, scheme queries, and general AI tasks
     GOOGLE_API_KEY: str = ""
     GOOGLE_API_KEY_2: str = ""
     GOOGLE_API_KEY_3: str = ""
@@ -57,6 +58,14 @@ class Settings(BaseSettings):
     PRIMARY_LLM_PROVIDER: str = "gemini"
     GEMINI_MODEL: str = "gemini-3.5-flash"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
+    
+    # Groq for symptom assessment only (fast, free tier)
+    GROQ_API_KEY: str = ""
+    GROQ_API_KEY_2: str = ""
+    GROQ_API_KEY_3: str = ""
+    GROQ_API_KEY_4: str = ""
+    GROQ_API_KEY_5: str = ""
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
 
     # ─── Google OAuth 2.0 ─────────────────────────────────────────────────────
     GOOGLE_CLIENT_ID: str = ""

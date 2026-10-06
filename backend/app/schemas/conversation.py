@@ -50,6 +50,8 @@ class MessageOut(BaseModel):
     completed: Optional[bool] = Field(False, alias="completed")
     symptomsIdentified: Optional[List[str]] = Field(None, alias="symptomsIdentified")
     predictionReport: Optional[Dict[str, Any]] = Field(None, alias="predictionReport")
+    assessmentSeverity: Optional[str] = Field(None, alias="assessmentSeverity")
+    recommendedSpecialists: Optional[List[str]] = Field(None, alias="recommendedSpecialists")
 
     model_config = {"populate_by_name": True, "from_attributes": True}
 
@@ -63,6 +65,8 @@ class MessageOut(BaseModel):
         completed: bool = False,
         symptoms_identified: Optional[List[str]] = None,
         prediction_report: Optional[Dict[str, Any]] = None,
+        assessment_severity: Optional[str] = None,
+        recommended_specialists: Optional[List[str]] = None,
     ) -> "MessageOut":
         sender = "agent" if message.sender == "assistant" else message.sender
         return cls(
@@ -79,6 +83,8 @@ class MessageOut(BaseModel):
             completed=completed,
             symptomsIdentified=symptoms_identified,
             predictionReport=prediction_report,
+            assessmentSeverity=assessment_severity,
+            recommendedSpecialists=recommended_specialists,
         )
 
 

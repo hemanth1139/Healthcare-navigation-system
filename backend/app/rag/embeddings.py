@@ -68,18 +68,9 @@ def _get_genai_client(api_key: Optional[str] = None):
 
 
 def _get_api_keys() -> List[str]:
-    """Get all configured Google API keys for rotation."""
-    keys = []
-    # Primary key
-    primary = getattr(settings, "GOOGLE_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "") or os.getenv("GEMINI_API_KEY", "")
-    if primary:
-        keys.append(primary)
-    # Secondary keys for rotation
-    for i in range(2, 6):
-        key = os.getenv(f"GOOGLE_API_KEY_{i}", "") or getattr(settings, f"GOOGLE_API_KEY_{i}", "")
-        if key and key not in keys:
-            keys.append(key)
-    return keys
+    """Get all configured Google API keys for rotation (uses centralized llm.py function)."""
+    from app.core.llm import _get_gemini_api_keys
+    return _get_gemini_api_keys()
 
 
 async def _embed_with_sentence_transformers(text: str) -> Optional[List[float]]:

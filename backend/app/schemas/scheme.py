@@ -49,6 +49,15 @@ class GovernmentSchemeOut(BaseModel):
 class EvidenceSourceOut(BaseModel):
     chunk_id: str = Field(..., alias="chunkId")
     document_title: str = Field(..., alias="documentTitle")
+    scheme_id: Optional[str] = Field(None, alias="schemeId")
+    scheme_name: Optional[str] = Field(None, alias="schemeName")
+    government_level: Optional[str] = Field(None, alias="governmentLevel")
+    status: Optional[str] = Field(None, alias="status")
+    match_percentage: Optional[int] = Field(None, alias="matchPercentage")
+    coverage_amount: Optional[str] = Field(None, alias="coverageAmount")
+    benefits_summary: Optional[str] = Field(None, alias="benefitsSummary")
+    matched_criteria: List[str] = Field(default_factory=list, alias="matchedCriteria")
+    pending_criteria: List[str] = Field(default_factory=list, alias="pendingCriteria")
     page_number: Optional[int] = Field(None, alias="pageNumber")
     excerpt: str
     official_url: str = Field(..., alias="officialUrl")

@@ -1251,10 +1251,16 @@ Respond in JSON format:
         user_text += f"\nPatient Context: {patient_context_summary}"
 
     try:
-        res_text = await invoke_gemini([
-            SystemMessage(content=SYSTEM_PROMPT),
-            HumanMessage(content=user_text)
-        ], temperature=0.2)
+        res_text = await invoke_gemini(
+            [
+                SystemMessage(content=SYSTEM_PROMPT),
+                HumanMessage(content=user_text)
+            ],
+            feature="disease_prediction_narrative",
+            temperature=0.2,
+            timeout_seconds=10.0,
+            overall_timeout_seconds=18.0,
+        )
 
         import json
         import re

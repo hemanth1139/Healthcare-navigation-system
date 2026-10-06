@@ -4,7 +4,7 @@ AI conversation models — conversations, conversation_messages.
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Text, DateTime, ForeignKey, UUID
+from sqlalchemy import String, Text, DateTime, ForeignKey, UUID, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -12,6 +12,10 @@ from app.core.database import Base
 
 class Conversation(Base):
     __tablename__ = "conversations"
+    __table_args__ = (
+        Index('idx_conversation_profile_id', 'profile_id'),
+        Index('idx_conversation_started_at', 'started_at'),
+    )
 
     conversation_id: Mapped[uuid.UUID] = mapped_column(
         UUID, primary_key=True, default=uuid.uuid4

@@ -3,7 +3,7 @@ Hospital models — hospitals master table, hospital_recommendations.
 """
 
 import uuid
-from sqlalchemy import String, Text, Numeric, Integer, ForeignKey, UUID
+from sqlalchemy import String, Text, Numeric, Integer, ForeignKey, UUID, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -11,6 +11,11 @@ from app.core.database import Base
 
 class Hospital(Base):
     __tablename__ = "hospitals"
+    __table_args__ = (
+        Index('idx_hospital_state', 'state'),
+        Index('idx_hospital_city', 'city'),
+        Index('idx_hospital_name', 'hospital_name'),
+    )
 
     hospital_id: Mapped[uuid.UUID] = mapped_column(
         UUID, primary_key=True, default=uuid.uuid4
@@ -27,9 +32,9 @@ class Hospital(Base):
     website: Mapped[str | None] = mapped_column(Text, nullable=True)
     google_maps_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     rating: Mapped[float | None] = mapped_column(Numeric(3, 1), nullable=True)
-    hospital_type: Mapped[str | None] = mapped_column(String(50), nullable=True, default="Private")
+    hospital_type: Mapped[str | None] = mapped_column(String(50), nullable=True, default="Unknown")
     specialties: Mapped[str | None] = mapped_column(Text, nullable=True, default="General Medicine")
-    has_emergency_room: Mapped[bool] = mapped_column(default=True)
+    has_emergency_room: Mapped[bool] = mapped_column(default=False)
     opening_hours: Mapped[str | None] = mapped_column(Text, nullable=True)
     beds: Mapped[int | None] = mapped_column(Integer, nullable=True)
 

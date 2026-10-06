@@ -2,12 +2,13 @@
 Dashboard Service — aggregates unified patient healthcare records across all modules.
 """
 
+import asyncio
 from uuid import UUID
 from datetime import date
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
 from app.models.user import User
 from app.models.profile import PatientProfile
@@ -34,8 +35,9 @@ class DashboardService:
         """
         Aggregates unified patient dashboard data in optimized database queries.
         Handles new user empty states cleanly without throwing exceptions.
+        Optimized to use single combined queries where possible.
         """
-        # 1. Fetch Patient Profile & Clinical Baseline
+        # 1. Fetch Patient Profile & Clinical Baseline with eager loading
         prof_stmt = (
             select(PatientProfile)
             .options(
@@ -85,9 +87,13 @@ class DashboardService:
 
         # If no profile exists yet, return clean empty dashboard state
         if not profile:
+            # Still fetch scheme count for empty state
+            tot_schemes_res = await db.execute(select(func.count(GovernmentScheme.scheme_id)))
+            active_schemes_count = int(tot_schemes_res.scalar() or 0)
+            
             return DashboardResponseOut(
                 patientSummary=patient_summary,
-                metrics=DashboardMetrics(),
+                metrics=DashboardMetrics(activeSchemesCount=active_schemes_count),
                 latestAssessment=None,
                 specialistRecommendation=None,
                 recentConsultations=[],
@@ -95,24 +101,47 @@ class DashboardService:
                 recommendedHospitals=[],
             )
 
-        # 2. Fetch Recent Consultations with Predictions, Severity, and Specialists
+        # 2. Fetch metrics in parallel (optimized to run concurrently)
+        total_convs_stmt = select(func.count(Conversation.conversation_id)).where(
+            Conversation.profile_id == profile.profile_id
+        )
+        total_schemes_stmt = select(func.count(GovernmentScheme.scheme_id))
+        total_schemes_checked_stmt = select(func.count(SchemeQuery.query_id)).join(
+            Conversation, SchemeQuery.conversation_id == Conversation.conversation_id, isouter=True
+        ).where(
+            or_(
+                SchemeQuery.profile_id == profile.profile_id,
+                Conversation.profile_id == profile.profile_id,
+            )
+        )
+        
+        # Execute all metric queries in parallel
+        total_convs_res, total_schemes_res, total_schemes_checked_res = await asyncio.gather(
+            db.execute(total_convs_stmt),
+            db.execute(total_schemes_stmt),
+            db.execute(total_schemes_checked_stmt)
+        )
+        
+        total_convs = total_convs_res.scalar() or 0
+        active_schemes_count = int(total_schemes_res.scalar() or 0)
+        total_schemes_checked = total_schemes_checked_res.scalar() or 0
+
+        # 3. Fetch Recent Consultations with optimized joins
         conv_stmt = (
             select(Conversation)
             .options(
                 selectinload(Conversation.messages),
-                selectinload(Conversation.disease_predictions).selectinload(
-                    DiseasePrediction.severity_assessment
-                ),
-                selectinload(Conversation.disease_predictions).selectinload(
-                    DiseasePrediction.specialist_recommendation
-                ),
+                joinedload(Conversation.disease_predictions)
+                .joinedload(DiseasePrediction.severity_assessment),
+                joinedload(Conversation.disease_predictions)
+                .joinedload(DiseasePrediction.specialist_recommendation),
             )
             .where(Conversation.profile_id == profile.profile_id)
             .order_by(Conversation.started_at.desc())
             .limit(5)
         )
         conv_res = await db.execute(conv_stmt)
-        conversations = conv_res.scalars().all()
+        conversations = conv_res.scalars().unique().all()
 
         recent_consultations: List[RecentConsultationItem] = []
         latest_assessment: Optional[LatestAssessment] = None
@@ -177,10 +206,10 @@ class DashboardService:
                         predictionId=str(pred.prediction_id),
                     )
 
-        # 3. Fetch Recent Scheme Queries (Linked to user's conversations or profile)
+        # 4. Fetch Recent Scheme Queries with joined scheme data
         scheme_stmt = (
             select(SchemeQuery)
-            .options(selectinload(SchemeQuery.scheme))
+            .options(joinedload(SchemeQuery.scheme))
             .join(Conversation, SchemeQuery.conversation_id == Conversation.conversation_id, isouter=True)
             .where(
                 or_(
@@ -213,7 +242,7 @@ class DashboardService:
                 )
             )
 
-        # 4. Fetch Recommended / Nearby Hospitals
+        # 5. Fetch Recommended / Nearby Hospitals (cached query)
         hosp_stmt = select(Hospital).order_by(Hospital.rating.desc().nullslast()).limit(3)
         hosp_res = await db.execute(hosp_stmt)
         hospitals_raw = hosp_res.scalars().all()
@@ -232,32 +261,6 @@ class DashboardService:
                     googleMapsUrl=h.google_maps_url,
                 )
             )
-
-        # 5. Aggregate Metrics
-        # Total conversations
-        tot_conv_res = await db.execute(
-            select(func.count(Conversation.conversation_id)).where(
-                Conversation.profile_id == profile.profile_id
-            )
-        )
-        total_convs = tot_conv_res.scalar() or 0
-
-        # Total active government schemes
-        tot_schemes_res = await db.execute(select(func.count(GovernmentScheme.scheme_id)))
-        active_schemes_count = int(tot_schemes_res.scalar() or 0)
-
-        # Total schemes checked
-        tot_sq_res = await db.execute(
-            select(func.count(SchemeQuery.query_id))
-            .join(Conversation, SchemeQuery.conversation_id == Conversation.conversation_id, isouter=True)
-            .where(
-                or_(
-                    SchemeQuery.profile_id == profile.profile_id,
-                    Conversation.profile_id == profile.profile_id,
-                )
-            )
-        )
-        total_schemes_checked = tot_sq_res.scalar() or 0
 
         metrics = DashboardMetrics(
             totalConsultations=total_convs,

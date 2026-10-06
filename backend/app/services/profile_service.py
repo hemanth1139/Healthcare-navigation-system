@@ -43,6 +43,7 @@ class ProfileService:
         update_data = payload.model_dump(exclude_none=True, by_alias=False)
         for field, value in update_data.items():
             setattr(profile, field, value)
+        await db.flush()
         return ProfileOut.from_orm(profile)
 
     # ─── Allergies ────────────────────────────────────────────────────────────

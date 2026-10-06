@@ -12,12 +12,10 @@ import time
 import asyncio
 import httpx
 from typing import List, Dict, Any, Optional, Tuple
-from app.config import settings
-
 logger = logging.getLogger(__name__)
 _hospital_search_cache: Dict[tuple, tuple[float, List[Dict[str, Any]]]] = {}
 _hospital_search_locks: Dict[tuple, asyncio.Lock] = {}
-_HOSPITAL_CACHE_TTL_SECONDS = 15 * 60
+_HOSPITAL_CACHE_TTL_SECONDS = 30 * 60  # Increased to 30 minutes
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -166,12 +164,14 @@ class OpenStreetMapService:
             data = None
             used_radius = radius
             rate_limited = False
-            radii = list(dict.fromkeys([radius, min(radius, 10000), min(radius, 5000)]))
+            deadline = time.monotonic() + 15.0  # Reduced from 30s to 15s
+            radii = list(dict.fromkeys([radius, min(radius, 10000), min(radius, 5000)]))[:2]  # Limit to 2 retries
             endpoints = (
                 "https://overpass-api.de/api/interpreter",
                 "https://overpass.kumi.systems/api/interpreter",
             )
-            async with httpx.AsyncClient(timeout=6.0) as client:
+            # Reduced timeout from 18s to 10s for faster fallback
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 for query_radius in radii:
                     # amenity=hospital is the canonical hospital tag; nwr still
                     # covers nodes, mapped building outlines, and relations.
@@ -186,11 +186,15 @@ class OpenStreetMapService:
                     )
                     conn_failed = False
                     for endpoint in endpoints:
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            break
                         try:
                             response = await client.post(
                                 endpoint,
                                 data={"data": query},
                                 headers={"Accept": "application/json", "User-Agent": "HealthcareNavigationSystem/1.0"},
+                                timeout=min(18.0, remaining),
                             )
                             response.raise_for_status()
                             data = response.json()
@@ -210,7 +214,7 @@ class OpenStreetMapService:
                                 conn_failed = True
                     if data is not None:
                         break
-                    if rate_limited or conn_failed:
+                    if rate_limited or conn_failed or time.monotonic() >= deadline:
                         logger.warning(
                             "[OpenStreetMap] Stopping radius retries after network failure/rate limit"
                         )
@@ -267,8 +271,11 @@ class OpenStreetMapService:
                 lon = element.get("center", {}).get("lon")
                 if lat is None or lon is None:
                     bounds = element.get("bounds", {})
-                    lat = (bounds.get("minlat", 0) + bounds.get("maxlat", 0)) / 2
-                    lon = (bounds.get("minlon", 0) + bounds.get("maxlon", 0)) / 2
+                    required_bounds = ("minlat", "maxlat", "minlon", "maxlon")
+                    if not all(bounds.get(key) is not None for key in required_bounds):
+                        return None
+                    lat = (bounds["minlat"] + bounds["maxlat"]) / 2
+                    lon = (bounds["minlon"] + bounds["maxlon"]) / 2
             
             if lat is None or lon is None:
                 return None
@@ -285,12 +292,10 @@ class OpenStreetMapService:
                 hospital_type = "Government"
             elif "private" in operator:
                 hospital_type = "Private"
-            elif healthcare == "hospital" or amenity == "hospital":
-                hospital_type = "Private"  # Default for hospitals
             elif healthcare == "clinic" or amenity == "clinic":
                 hospital_type = "Clinic"
             else:
-                hospital_type = "Private"
+                hospital_type = "Unknown"
             
             # OSM data uses several spelling/tag conventions for specialties.
             specialty_values = [
@@ -334,7 +339,9 @@ class OpenStreetMapService:
                         "medical", "speciality", "specialty",
                     )
                 ),
-                "has_emergency_room": tags.get("emergency", "yes") == "yes",
+                # Do not advertise an emergency room unless OSM explicitly
+                # marks the facility as having one.
+                "has_emergency_room": str(tags.get("emergency", "")).lower() == "yes",
                 "distance_km": round(distance, 2),
                 "drive_duration_minutes": round(distance * 2.5, 1),
                 "opening_hours": tags.get("opening_hours", ""),
@@ -506,7 +513,7 @@ class NominatimService:
 
 
 _osrm_route_cache: Dict[Tuple[float, float, float, float, str], Tuple[float, Dict[str, Any]]] = {}
-_OSRM_CACHE_TTL_SECONDS = 3600  # 1 hour
+_OSRM_CACHE_TTL_SECONDS = 7200  # Increased to 2 hours
 
 
 def format_travel_time(duration_minutes: Optional[float]) -> str:
@@ -572,10 +579,11 @@ class OSRMService:
             return dict(cached[1])
 
         try:
-            async with httpx.AsyncClient(timeout=1.5) as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 url = f"https://router.project-osrm.org/route/v1/{profile}/{start_lon},{start_lat};{end_lon},{end_lat}"
                 params = {
-                    "overview": "false",
+                    "overview": "full",
+                    "geometries": "geojson",
                     "steps": "false",
                 }
                 response = await client.get(url, params=params, headers={"User-Agent": "HealthcareNavigationSystem/1.0"})
@@ -632,14 +640,17 @@ class OSRMService:
             if d is not None:
                 h["estimated_time"] = _compute_kinematic_time(float(d))
                 h["routed_distance_km"] = round(float(d) * 1.25, 2)
+                h["travel_time_source"] = "estimated"
             else:
                 h["estimated_time"] = "Travel time unavailable"
+                h["travel_time_source"] = "unavailable"
 
         if start_lat is None or start_lon is None:
             return hospitals
 
-        # Route top N nearest hospitals to keep response fast and avoid upstream rate limiting
-        targets = hospitals[:max_routing_targets]
+        # Route the nearest hospitals concurrently; keep the estimate fallback
+        # if the public routing service is slow.
+        targets = hospitals[:min(3, max_routing_targets)]
 
         async def _route_hospital(h: Dict[str, Any]):
             h_lat = h.get("latitude")
@@ -654,12 +665,17 @@ class OSRMService:
                     if route and "estimated_time" in route:
                         h["estimated_time"] = route["estimated_time"]
                         h["routed_distance_km"] = route.get("distance_km")
+                        h["travel_time_source"] = "road_route"
                 except Exception:
                     pass
 
-        # Execute routing tasks concurrently with fast timeout
+        # Execute routing tasks concurrently with a bounded wait (fallback to
+        # instant kinematic estimates if the public service does not respond).
         tasks = [_route_hospital(h) for h in targets]
-        await asyncio.gather(*tasks, return_exceptions=True)
+        try:
+            await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=5.5)
+        except Exception:
+            pass
 
         return hospitals
 

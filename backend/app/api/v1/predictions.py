@@ -9,7 +9,7 @@ from fastapi import APIRouter, Body
 from pydantic import BaseModel, Field
 
 from app.dependencies import DBSession, CurrentUser
-from app.services.prediction_service import RuleBasedPredictionService
+from app.services.prediction_service import PredictionService
 from app.core.exceptions import NotFoundError
 
 router = APIRouter(prefix="/predictions", tags=["Disease Prediction"])
@@ -49,7 +49,7 @@ async def run_prediction(
         if not symptoms:
             symptoms = ["general_discomfort"]
 
-    result = await RuleBasedPredictionService.run_prediction(
+    result = await PredictionService.run_prediction(
         db=db,
         user=current_user,
         conversation_id=conversation_id,
@@ -70,7 +70,7 @@ async def get_prediction(
     Retrieve the stored prediction report for a given conversation.
     If intake is in progress, computes provisional prediction from current message history.
     """
-    result = await RuleBasedPredictionService.get_prediction_by_conversation(
+    result = await PredictionService.get_prediction_by_conversation(
         db=db,
         user=current_user,
         conversation_id=conversation_id,
@@ -87,7 +87,7 @@ async def get_prediction(
             history = [{"sender": m.sender, "content": m.message} for m in messages]
             cumulative_metadata = extract_cumulative_symptoms(history)
             symptoms = cumulative_metadata.get("all_symptoms", []) or ["general_discomfort"]
-            result = await RuleBasedPredictionService.run_prediction(
+            result = await PredictionService.run_prediction(
                 db=db,
                 user=current_user,
                 conversation_id=conversation_id,
@@ -97,4 +97,24 @@ async def get_prediction(
             await db.commit()
             return result
         raise NotFoundError("Prediction for this conversation")
+    return result
+
+
+@router.get("/by-id/{prediction_id}")
+async def get_prediction_by_id(
+    prediction_id: UUID,
+    db: DBSession,
+    current_user: CurrentUser,
+):
+    """
+    Retrieve a prediction report by its prediction_id (UUID).
+    This is used by the frontend when viewing individual prediction reports.
+    """
+    result = await PredictionService.get_prediction_by_id(
+        db=db,
+        user=current_user,
+        prediction_id=prediction_id,
+    )
+    if not result:
+        raise NotFoundError("Prediction")
     return result

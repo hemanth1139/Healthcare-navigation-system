@@ -4,6 +4,7 @@ SQLAlchemy async database engine, session factory, and Base declarative class.
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import event
 
 from app.config import settings
 
@@ -24,8 +25,13 @@ elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+")
 engine_kwargs = {"echo": settings.DATABASE_ECHO}
 
 if db_url.startswith("sqlite"):
-    # SQLite-specific arguments
-    engine_kwargs["connect_args"] = {"check_same_thread": False}
+    # SQLite permits only one writer at a time. Wait for brief write contention
+    # instead of immediately failing with "database is locked". WAL also lets
+    # readers proceed while a write is in progress (writes remain serialized).
+    engine_kwargs["connect_args"] = {
+        "check_same_thread": False,
+        "timeout": 30,
+    }
 else:
     # PostgreSQL-specific pooling arguments
     engine_kwargs["pool_pre_ping"] = True
@@ -36,6 +42,17 @@ engine = create_async_engine(
     db_url,
     **engine_kwargs
 )
+
+if db_url.startswith("sqlite"):
+    @event.listens_for(engine.sync_engine, "connect")
+    def _configure_sqlite_connection(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA busy_timeout=30000")
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+        finally:
+            cursor.close()
 
 # ─── Session Factory ─────────────────────────────────────────────────────────
 AsyncSessionLocal = async_sessionmaker(

@@ -6,15 +6,17 @@ Screens for acute red flags, tracks positive and negative findings, and dynamica
 
 import re
 import json
+import logging
 from typing import Dict, Any, List, Optional
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-from app.config import settings
 from app.ml.rule_based_predictor import (
     extract_cumulative_symptoms,
     normalize_symptom_list,
     predict_disease,
 )
+
+logger = logging.getLogger(__name__)
 
 # ─── Mock Fallback Flow (Deterministic Adaptive Clinical Questionnaire) ──────
 
@@ -287,7 +289,12 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
         }
 
     # ── DOMAIN 4: Chest Discomfort / Cardiorespiratory ──
-    is_chest = (
+    is_chest_negated = any(phrase in history_text for phrase in [
+        "no chest pain", "don't have chest pain", "dont have chest pain",
+        "don't think i have chest pain", "dont think i have chest pain",
+        "no chest discomfort", "no pain in chest"
+    ])
+    is_chest = (not is_chest_negated) and (
         "chest_pain" in symptoms or "left_arm_radiation" in symptoms
         or any(w in history_text for w in ["chest", "angina", "heart", "sternal", "tightness in chest", "pressure in chest"])
     )
@@ -556,72 +563,157 @@ def _get_mock_triage_response(messages: List[Dict[str, str]], patient_context: s
         }
 
 
-# ─── Gemini 2.5 Flash Triage Agent ──────────────────────────────────────────
+# ─── Groq-Powered Triage Agent ───────────────────────────────────────────────
 
-SYSTEM_PROMPT = """You are an expert Clinical Triage Specialist in an AI-based Healthcare Navigation System.
-Your objective is to conduct an adaptive, symptom-specific, multi-turn clinical intake.
+SYSTEM_PROMPT = """You are a careful, friendly symptom-intake assistant for a health app. You are not a doctor. Never diagnose, prescribe, or claim certainty. Your job is to (1) ask the few questions that matter most, (2) spot urgent danger early, and (3) finish with a severity level and the right type of specialist.
 
-CLINICAL INTAKE PROTOCOLS:
+HOW TO ASK QUESTIONS
+- Ask exactly ONE question per turn. Keep it under 20 words, in plain everyday language. No medical jargon.
+- Questions must be open-ended. Never list choices, options, or multiple-choice answers.
+- Start with a brief, warm acknowledgment (a few words, only when natural), then the question.
+- Reply in the same language the patient writes in.
+- Never ask something already answered in the conversation or in Patient Baseline Context (age, sex, pregnancy, known conditions, medicines, allergies). Use that context silently to choose better questions.
+- If the patient says "I don't know" or skips a question, accept it and move on.
+- Each question must be about the main symptom, not generic. Prefer questions whose answers change the urgency or the specialist.
 
-1. EMERGENCY RED FLAG EVALUATION (IMMEDIATE ESCALATION):
-   - Cardiorespiratory: Crushing chest pain radiating to left arm/jaw, severe dyspnea, diaphoresis.
-   - Neurological: Acute facial droop, slurred speech, hemiparesis, sudden thunderclap headache.
-   - Meningeal: High fever + rigid stiff neck + altered sensorium.
-   - Urinary Retention: Complete inability to urinate with lower abdominal distension / severe distress.
-   - Pyelonephritis / Urosepsis: Urinary symptoms + high fever + severe flank/back pain + rigors.
-   - Upper Airway Compromise: Severe throat pain + inability to swallow saliva / drooling + respiratory stridor.
-   - Septic Joint: Severe joint pain + high fever + hot/erythematous joint or acute inability to move joint.
-   If ANY emergency red flag is present:
-   - Set "is_emergency": true, "needs_more_info": false.
-   - Set "question": "EMERGENCY ALERT: Immediate clinical evaluation is required."
-   - Extract the identified emergency symptoms in "symptoms".
+QUESTION PRIORITY (pick the most valuable missing item; do not go through mechanically)
+1. Safety check: the red-flag symptom most relevant to this complaint, if not yet known.
+2. Onset and course: when it started, sudden or gradual, getting better or worse.
+3. Character and location: where exactly, what it feels like, whether it spreads.
+4. Severity and impact: how bad it is, and whether it stops sleep, work, eating, or normal activity.
+5. Associated symptoms: what else is happening along with it.
+6. Context: recent injury, infection exposure, travel, new medicines, pregnancy, similar past episodes.
 
-2. ADAPTIVE DOMAIN-SPECIFIC QUESTIONING:
-   - FOR URINARY DIFFICULTY / RETENTION / DYSURIA:
-     * Screen: 1) Stream volume & retention (complete inability to pass urine vs weak stream/straining vs normal).
-     * Screen: 2) Systemic red flags (fever, chills, flank/back pain, gross hematuria, nausea/vomiting).
-     * Screen: 3) Sensations & distension (burning/dysuria vs lower abdominal distension/bladder fullness).
-   - FOR THROAT / DYSPHAGIA:
-     * Screen: 1) Saliva management & breathing ability (cannot swallow fluids/saliva vs solid food difficulty).
-     * Screen: 2) Systemic & focal signs (fever, unilateral peritonsillar pain, neck swelling).
-   - FOR KNEE PAIN / JOINT COMPLAINTS:
-     * Screen: 1) Onset & injury mechanism (twist, fall, sports vs gradual wear).
-     * Screen: 2) Weight-bearing ability & ambulation (can bear weight vs cannot walk/stand).
-     * Screen: 3) Red flags & mechanical signs (joint swelling, warmth/redness, fever, locking, deformity).
-   - FOR HEADACHE: Screen for sudden explosive onset, neck stiffness, fever, neurological deficits.
-   - FOR CHEST PAIN: Screen for radiation, breathlessness, relation to exertion vs food.
-   - FOR FEVER: Screen for respiratory, urinary, GI, or joint focus.
+COMPLAINT-SPECIFIC FOCUS (examples of what to prioritize)
+- Headache: sudden or gradual, fever or neck stiffness, vision change, vomiting, recent head injury.
+- Chest pain: spreading to arm/jaw, breathlessness, sweating, triggered by exertion or breathing.
+- Abdominal pain: exact location, vomiting, fever, stool or urine changes, relation to food, pregnancy possibility.
+- Fever: how high and how many days, rash, cough, burning urine, travel or mosquito exposure.
+- Cough or breathlessness: duration, breathlessness at rest, blood in sputum, wheeze.
+- Injury: how it happened, swelling or deformity, ability to bear weight or move.
+- Skin problems: spread, itching or pain, new products or medicines, fever.
+- Dizziness or weakness: spinning vs faintness, one-sided weakness, speech or vision change.
+- Mood or anxiety: duration, effect on sleep and daily life, any thoughts of self-harm.
+- Children, older adults, pregnant patients, and people with chronic illness: lower the threshold for recommending in-person care.
 
-3. EXPLICIT FINDINGS SEPARATION:
-   - In "symptoms", include all positive canonical symptoms confirmed by the user.
-   - DO NOT assume missing information is negative.
+HOW MANY QUESTIONS
+- Before four follow-up questions have been asked, a non-emergency case must continue with a relevant question.
+- After that, continue only if an important detail or safety check is still unknown. Aim to finish within 4 to 7 questions total. Stop once you can confidently choose a severity level and specialist and the key warning signs have been checked.
+- Do not repeat a question in different words.
 
-4. COMPLETION:
-   - When sufficient information has been collected across the key triage dimensions, or if an urgent finding is confirmed, set "needs_more_info": false and "question": null.
+EMERGENCY RULES
+Set is_emergency=true immediately, with no further questions, if the patient describes any of: severe difficulty breathing; chest pain with spreading pain, sweating, or breathlessness; sudden one-sided weakness, facial droop, or slurred speech; fainting with severe symptoms; sudden "worst-ever" headache; fever with stiff neck or confusion; drooling or inability to swallow saliva with throat symptoms; heavy uncontrolled bleeding; seizure; confusion or unresponsiveness; signs of severe allergic reaction (face/throat swelling with breathing trouble); thoughts of suicide or self-harm with intent or plan; or any other clear immediate danger.
+- In the "message" field, tell them in 1 to 2 calm sentences to seek emergency care now and call 112 or 108 (India), and not to travel alone or drive themselves if unwell.
+- If a warning sign is vague and the patient seems stable, ask ONE focused clarifying question instead of declaring an emergency.
 
-Respond in JSON format:
+FINAL ASSESSMENT (when interview is complete)
+- Set needs_more_info=false, question=null.
+- severity: one of "mild", "moderate", "severe" (use is_emergency=true for emergencies).
+  - mild: likely manageable with rest and self-care; see a doctor if no improvement in a few days.
+  - moderate: should see a doctor within 1 to 3 days.
+  - severe: needs prompt medical evaluation today, but not clearly life-threatening.
+- specialists: 1 to 3 types of specialist suited to the symptoms (e.g., "General Physician", "Cardiologist", "Neurologist", "Gastroenterologist", "Dermatologist", "ENT Specialist", "Orthopedist", "Pulmonologist", "Gynecologist", "Pediatrician", "Psychiatrist"). Put the best first. If unclear, use "General Physician".
+- message: 2 to 4 plain sentences summarizing what the patient reported, why this level of care is suggested, what warning signs should make them seek urgent care, and a clear statement that this is not a diagnosis and uncertainty remains. Do not name a disease as the cause. Do not recommend specific prescription drugs or doses.
+
+SYMPTOM EXTRACTION
+- Include only symptoms the patient reported or explicitly confirmed. Never infer symptoms from a possible disease.
+- Use short normalized snake_case names, e.g., "headache", "fever", "chest_pain", "shortness_of_breath". Accumulate across the whole conversation without duplicates.
+
+OUTPUT
+Return exactly one valid JSON object and nothing else (no markdown, no extra text):
 {
-  "needs_more_info": true/false,
-  "is_emergency": true/false,
-  "question": "Single adaptive follow-up question" or null,
-  "options": [
-    {"id": "opt1", "label": "Option 1 label", "value": "Option 1 text"},
-    {"id": "opt2", "label": "Option 2 label", "value": "Option 2 text"}
-  ] or null,
-  "symptoms": ["canonical_symptom_1", "canonical_symptom_2"]
+  "needs_more_info": true,
+  "is_emergency": false,
+  "question": "One short open-ended question, or null",
+  "options": null,
+  "symptoms": ["..."],
+  "severity": null,
+  "specialists": [],
+  "message": null
 }
-"""
+
+Field rules:
+- Still asking: needs_more_info=true, question is a non-empty string, severity=null, specialists=[], message=null.
+- Emergency: needs_more_info=false, is_emergency=true, question=null, severity="emergency", message filled, specialists may list the relevant emergency-capable specialty or be [].
+- Complete: needs_more_info=false, is_emergency=false, question=null, severity/specialists/message filled.
+- "options" is always null."""
+
+
+def _recommend_specialists(
+    symptoms: List[str],
+    messages: List[Dict[str, str]],
+    patient_context_summary: str,
+    is_emergency: bool,
+) -> List[str]:
+    """Return a conservative symptom-domain referral; use primary care when unclear."""
+    if is_emergency:
+        return []
+
+    user_text = " ".join(
+        str(item.get("content", ""))
+        for item in messages
+        if item.get("sender") == "user"
+    ).lower()
+    context = patient_context_summary.lower()
+    symptom_set = {str(symptom).lower() for symptom in symptoms}
+
+    age_match = re.search(r"\b(?:age\s*[:=]?\s*|aged\s+)(\d{1,2})\b|\b(\d{1,2})\s*(?:years? old|y/o)\b", context)
+    reported_age = next((int(value) for value in age_match.groups() if value), None) if age_match else None
+    if (reported_age is not None and reported_age < 18) or re.search(r"\b(child|children|toddler|infant|newborn)\b", user_text):
+        return ["Pediatrician"]
+
+    pregnancy_status = re.search(r"\bPregnancy:\s*([a-z_-]+)", patient_context_summary, re.IGNORECASE)
+    profile_says_pregnant = bool(pregnancy_status and pregnancy_status.group(1).lower() in {"pregnant", "yes", "positive"})
+    pregnancy_text = re.sub(
+        r"\b(?:not|never|no|isn't|aren't|am not|wasn't|no chance of)\s+(?:currently\s+)?pregnan\w*\b",
+        "",
+        user_text,
+    )
+    if profile_says_pregnant or re.search(r"\b(pregnan\w*|period pain|menstrual|missed period|vaginal bleeding|pelvic pain)\b", pregnancy_text):
+        return ["Gynecologist"]
+    if re.search(r"\b(panic attack|anxiety|depress\w*|mood disorder)\b", user_text):
+        return ["Psychiatrist"]
+    if re.search(r"\b(rash|itchy skin|skin lesion|hives|eczema|acne)\b", user_text):
+        return ["Dermatologist"]
+    if re.search(r"\b(eye pain|blurry vision|blurred vision|red eye|vision loss)\b", user_text):
+        return ["Ophthalmologist"]
+
+    domains = []
+    if symptom_set.intersection({"chest_pain", "left_arm_radiation"}) or re.search(r"\b(palpitations|irregular heartbeat)\b", context):
+        domains.append("Cardiologist")
+    if symptom_set.intersection({"difficulty_urinating", "acute_urinary_retention", "burning_urination", "urinary_frequency_urgency", "hematuria"}):
+        domains.append("Urologist")
+    if re.search(r"\b(kidney disease|chronic kidney|reduced kidney function)\b", context):
+        domains.append("Nephrologist")
+    if symptom_set.intersection({"throat_pain", "difficulty_swallowing"}) or re.search(r"\b(ear pain|earache|sinus pain|blocked nose)\b", context):
+        domains.append("ENT Specialist")
+    if "shortness_of_breath" in symptom_set or re.search(r"\b(wheezing|asthma|persistent cough)\b", user_text):
+        domains.append("Pulmonologist")
+    if symptom_set.intersection({"abdominal_pain", "heartburn"}) or re.search(r"\b(diarrh\w*|constipat\w*|blood in stool)\b", user_text):
+        domains.append("Gastroenterologist")
+    if symptom_set.intersection({"knee_pain", "joint_pain", "joint_deformity", "inability_to_bear_weight", "joint_warmth_redness", "knee_locking"}) or ("back_pain" in symptom_set and "trauma_injury" in symptom_set):
+        domains.append("Orthopedist")
+    if "headache" in symptom_set and re.search(r"\b(recurrent|repeated|chronic|migraine)\b", user_text):
+        domains.append("Neurologist")
+    if symptom_set.intersection({"facial_droop_weakness", "thunderclap_headache"}):
+        domains.append("Neurologist")
+
+    # Multiple unrelated symptom systems are better assessed first by primary care.
+    if len(domains) == 1:
+        return domains
+    return ["General Physician"]
 
 
 async def run_triage_agent(
     messages: List[Dict[str, str]],
     patient_context_summary: str = ""
 ) -> Dict[str, Any]:
-    """Runs the conversational triage agent using Gemini 2.5 Flash with fallback to adaptive state machine."""
-    if not settings.GOOGLE_API_KEY:
-        return _get_mock_triage_response(messages, patient_context_summary)
+    """Runs the conversational triage agent using Groq with fallback to adaptive state machine."""
+    from app.core.llm import _get_groq_api_keys, invoke_groq
 
-    from app.core.llm import invoke_gemini
+    if not _get_groq_api_keys():
+        logger.info("[TRIAGE] action=rule_based_fallback reason=no_api_key")
+        return _get_mock_triage_response(messages, patient_context_summary)
 
     try:
         lc_messages = [SystemMessage(content=SYSTEM_PROMPT)]
@@ -634,7 +726,13 @@ async def run_triage_agent(
             else:
                 lc_messages.append(AIMessage(content=msg.get("content", "")))
 
-        res_text = await invoke_gemini(lc_messages, temperature=0.15)
+        res_text = await invoke_groq(
+            lc_messages,
+            feature="symptom_assessment",
+            temperature=0.15,
+            timeout_seconds=12.0,
+            overall_timeout_seconds=25.0,
+        )
 
         if "```json" in res_text:
             res_text = res_text.split("```json")[1].split("```")[0].strip()
@@ -642,55 +740,72 @@ async def run_triage_agent(
             res_text = res_text.split("```")[1].split("```")[0].strip()
 
         data = json.loads(res_text)
-        
+
         extracted_symptoms = data.get("symptoms", [])
         if isinstance(extracted_symptoms, list):
             extracted_symptoms = normalize_symptom_list(extracted_symptoms)
 
         user_turns = sum(1 for m in messages if m.get("sender") == "user")
+        assistant_questions = sum(1 for m in messages if m.get("sender") in ("assistant", "agent"))
         is_emergency = bool(data.get("is_emergency", False))
         needs_more_info = bool(data.get("needs_more_info", True))
-
-        # Deterministic safety rules and explicit fallback red flags take
-        # precedence over the model, including when the model misses a red flag.
-        cumulative = extract_cumulative_symptoms(messages)
-        deterministic = predict_disease(
-            cumulative["all_symptoms"], cumulative_data=cumulative
-        )
-        fallback = _get_mock_triage_response(messages, patient_context_summary)
-        if deterministic.get("emergency_flag") or fallback.get("is_emergency"):
-            is_emergency = True
+        if is_emergency:
             needs_more_info = False
-            data["question"] = fallback.get("question") or (
-                "EMERGENCY ALERT: Immediate clinical evaluation is required."
-            )
-            data["options"] = None
-        elif is_emergency:
-            # A model-only escalation without rule or explicit fallback support
-            # remains an intake question rather than a completed emergency.
-            is_emergency = False
-            needs_more_info = True
-            data["question"] = fallback.get("question") or (
-                "Could you tell me when this started and whether you have any other symptoms?"
-            )
-            data["options"] = fallback.get("options")
 
         # Enforce that Turn 1 non-emergency CANNOT mark intake complete
         if user_turns <= 1 and not is_emergency:
             needs_more_info = True
-            if not data.get("question"):
-                mock_resp = _get_mock_triage_response(messages, patient_context_summary)
-                data["question"] = mock_resp.get("question")
-                data["options"] = mock_resp.get("options")
+        if assistant_questions < 4 and not is_emergency:
+            needs_more_info = True
+
+        if needs_more_info and not data.get("question"):
+            mock_resp = _get_mock_triage_response(messages, patient_context_summary)
+            data["question"] = mock_resp.get("question") or (
+                "Since this began, has it been improving, getting worse, or staying about the same?"
+            )
+
+        severity = "emergency" if is_emergency else data.get("severity")
+        specialists = _recommend_specialists(
+            extracted_symptoms,
+            messages,
+            patient_context_summary,
+            is_emergency,
+        )
+        assessment_message = data.get("message")
+
+        if needs_more_info and not is_emergency:
+            severity = None
+            specialists = []
+            assessment_message = None
+        elif is_emergency:
+            assessment_message = assessment_message or (
+                "Your symptoms may need emergency care. Call 112 or 108 now. "
+                "Do not drive yourself or travel alone if you feel unwell."
+            )
+        else:
+            if severity not in {"mild", "moderate", "severe"}:
+                severity = "moderate"
+            if not isinstance(assessment_message, str) or not assessment_message.strip():
+                assessment_message = (
+                    "Your symptom interview is complete. Please discuss these symptoms with a healthcare professional; "
+                    "this is not a diagnosis and some uncertainty remains."
+                )
 
         return {
             "needs_more_info": needs_more_info,
             "is_emergency": is_emergency,
             "question": data.get("question") if needs_more_info else None,
-            "options": data.get("options") if needs_more_info else None,
+            "options": None,
             "symptoms": extracted_symptoms,
+            "severity": severity,
+            "specialists": specialists,
+            "message": assessment_message,
         }
     except Exception as e:
-        print(f"[ERROR] LLM Triage execution error: {e}. Falling back to mock flow.")
+        logger.warning(
+            "[TRIAGE] action=rule_based_fallback reason=llm_error error_type=%s: %s",
+            type(e).__name__,
+            e,
+        )
         return _get_mock_triage_response(messages, patient_context_summary)
 

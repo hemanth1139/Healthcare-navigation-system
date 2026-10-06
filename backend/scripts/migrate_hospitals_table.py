@@ -8,9 +8,9 @@ def migrate():
     print('Existing cols in hospitals table:', cols)
     
     needed = [
-        ('hospital_type', "VARCHAR(64) DEFAULT 'Private'"),
+        ('hospital_type', "VARCHAR(64) DEFAULT 'Unknown'"),
         ('specialties', "TEXT DEFAULT ''"),
-        ('has_emergency_room', "BOOLEAN DEFAULT 1"),
+        ('has_emergency_room', "BOOLEAN DEFAULT 0"),
         ('google_maps_url', "TEXT")
     ]
     for col_name, col_type in needed:

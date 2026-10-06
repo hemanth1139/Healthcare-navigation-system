@@ -1,5 +1,5 @@
 """
-Simple in-memory cache with TTL support for RAG results and embeddings.
+Simple in-memory cache with TTL and LRU support for RAG results and embeddings.
 Reduces API calls and improves response times.
 """
 
@@ -8,14 +8,16 @@ import hashlib
 import json
 from typing import Any, Optional, Dict
 from datetime import datetime, timedelta
+from collections import OrderedDict
 
 
 class SimpleCache:
-    """Simple in-memory cache with time-to-live (TTL) support."""
+    """Simple in-memory cache with time-to-live (TTL) and LRU eviction support."""
     
-    def __init__(self):
-        self._cache: Dict[str, Dict[str, Any]] = {}
+    def __init__(self, max_size: int = 1000):
+        self._cache: OrderedDict[str, Dict[str, Any]] = OrderedDict()
         self._ttl: Dict[str, float] = {}
+        self._max_size = max_size
     
     def _generate_key(self, *args, **kwargs) -> str:
         """Generate a unique cache key from arguments."""
@@ -33,18 +35,30 @@ class SimpleCache:
             del self._ttl[key]
             return None
         
+        # Move to end (most recently used)
+        self._cache.move_to_end(key)
         return self._cache[key]["value"]
     
     def set(self, key: str, value: Any, ttl_seconds: int = 86400):
         """
         Set value in cache with TTL.
         Default TTL: 24 hours (86400 seconds)
+        Implements LRU eviction when max_size is reached.
         """
+        # Evict oldest item if at capacity
+        if len(self._cache) >= self._max_size and key not in self._cache:
+            oldest_key = next(iter(self._cache))
+            del self._cache[oldest_key]
+            if oldest_key in self._ttl:
+                del self._ttl[oldest_key]
+        
         self._cache[key] = {
             "value": value,
             "created_at": time.time()
         }
         self._ttl[key] = time.time() + ttl_seconds
+        # Move to end (most recently used)
+        self._cache.move_to_end(key)
     
     def delete(self, key: str):
         """Delete a specific key from cache."""
@@ -74,6 +88,6 @@ class SimpleCache:
         return len(self._cache)
 
 
-# Global cache instances
-rag_cache = SimpleCache()  # Cache for RAG pipeline results
-embedding_cache = SimpleCache()  # Cache for vector embeddings
+# Global cache instances with size limits
+rag_cache = SimpleCache(max_size=500)  # Cache for RAG pipeline results
+embedding_cache = SimpleCache(max_size=2000)  # Cache for vector embeddings (larger)

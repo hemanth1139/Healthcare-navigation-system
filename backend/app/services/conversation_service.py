@@ -15,12 +15,12 @@ from app.models.user import User
 from app.models.conversation import Conversation, ConversationMessage
 from app.models.prediction import DiseasePrediction
 from app.schemas.conversation import (
-    ConversationOut, MessageOut, FollowUpQuestion, QuickReplyOption,
+    ConversationOut, MessageOut, FollowUpQuestion,
 )
 from app.agents.graph import execute_triage
 from app.core.exceptions import NotFoundError, ValidationError
-from app.services.prediction_service import RuleBasedPredictionService
 from app.services.profile_service import ProfileService
+from app.services.prediction_service import PredictionService
 from app.ml.rule_based_predictor import extract_cumulative_symptoms, format_symptom_title
 
 
@@ -139,8 +139,13 @@ class ConversationService:
         is_emergency = triage_state.get("is_emergency", False)
 
         user_turns = sum(1 for m in history if m.get("sender") == "user")
+        assistant_questions = sum(1 for m in history if m.get("sender") in ("assistant", "agent"))
+        
+        # Only force more questions if this is the very first turn
         if user_turns <= 1 and not is_emergency:
             needs_more_info = True
+        # Don't force minimum of 4 questions - let the AI decide when enough info is gathered
+        # This prevents the infinite loop
 
         # 5. Extract cumulative symptoms across ALL messages in history
         cumulative_data = extract_cumulative_symptoms(
@@ -154,16 +159,16 @@ class ConversationService:
         is_completed = (not needs_more_info) or is_emergency
 
         if is_emergency:
-            reply_text = (
+            reply_text = triage_state.get("message") or (
                 "🚨 EMERGENCY ALERT: Your reported symptoms indicate potential acute medical risk requiring immediate evaluation. "
-                "Please call emergency services (108 or 112) or proceed to the nearest emergency department immediately."
+                "Call 112 or 108 now. Do not drive yourself or travel alone if you feel unwell."
             )
             conv.status = "completed"
             conv.ended_at = datetime.now(timezone.utc)
         elif not needs_more_info:
-            reply_text = (
+            reply_text = triage_state.get("message") or (
                 f"Thank you. I have gathered enough clinical details regarding {', '.join(formatted_symptoms)}. "
-                "Your structured symptom assessment has been completed."
+                "This is not a diagnosis; please discuss these symptoms with a healthcare professional."
             )
             conv.status = "completed"
             conv.ended_at = datetime.now(timezone.utc)
@@ -172,9 +177,7 @@ class ConversationService:
             if not reply_text:
                 from app.agents.triage_agent import _get_mock_triage_response
                 fallback_mock = _get_mock_triage_response(history, context_summary)
-                reply_text = fallback_mock.get("question") or "Can you describe when these symptoms began and if you have any associated pain or fever?"
-                if not triage_state.get("options"):
-                    triage_state["options"] = fallback_mock.get("options")
+                reply_text = fallback_mock.get("question") or "Since this began, has it been improving, getting worse, or staying about the same?"
 
         # Save assistant message
         agent_msg = ConversationMessage(
@@ -188,38 +191,35 @@ class ConversationService:
         # 7. Format follow-up question options if any
         follow_up = None
         if needs_more_info and not is_emergency:
-            options_raw = triage_state.get("options")
-            options = None
-            if options_raw and isinstance(options_raw, list):
-                options = [
-                    QuickReplyOption(id=opt.get("id", f"opt_{i}"), label=opt.get("label", str(opt)), value=opt.get("value", str(opt)))
-                    for i, opt in enumerate(options_raw) if isinstance(opt, dict)
-                ]
-            
             follow_up = FollowUpQuestion(
                 questionId=str(uuid4()),
                 questionText=reply_text,
-                options=options,
+                options=None,
                 allowFreeText=True,
                 isAnswered=False
             )
 
-        # 8. Deterministic Rule Engine Trigger on Completion
+        # 8. On completion, store identified symptoms using AI assessment
         prediction_id = None
         prediction_report = None
+        assessment_severity = triage_state.get("severity") or ("emergency" if is_emergency else None)
+        recommended_specialists = [] if is_emergency else (triage_state.get("specialists") or [])
 
         if is_completed:
             try:
-                prediction_report = await RuleBasedPredictionService.run_prediction(
+                prediction_report = await PredictionService.run_prediction(
                     db=db,
                     user=user,
                     conversation_id=conversation_id,
                     symptoms=symptoms,
                     cumulative_metadata=cumulative_data,
+                    assessment_severity=assessment_severity,
+                    specialists=recommended_specialists,
+                    assessment_message=triage_state.get("message"),
                 )
                 prediction_id = prediction_report.get("prediction_id")
             except Exception as e:
-                print(f"[ERROR] Failed to run rule prediction: {e}")
+                print(f"[ERROR] Failed to run prediction: {e}")
                 prediction_id = None
 
         await db.commit()
@@ -232,4 +232,6 @@ class ConversationService:
             completed=is_completed,
             symptoms_identified=formatted_symptoms,
             prediction_report=prediction_report,
+            assessment_severity=assessment_severity,
+            recommended_specialists=recommended_specialists,
         )

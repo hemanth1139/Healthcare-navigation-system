@@ -4,7 +4,7 @@ Patient profile models — patient_profiles, allergies, chronic_conditions, medi
 
 import uuid
 from datetime import date, datetime, timezone
-from sqlalchemy import String, Date, DateTime, Integer, Numeric, Text, ForeignKey, UUID
+from sqlalchemy import String, Date, DateTime, Integer, Numeric, Text, ForeignKey, UUID, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -12,6 +12,11 @@ from app.core.database import Base
 
 class PatientProfile(Base):
     __tablename__ = "patient_profiles"
+    __table_args__ = (
+        Index('idx_profile_user_id', 'user_id'),
+        Index('idx_profile_city', 'city'),
+        Index('idx_profile_state', 'state'),
+    )
 
     profile_id: Mapped[uuid.UUID] = mapped_column(
         UUID, primary_key=True, default=uuid.uuid4

@@ -26,7 +26,7 @@ async def test_gemini_404_model_not_found_advances_immediately():
     Verify that encountering a 404 NOT_FOUND advances to the next candidate model
     without wasteful retry loops on the nonexistent model.
     """
-    with patch("app.core.llm._get_api_keys", return_value=["test_api_key_valid"]):
+    with patch("app.core.llm._get_gemini_api_keys", return_value=["test_api_key_valid"]):
         with patch("app.core.llm._invoke_model", new_callable=AsyncMock) as mock_invoke:
             mock_invoke.side_effect = [Exception("404 Model not found"), "Grounded clinical triage advice"]
 
@@ -47,7 +47,7 @@ async def test_gemini_429_quota_exhausted_retries_with_backoff_then_falls_back()
     """
     Verify that 429 quota exhaustion executes bounded backoff and then falls back to secondary model.
     """
-    with patch("app.core.llm._get_api_keys", return_value=["test_api_key_valid"]):
+    with patch("app.core.llm._get_gemini_api_keys", return_value=["test_api_key_valid"]):
         with patch("app.core.llm._invoke_model", new_callable=AsyncMock) as mock_invoke:
             mock_invoke.side_effect = [
                 Exception("429 Quota exhausted for project"),
@@ -73,7 +73,7 @@ async def test_gemini_timeout_advances_to_fallback():
     """
     Verify that network timeout advances to fallback model cleanly.
     """
-    with patch("app.core.llm._get_api_keys", return_value=["test_api_key_valid"]):
+    with patch("app.core.llm._get_gemini_api_keys", return_value=["test_api_key_valid"]):
         with patch("app.core.llm._invoke_model", new_callable=AsyncMock) as mock_invoke:
             mock_invoke.side_effect = [
                 asyncio.TimeoutError("Call timed out"),
@@ -96,7 +96,7 @@ async def test_gemini_key_never_exposed_in_exception():
     Security verification: When all models fail, exception message must never contain API secrets.
     """
     secret_key = "AIzaSySecretGoogleApiKey999"
-    with patch("app.core.llm._get_api_keys", return_value=[secret_key]):
+    with patch("app.core.llm._get_gemini_api_keys", return_value=[secret_key]):
         with patch("app.core.llm._invoke_model", new_callable=AsyncMock) as mock_invoke:
             mock_invoke.side_effect = Exception("503 Service unavailable")
 

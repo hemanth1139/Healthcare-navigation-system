@@ -17,6 +17,7 @@ class HospitalNearbyRequest(BaseModel):
     max_distance_km: Optional[float] = Field(None, alias="maxDistanceKm")
     sort_by: Optional[str] = Field("distance", alias="sortBy")
     max_results: Optional[int] = Field(50, alias="maxResults")
+    demo_only: bool = Field(False, alias="demoOnly")
 
     model_config = {"populate_by_name": True}
 
@@ -33,12 +34,13 @@ class HospitalOut(BaseModel):
     phone: Optional[str] = ""
     website: Optional[str] = None
     google_maps_url: Optional[str] = None
-    hospital_type: str = Field("Private", alias="hospital_type")
+    hospital_type: str = Field("Unknown", alias="hospital_type")
     specialties: List[str] = []
-    has_emergency_room: bool = Field(True, alias="has_emergency_room")
+    has_emergency_room: bool = Field(False, alias="has_emergency_room")
     rating: Optional[float] = None
     distance_km: float = Field(..., alias="distance_km")
     estimated_time: str = Field(..., alias="estimated_time")
+    travel_time_source: str = Field("estimated", alias="travel_time_source")
     opening_hours: Optional[str] = None
     beds: Optional[int] = None
 
@@ -53,7 +55,14 @@ class HospitalOut(BaseModel):
         else:
             specialties = [s.strip() for s in str(specialties_raw).split(",") if s.strip()]
 
-        h_type = data.get("hospital_type") or ("Government" if "government" in data.get("hospital_name", "").lower() or "stanley" in data.get("hospital_name", "").lower() or "kilpauk" in data.get("hospital_name", "").lower() or "aiims" in data.get("hospital_name", "").lower() or "safdarjung" in data.get("hospital_name", "").lower() or "rgggh" in data.get("hospital_name", "").lower() else "Private")
+        h_type = data.get("hospital_type") or (
+            "Government"
+            if any(
+                term in data.get("hospital_name", "").lower()
+                for term in ("government", "stanley", "kilpauk", "aiims", "safdarjung", "rgggh")
+            )
+            else "Unknown"
+        )
 
         lat = float(data["latitude"])
         lng = float(data["longitude"])
@@ -81,10 +90,11 @@ class HospitalOut(BaseModel):
             google_maps_url=maps_url,
             hospital_type=h_type,
             specialties=specialties,
-            has_emergency_room=data.get("has_emergency_room", True),
+            has_emergency_room=data.get("has_emergency_room", False),
             rating=float(data["rating"]) if data.get("rating") else None,
             distance_km=float(data.get("distance_km", 0.0)),
             estimated_time=str(est_time),
+            travel_time_source=data.get("travel_time_source") or "estimated",
             opening_hours=data.get("opening_hours"),
             beds=data.get("beds")
         )

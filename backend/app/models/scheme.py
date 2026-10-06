@@ -4,7 +4,7 @@ Government scheme models — government_schemes, scheme_queries.
 
 import uuid
 from datetime import date, datetime, timezone
-from sqlalchemy import String, Text, Date, DateTime, Numeric, ForeignKey, UUID, JSON
+from sqlalchemy import String, Text, Date, DateTime, Numeric, ForeignKey, UUID, JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -12,6 +12,11 @@ from app.core.database import Base
 
 class GovernmentScheme(Base):
     __tablename__ = "government_schemes"
+    __table_args__ = (
+        Index('idx_scheme_state', 'state'),
+        Index('idx_scheme_category', 'category'),
+        Index('idx_scheme_name', 'scheme_name'),
+    )
 
     scheme_id: Mapped[str] = mapped_column(
         String(100), primary_key=True, default=lambda: f"sch_{uuid.uuid4().hex[:8]}"
@@ -38,6 +43,11 @@ class GovernmentScheme(Base):
 
 class SchemeQuery(Base):
     __tablename__ = "scheme_queries"
+    __table_args__ = (
+        Index('idx_scheme_query_profile_id', 'profile_id'),
+        Index('idx_scheme_query_conversation_id', 'conversation_id'),
+        Index('idx_scheme_query_created_at', 'created_at'),
+    )
 
     query_id: Mapped[uuid.UUID] = mapped_column(
         UUID, primary_key=True, default=uuid.uuid4

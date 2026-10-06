@@ -1,6 +1,8 @@
 """
-Centralized, Resilient Gemini LLM Service with Model Routing and Fallbacks.
-Handles normalized model identifiers, structured error classification (404/429/401/5xx/timeout),
+Centralized LLM Service with Provider Routing.
+Gemini for RAG, scheme queries, and general AI tasks.
+Groq for symptom assessment only (fast, free tier).
+Handles normalized model identifiers, structured error classification,
 bounded exponential backoff, and secure logging with zero API key exposure.
 """
 
@@ -13,19 +15,49 @@ from app.config import settings
 
 logger = logging.getLogger("app.core.llm")
 
+# ─── Groq Configuration (for symptom assessment only) ────────────────────
+# Keep only currently supported Groq models in the fallback roster.
+GROQ_SUPPORTED_MODELS: List[str] = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+]
+
+def get_groq_candidate_models() -> List[str]:
+    configured = getattr(settings, "GROQ_MODEL", "")
+    candidates = []
+    if configured and configured.strip():
+        candidates.append(configured.strip())
+    for m in GROQ_SUPPORTED_MODELS:
+        if m not in candidates:
+            candidates.append(m)
+    return candidates
+
+GROQ_CANDIDATE_MODELS: List[str] = get_groq_candidate_models()
+
+# ─── Gemini Configuration (for RAG, schemes, general AI) ───────────────────
+
 # ─── Normalized Gemini Model Roster ──────────────────────────────────────────
-# Gemini 2.0 and 1.5 IDs were removed from the old fallback list; 2.0 Flash is
-# shut down. Keep the configured model first only when it is in the supported
+# Prioritize high-availability Flash-Lite (low latency, generous capacity) followed by Flash.
 SUPPORTED_MODELS: List[str] = [
-    "gemini-3.5-flash",
+    "gemini-flash-lite-latest",
     "gemini-flash-latest",
     "gemini-3.8-flash",
-    "gemini-3.7-flash",
-    "gemini-2.5-flash",
 ]
-configured_model = getattr(settings, "GEMINI_MODEL", "")
-CANDIDATE_MODELS: List[str] = ([configured_model] if configured_model in SUPPORTED_MODELS else [])
-CANDIDATE_MODELS.extend(model for model in SUPPORTED_MODELS if model not in CANDIDATE_MODELS)
+
+
+def get_candidate_models() -> List[str]:
+    configured = getattr(settings, "GEMINI_MODEL", "")
+    candidates = []
+    if configured and configured.strip() and configured.strip() not in ("gemini-3.5-flash", "gemini-3.7-flash"):
+        candidates.append(configured.strip())
+    for m in SUPPORTED_MODELS:
+        if m not in candidates:
+            candidates.append(m)
+    return candidates
+
+
+CANDIDATE_MODELS: List[str] = get_candidate_models()
+
 
 
 def _content_text(content) -> str:
@@ -109,13 +141,31 @@ def _is_usable_key(k: str) -> bool:
         return False
     clean = k.strip()
     # Reject placeholders like 'your-third-gemini-api-key-here' or '<your-key>'
-    if clean.lower().startswith("your-") or "gemini-api-key" in clean.lower() or len(clean) < 10:
+    if clean.lower().startswith("your-") or "api-key" in clean.lower() or len(clean) < 10:
         return False
     return True
 
 
+# ─── Groq API Keys (for symptom assessment) ────────────────────────────
+def _get_groq_api_keys() -> List[str]:
+    keys = []
+    # Primary key
+    primary = getattr(settings, "GROQ_API_KEY", "") or os.getenv("GROQ_API_KEY", "")
+    if _is_usable_key(primary):
+        keys.append(primary.strip())
+    # Secondary keys for rotation
+    for i in range(2, 6):
+        key = os.getenv(f"GROQ_API_KEY_{i}", "") or getattr(settings, f"GROQ_API_KEY_{i}", "")
+        if _is_usable_key(key) and key.strip() not in keys:
+            keys.append(key.strip())
+    return keys
+
+
+# ─── Gemini API Keys (for RAG, schemes, general AI) ───────────────────
+
+
 # Configured API keys (supports up to 5 keys for rotation to manage free tier quotas)
-def _get_api_keys() -> List[str]:
+def _get_gemini_api_keys() -> List[str]:
     keys = []
     # Primary key
     primary = getattr(settings, "GOOGLE_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "")
@@ -149,71 +199,236 @@ def _classify_error(exc: Exception) -> Tuple[int, str]:
     return 500, "GENERIC_FAILURE"
 
 
-async def invoke_gemini(
+async def _invoke_groq_model(
+    model_name: str,
+    api_key: str,
     messages: List[BaseMessage],
-    feature: str = "general_inference",
+    temperature: float,
+    timeout_seconds: float,
+) -> str:
+    """Send a LangChain message sequence through Groq API."""
+    from groq import AsyncGroq
+    from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+
+    # Convert LangChain messages to Groq format
+    groq_messages = []
+    for message in messages:
+        role = getattr(message, "type", "")
+        content = _content_text(getattr(message, "content", ""))
+        if not content:
+            continue
+        if role == "system":
+            groq_messages.append({"role": "system", "content": content})
+        elif role in ("human", "user"):
+            groq_messages.append({"role": "user", "content": content})
+        elif role in ("ai", "assistant"):
+            groq_messages.append({"role": "assistant", "content": content})
+        else:
+            groq_messages.append({"role": "user", "content": content})
+
+    if not groq_messages:
+        raise ValueError("Groq chat requires at least one message.")
+
+    client = AsyncGroq(api_key=api_key)
+    try:
+        response = await asyncio.wait_for(
+            client.chat.completions.create(
+                model=model_name,
+                messages=groq_messages,
+                temperature=temperature,
+            ),
+            timeout=timeout_seconds
+        )
+        return response.choices[0].message.content.strip()
+    finally:
+        await client.close()
+
+
+async def invoke_groq(
+    messages: List[BaseMessage],
+    feature: str = "symptom_assessment",
     temperature: float = 0.2,
-    timeout_seconds: float = 10.0,
-    max_retries_per_model: int = 1
+    timeout_seconds: float = 12.0,
+    max_retries_per_model: int = 1,
+    overall_timeout_seconds: float = 25.0,
 ) -> str:
     """
-    Invokes Gemini through the centralized Model Router with bounded retry,
-    exponential backoff, and automatic fallback.
-    Never exposes API keys in logs or responses.
+    Invokes Groq through the centralized Model Router with resilient timeout.
+    Used for symptom assessment only.
     """
-    api_keys = _get_api_keys()
+    api_keys = _get_groq_api_keys()
     if not api_keys:
-        raise ValueError("No Gemini API key configured in backend environment.")
+        raise ValueError("No Groq API key configured in backend environment.")
 
     last_exception = None
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + max(0.0, overall_timeout_seconds)
 
-    for key_idx, active_key in enumerate(api_keys):
-        key_auth_failed = False
-        for model_name in CANDIDATE_MODELS:
-            if key_auth_failed:
-                break
+    for model_name in GROQ_CANDIDATE_MODELS:
+        for key_idx, active_key in enumerate(api_keys):
             for attempt in range(1, max_retries_per_model + 1):
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    last_exception = asyncio.TimeoutError("Groq total time budget exhausted.")
+                    break
                 try:
-                    cleaned = await _invoke_model(
-                        model_name, active_key, messages, temperature, timeout_seconds
+                    cleaned = await _invoke_groq_model(
+                        model_name,
+                        active_key,
+                        messages,
+                        temperature,
+                        min(timeout_seconds, remaining),
                     )
                     if cleaned:
+                        logger.info(
+                            "[GROQ ROTATOR] feature=%s model=%s key_slot=%d action=success",
+                            feature,
+                            model_name,
+                            key_idx + 1,
+                        )
                         return cleaned
+                    logger.warning(
+                        "[GROQ ROTATOR] feature=%s model=%s key_slot=%d action=empty_response",
+                        feature,
+                        model_name,
+                        key_idx + 1,
+                    )
 
                 except Exception as exc:
                     last_exception = exc
                     status, reason = _classify_error(exc)
 
-                    # 404 MODEL_NOT_FOUND: Do not retry same model, advance to next model immediately
-                    if status == 404:
+                    # 404, 401: fatal for this model/key, immediately try next
+                    if status in (404, 401):
                         logger.warning(
-                            "[LLM ROTATOR] feature=%s model=%s status=%d reason=%s attempt=%d action=advance_next_model",
-                            feature, model_name, status, reason, attempt
+                            "[GROQ ROTATOR] feature=%s model=%s key_slot=%d status=%d reason=%s action=fast_failover_next_credential",
+                            feature, model_name, key_idx + 1, status, reason
                         )
                         break
 
-                    # 401 AUTH_FAILURE: Move to next key or abort immediately
-                    if status == 401:
-                        logger.error(
-                            "[LLM ROTATOR] feature=%s model=%s status=%d reason=%s attempt=%d action=switch_credential",
-                            feature, model_name, status, reason, attempt
+                    # If multiple keys exist and we got 429 or 503, fail over to next key slot immediately
+                    if status in (429, 503) and len(api_keys) > 1 and key_idx < len(api_keys) - 1:
+                        logger.warning(
+                            "[GROQ ROTATOR] feature=%s model=%s key_slot=%d status=%d reason=%s action=fast_failover_next_credential",
+                            feature, model_name, key_idx + 1, status, reason
                         )
-                        key_auth_failed = True
                         break
 
-                    # 429 RESOURCE_EXHAUSTED / 503 SERVER_ERROR / 408 TIMEOUT
+                    # 408 TIMEOUT / 429 / 503 on single or last key: retry with backoff if attempts remain
                     if attempt < max_retries_per_model:
-                        backoff = min(1.0, 0.3 * (2 ** (attempt - 1)))
+                        backoff = min(0.5, 0.2 * (2 ** (attempt - 1)))
                         logger.warning(
-                            "[LLM ROTATOR] feature=%s model=%s status=%d reason=%s attempt=%d action=retry_with_backoff delay=%.2fs",
-                            feature, model_name, status, reason, attempt, backoff
+                            "[GROQ ROTATOR] feature=%s model=%s key_slot=%d status=%d reason=%s attempt=%d action=retry_with_backoff delay=%.2fs",
+                            feature, model_name, key_idx + 1, status, reason, attempt, backoff
                         )
                         await asyncio.sleep(backoff)
                     else:
                         logger.warning(
-                            "[LLM ROTATOR] feature=%s model=%s status=%d reason=%s attempt=%d action=advance_fallback_model",
-                            feature, model_name, status, reason, attempt
+                            "[GROQ ROTATOR] feature=%s model=%s key_slot=%d status=%d reason=%s attempt=%d action=try_next_credential",
+                            feature, model_name, key_idx + 1, status, reason, attempt
                         )
 
-    # If all models exhausted, raise the classified exception
+            if loop.time() >= deadline:
+                break
+        if loop.time() >= deadline:
+            break
+
+    raise last_exception if last_exception else RuntimeError("All configured Groq models and fallbacks failed.")
+
+
+async def invoke_gemini(
+    messages: List[BaseMessage],
+    feature: str = "general_inference",
+    temperature: float = 0.2,
+    timeout_seconds: float = 12.0,
+    max_retries_per_model: int = 1,
+    overall_timeout_seconds: float = 25.0,
+) -> str:
+    """
+    Invokes Gemini through the centralized Model Router with a resilient 12-second
+    per-request timeout and a 25-second total budget across models and keys.
+    Used for RAG, scheme queries, and general AI tasks.
+    Never exposes API keys in logs or responses.
+    """
+    api_keys = _get_gemini_api_keys()
+    if not api_keys:
+        raise ValueError("No Gemini API key configured in backend environment.")
+
+    last_exception = None
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + max(0.0, overall_timeout_seconds)
+
+    # Try the same model with each credential before moving to a slower
+    # fallback model. This lets a healthy secondary key recover quickly.
+    for model_name in CANDIDATE_MODELS:
+        for key_idx, active_key in enumerate(api_keys):
+            for attempt in range(1, max_retries_per_model + 1):
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    last_exception = asyncio.TimeoutError("Gemini total time budget exhausted.")
+                    break
+                try:
+                    cleaned = await _invoke_model(
+                        model_name,
+                        active_key,
+                        messages,
+                        temperature,
+                        min(timeout_seconds, remaining),
+                    )
+                    if cleaned:
+                        logger.info(
+                            "[LLM ROTATOR] feature=%s model=%s key_slot=%d action=success",
+                            feature,
+                            model_name,
+                            key_idx + 1,
+                        )
+                        return cleaned
+                    logger.warning(
+                        "[LLM ROTATOR] feature=%s model=%s key_slot=%d action=empty_response",
+                        feature,
+                        model_name,
+                        key_idx + 1,
+                    )
+
+                except Exception as exc:
+                    last_exception = exc
+                    status, reason = _classify_error(exc)
+
+                    # 404, 401: fatal for this model/key, immediately try next
+                    if status in (404, 401):
+                        logger.warning(
+                            "[LLM ROTATOR] feature=%s model=%s key_slot=%d status=%d reason=%s action=fast_failover_next_credential",
+                            feature, model_name, key_idx + 1, status, reason
+                        )
+                        break
+
+                    # If multiple keys exist and we got 429 or 503, fail over to next key slot immediately
+                    if status in (429, 503) and len(api_keys) > 1 and key_idx < len(api_keys) - 1:
+                        logger.warning(
+                            "[LLM ROTATOR] feature=%s model=%s key_slot=%d status=%d reason=%s action=fast_failover_next_credential",
+                            feature, model_name, key_idx + 1, status, reason
+                        )
+                        break
+
+                    # 408 TIMEOUT / 429 / 503 on single or last key: retry with backoff if attempts remain
+                    if attempt < max_retries_per_model:
+                        backoff = min(0.5, 0.2 * (2 ** (attempt - 1)))
+                        logger.warning(
+                            "[LLM ROTATOR] feature=%s model=%s key_slot=%d status=%d reason=%s attempt=%d action=retry_with_backoff delay=%.2fs",
+                            feature, model_name, key_idx + 1, status, reason, attempt, backoff
+                        )
+                        await asyncio.sleep(backoff)
+                    else:
+                        logger.warning(
+                            "[LLM ROTATOR] feature=%s model=%s key_slot=%d status=%d reason=%s attempt=%d action=try_next_credential",
+                            feature, model_name, key_idx + 1, status, reason, attempt
+                        )
+
+            if loop.time() >= deadline:
+                break
+        if loop.time() >= deadline:
+            break
+
+    # If all models/keys or the total time budget are exhausted, let the caller
+    # choose its safe fallback.
     raise last_exception if last_exception else RuntimeError("All configured Gemini models and fallbacks failed.")

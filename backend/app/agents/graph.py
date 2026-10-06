@@ -23,6 +23,9 @@ class AgentState(TypedDict):
     # Follow-up question properties
     question: Optional[str]
     options: Optional[List[Dict[str, str]]]
+    severity: Optional[str]
+    specialists: List[str]
+    message: Optional[str]
 
 
 # ─── Node Implementations ────────────────────────────────────────────────────
@@ -39,6 +42,9 @@ async def triage_node(state: AgentState) -> Dict[str, Any]:
         "symptoms": result["symptoms"],
         "question": result.get("question"),
         "options": result.get("options"),
+        "severity": result.get("severity"),
+        "specialists": result.get("specialists", []),
+        "message": result.get("message"),
     }
 
 
@@ -67,6 +73,9 @@ async def execute_triage(
         "symptoms": [],
         "question": None,
         "options": None,
+        "severity": None,
+        "specialists": [],
+        "message": None,
     }
     final_state = await triage_graph.ainvoke(initial_state)
     return final_state

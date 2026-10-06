@@ -4,8 +4,8 @@ Hospital Recommendation API router — /api/v1/hospitals/*
 
 from uuid import UUID
 from fastapi import APIRouter
-from typing import List
-from pydantic import BaseModel
+from typing import List, Literal
+from pydantic import BaseModel, Field
 
 from app.dependencies import DBSession, CurrentUser
 from app.schemas.hospital import HospitalNearbyRequest, HospitalOut, HospitalSearchResponse
@@ -20,11 +20,11 @@ class GeocodeRequest(BaseModel):
 
 
 class RouteRequest(BaseModel):
-    start_lat: float
-    start_lon: float
-    end_lat: float
-    end_lon: float
-    profile: str = "driving"  # driving, cycling, walking
+    start_lat: float = Field(ge=-90, le=90)
+    start_lon: float = Field(ge=-180, le=180)
+    end_lat: float = Field(ge=-90, le=90)
+    end_lon: float = Field(ge=-180, le=180)
+    profile: Literal["driving"] = "driving"
 
 
 @router.post("/nearby", response_model=HospitalSearchResponse)
@@ -57,6 +57,8 @@ async def get_hospital_by_id(
         "hospital_type": hosp.hospital_type,
         "specialties": [s.strip() for s in hosp.specialties.split(",")] if hosp.specialties else [],
         "has_emergency_room": hosp.has_emergency_room,
+        "opening_hours": hosp.opening_hours,
+        "beds": hosp.beds,
     }
 
 

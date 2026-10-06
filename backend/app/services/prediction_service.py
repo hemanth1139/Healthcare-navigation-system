@@ -1,8 +1,7 @@
 """
-Rule-Based Prediction Service.
-Triggered when a triage conversation concludes or encounters an emergency.
-Runs the authoritative rule-based disease predictor, saves results to the database idempotently,
-and returns a structured prediction report.
+Prediction Service.
+Stores AI-based assessment results from triage conversations.
+Rule-based prediction has been disabled in favor of AI-only assessment.
 """
 
 import json
@@ -20,11 +19,6 @@ from app.models.prediction import (
     SpecialistRecommendation,
 )
 from app.models.profile import PatientProfile
-from app.ml.rule_based_predictor import (
-    predict_disease_generative,
-    normalize_symptom_list,
-    format_symptom_title,
-)
 from app.core.exceptions import NotFoundError
 
 
@@ -38,7 +32,7 @@ async def _get_profile(db: AsyncSession, user: User) -> PatientProfile:
     return profile
 
 
-class RuleBasedPredictionService:
+class PredictionService:
 
     @staticmethod
     async def run_prediction(
@@ -47,10 +41,13 @@ class RuleBasedPredictionService:
         conversation_id: uuid.UUID,
         symptoms: List[str],
         cumulative_metadata: Optional[Dict[str, Any]] = None,
+        assessment_severity: Optional[str] = None,
+        specialists: Optional[List[str]] = None,
+        assessment_message: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Runs deterministic clinical rule prediction on symptoms with Gemini narrative context.
-        Saves DiseasePrediction, SeverityAssessment, and SpecialistRecommendation idempotently.
+        Stores AI-based assessment results from triage conversation.
+        Rule-based prediction has been disabled.
         """
         profile = await _get_profile(db, user)
 
@@ -70,14 +67,7 @@ class RuleBasedPredictionService:
         ctx = await ProfileService.get_patient_context(db, user.user_id)
         patient_context_summary = ctx.get("context_summary", "")
 
-        # 1. Run Generative AI prediction (strictly bounded by deterministic Python Rule Engine)
-        prediction_result = await predict_disease_generative(
-            symptoms=symptoms,
-            patient_context_summary=patient_context_summary,
-            cumulative_data=cumulative_metadata,
-        )
-
-        # 2. Check if a prediction already exists for this conversation (Idempotency)
+        # Check if a prediction already exists for this conversation (Idempotency)
         existing_pred_res = await db.execute(
             select(DiseasePrediction)
             .where(DiseasePrediction.conversation_id == conversation_id)
@@ -88,292 +78,211 @@ class RuleBasedPredictionService:
         )
         disease_pred = existing_pred_res.scalar_one_or_none()
 
+        # Format symptoms
+        from app.ml.rule_based_predictor import normalize_symptom_list, format_symptom_title
         canonical_list = normalize_symptom_list(symptoms)
         primary_sym = cumulative_metadata.get("primary_symptom") if cumulative_metadata else (
             format_symptom_title(canonical_list[0]) if canonical_list else "General Discomfort"
-        )
-        associated_syms = cumulative_metadata.get("associated_symptoms") if cumulative_metadata else (
-            [format_symptom_title(s) for s in canonical_list[1:]] if len(canonical_list) > 1 else []
         )
         formatted_list = cumulative_metadata.get("formatted_symptoms") if cumulative_metadata else (
             [format_symptom_title(s) for s in canonical_list]
         )
 
-        positive_findings = prediction_result.get("positive_findings", formatted_list)
-        negative_findings = prediction_result.get("negative_findings", [])
-        unknown_findings = prediction_result.get("unknown_findings", [])
-        limitations = prediction_result.get("limitations", [])
-        original_complaint = prediction_result.get("original_complaint", "")
-        qa_history = prediction_result.get("qa_history", [])
-        disclaimer = prediction_result.get("disclaimer", "")
-        recommended_action = prediction_result.get("recommended_action", "")
-
-        differential_json = json.dumps(prediction_result.get("differential", []))
-        symptom_vector_json = json.dumps({
-            "primary_symptom": primary_sym,
-            "associated_symptoms": associated_syms,
-            "raw_symptoms": symptoms,
-            "canonical_symptoms": canonical_list,
-            "formatted_symptoms": formatted_list,
-            "triggered_rules": prediction_result.get("triggered_rules", []),
-            "positive_findings": positive_findings,
-            "negative_findings": negative_findings,
-            "unknown_findings": unknown_findings,
-            "limitations": limitations,
-            "original_complaint": original_complaint,
-            "qa_history": qa_history,
-            "disclaimer": disclaimer,
-            "recommended_action": recommended_action,
-        })
-
-        if disease_pred:
-            # Safe Update: Preserve existing valid values if new extraction is incomplete
-            if prediction_result.get("predicted_disease"):
-                disease_pred.predicted_disease = prediction_result["predicted_disease"]
-            if prediction_result.get("confidence_score") is not None and prediction_result["confidence_score"] > 0:
-                disease_pred.confidence_score = prediction_result["confidence_score"]
-            if prediction_result.get("differential"):
-                disease_pred.differential_diagnoses = differential_json
-            if prediction_result.get("prediction_model"):
-                disease_pred.prediction_model = prediction_result["prediction_model"]
-            if canonical_list:
-                disease_pred.symptom_vector = symptom_vector_json
-
-            # Check existing severity
-            sev_res = await db.execute(
-                select(SeverityAssessment).where(SeverityAssessment.prediction_id == disease_pred.prediction_id)
-            )
-            severity = sev_res.scalar_one_or_none()
-            if severity:
-                if prediction_result.get("severity"):
-                    severity.severity = prediction_result["severity"]
-                if prediction_result.get("urgency_level"):
-                    severity.urgency_level = prediction_result["urgency_level"]
-                if "emergency_flag" in prediction_result:
-                    severity.emergency_flag = prediction_result["emergency_flag"]
-                if prediction_result.get("explanation"):
-                    severity.explanation = prediction_result["explanation"]
-            else:
-                severity = SeverityAssessment(
-                    prediction_id=disease_pred.prediction_id,
-                    severity=prediction_result.get("severity", "routine"),
-                    urgency_level=prediction_result.get("urgency_level", "Routine Assessment"),
-                    emergency_flag=prediction_result.get("emergency_flag", False),
-                    explanation=prediction_result.get("explanation", ""),
-                )
-                db.add(severity)
-
-            # Check existing specialist
-            spec_res = await db.execute(
-                select(SpecialistRecommendation).where(SpecialistRecommendation.prediction_id == disease_pred.prediction_id)
-            )
-            specialist = spec_res.scalar_one_or_none()
-            if specialist:
-                if prediction_result.get("specialist"):
-                    specialist.specialist = prediction_result["specialist"]
-                if prediction_result.get("explanation"):
-                    specialist.reason = prediction_result["explanation"]
-            else:
-                specialist = SpecialistRecommendation(
-                    prediction_id=disease_pred.prediction_id,
-                    specialist=prediction_result.get("specialist", "General Physician"),
-                    reason=prediction_result.get("explanation", ""),
-                )
-                db.add(specialist)
-        else:
+        # Create or update prediction with AI assessment data
+        if not disease_pred:
             disease_pred = DiseasePrediction(
                 conversation_id=conversation_id,
-                predicted_disease=prediction_result["predicted_disease"],
-                confidence_score=prediction_result["confidence_score"],
-                differential_diagnoses=differential_json,
-                prediction_model=prediction_result["prediction_model"],
-                symptom_vector=symptom_vector_json,
+                predicted_disease="AI Symptom Assessment",
+                confidence_score=0.0,
+                prediction_model="AI_Triage_Agent",
+                symptom_vector=json.dumps({
+                    "primary_symptom": primary_sym,
+                    "associated_symptoms": formatted_list[1:] if len(formatted_list) > 1 else [],
+                    "raw_symptoms": symptoms,
+                    "canonical_symptoms": canonical_list,
+                    "formatted_symptoms": formatted_list,
+                    "triggered_rules": [],
+                    "note": "Rule-based prediction disabled - using AI assessment only"
+                }),
+                differential_diagnoses=json.dumps([]),
             )
             db.add(disease_pred)
             await db.flush()
+        else:
+            # Update existing prediction
+            disease_pred.symptom_vector = json.dumps({
+                "primary_symptom": primary_sym,
+                "associated_symptoms": formatted_list[1:] if len(formatted_list) > 1 else [],
+                "raw_symptoms": symptoms,
+                "canonical_symptoms": canonical_list,
+                "formatted_symptoms": formatted_list,
+                "triggered_rules": [],
+                "note": "Rule-based prediction disabled - using AI assessment only"
+            })
 
+        severity_map = {
+            "mild": ("low", "Routine / self-care with follow-up"),
+            "moderate": ("moderate", "See a doctor within 1 to 3 days"),
+            "severe": ("high", "Prompt medical evaluation today"),
+            "emergency": ("emergency", "Emergency care now - call 112 or 108"),
+        }
+        severity_value, urgency_label = severity_map.get(
+            assessment_severity or "", ("routine", "Routine Assessment")
+        )
+        emergency_flag = severity_value == "emergency"
+        severity_explanation = assessment_message or (
+            "AI-based symptom assessment completed. Please consult a healthcare provider for proper evaluation."
+        )
+
+        # Create or update severity assessment
+        sev_res = await db.execute(
+            select(SeverityAssessment).where(SeverityAssessment.prediction_id == disease_pred.prediction_id)
+        )
+        severity = sev_res.scalar_one_or_none()
+
+        if not severity:
             severity = SeverityAssessment(
                 prediction_id=disease_pred.prediction_id,
-                severity=prediction_result["severity"],
-                urgency_level=prediction_result["urgency_level"],
-                emergency_flag=prediction_result["emergency_flag"],
-                explanation=prediction_result["explanation"],
+                severity=severity_value,
+                urgency_level=urgency_label,
+                emergency_flag=emergency_flag,
+                explanation=severity_explanation,
             )
             db.add(severity)
+        else:
+            severity.severity = severity_value
+            severity.urgency_level = urgency_label
+            severity.emergency_flag = emergency_flag
+            severity.explanation = severity_explanation
 
+        # Create or update specialist recommendation
+        spec_res = await db.execute(
+            select(SpecialistRecommendation).where(SpecialistRecommendation.prediction_id == disease_pred.prediction_id)
+        )
+        specialist = spec_res.scalar_one_or_none()
+
+        specialist_names = [str(name).strip() for name in (specialists or []) if str(name).strip()]
+        specialist_name = ", ".join(specialist_names[:3]) or (
+            "Emergency Department" if emergency_flag else "General Physician"
+        )
+        specialist_reason = assessment_message or (
+            "A General Physician can assess your symptoms and refer you to a specialist if needed."
+        )
+
+        if not specialist:
             specialist = SpecialistRecommendation(
                 prediction_id=disease_pred.prediction_id,
-                specialist=prediction_result["specialist"],
-                reason=prediction_result["explanation"],
+                specialist=specialist_name,
+                reason=specialist_reason,
             )
             db.add(specialist)
+        else:
+            specialist.specialist = specialist_name
+            specialist.reason = specialist_reason
 
-        await db.flush()
+        await db.commit()
 
-        # 5. Return structured report
         return {
             "prediction_id": str(disease_pred.prediction_id),
-            "conversation_id": str(conversation_id),
-            "predicted_disease": prediction_result["predicted_disease"],
-            "confidence_score": prediction_result["confidence_score"],
-            "prediction_model": prediction_result["prediction_model"],
-            "differential": prediction_result["differential"],
-            "triggered_rules": prediction_result["triggered_rules"],
+            "predicted_disease": disease_pred.predicted_disease,
+            "confidence_score": disease_pred.confidence_score,
+            "symptoms_used": formatted_list,
+            "triggered_rules": [],
             "severity": {
-                "assessment_id": str(severity.assessment_id),
-                "severity": prediction_result["severity"],
-                "urgency_level": prediction_result["urgency_level"],
-                "emergency_flag": prediction_result["emergency_flag"],
-                "explanation": prediction_result["explanation"],
+                "severity": severity.severity,
+                "urgency_level": severity.urgency_level,
+                "emergency_flag": severity.emergency_flag,
+                "explanation": severity.explanation,
             },
             "specialist": {
-                "recommendation_id": str(specialist.recommendation_id),
-                "specialist": prediction_result["specialist"],
-                "reason": prediction_result["explanation"],
+                "specialist": specialist.specialist,
+                "reason": specialist.reason,
             },
-            "primary_symptom": primary_sym,
-            "associated_symptoms": associated_syms,
-            "symptoms_used": formatted_list,
-            "positive_findings": positive_findings,
-            "negative_findings": negative_findings,
-            "unknown_findings": unknown_findings,
-            "limitations": limitations,
-            "original_complaint": original_complaint,
-            "qa_history": qa_history,
-            "disclaimer": disclaimer,
-            "recommended_action": recommended_action,
         }
 
     @staticmethod
     async def get_prediction_by_conversation(
         db: AsyncSession,
         user: User,
-        conversation_id: uuid.UUID | None = None,
-        target_id: uuid.UUID | None = None,
-    ) -> Dict[str, Any] | None:
-        """
-        Retrieves the stored prediction report by conversation_id or prediction_id.
-        Returns None if no prediction exists yet.
-        """
-        lookup_id = conversation_id or target_id
-        if not lookup_id:
-            return None
-
+        conversation_id: uuid.UUID,
+    ) -> Optional[Dict[str, Any]]:
+        """Retrieve prediction by conversation ID."""
         profile = await _get_profile(db, user)
 
-        pred_result = await db.execute(
+        result = await db.execute(
             select(DiseasePrediction)
-            .join(Conversation)
             .where(
-                (DiseasePrediction.conversation_id == lookup_id) | (DiseasePrediction.prediction_id == lookup_id),
+                DiseasePrediction.conversation_id == conversation_id,
+            )
+            .options(
+                selectinload(DiseasePrediction.severity_assessment),
+                selectinload(DiseasePrediction.specialist_recommendation),
+            )
+        )
+        pred = result.scalar_one_or_none()
+
+        if not pred:
+            return None
+
+        return {
+            "prediction_id": str(pred.prediction_id),
+            "predicted_disease": pred.predicted_disease,
+            "confidence_score": pred.confidence_score,
+            "symptoms_used": json.loads(pred.symptom_vector).get("formatted_symptoms", []),
+            "triggered_rules": json.loads(pred.symptom_vector).get("triggered_rules", []),
+            "severity": {
+                "severity": pred.severity_assessment.severity if pred.severity_assessment else "routine",
+                "urgency_level": pred.severity_assessment.urgency_level if pred.severity_assessment else "Routine Assessment",
+                "emergency_flag": pred.severity_assessment.emergency_flag if pred.severity_assessment else False,
+                "explanation": pred.severity_assessment.explanation if pred.severity_assessment else "",
+            },
+            "specialist": {
+                "specialist": pred.specialist_recommendation.specialist if pred.specialist_recommendation else "",
+                "reason": pred.specialist_recommendation.reason if pred.specialist_recommendation else "",
+            },
+        }
+
+    @staticmethod
+    async def get_prediction_by_id(
+        db: AsyncSession,
+        user: User,
+        prediction_id: uuid.UUID,
+    ) -> Optional[Dict[str, Any]]:
+        """Retrieve prediction by prediction_id with user ownership verification."""
+        profile = await _get_profile(db, user)
+
+        # Join with conversation to verify user ownership
+        result = await db.execute(
+            select(DiseasePrediction)
+            .join(Conversation, DiseasePrediction.conversation_id == Conversation.conversation_id)
+            .where(
+                DiseasePrediction.prediction_id == prediction_id,
                 Conversation.profile_id == profile.profile_id,
             )
             .options(
                 selectinload(DiseasePrediction.severity_assessment),
                 selectinload(DiseasePrediction.specialist_recommendation),
             )
-            .order_by(DiseasePrediction.predicted_at.desc())
-            .limit(1)
         )
-        pred = pred_result.scalar_one_or_none()
+        pred = result.scalar_one_or_none()
 
         if not pred:
-            # Check if conversation exists and has messages with symptoms
-            conv_res = await db.execute(
-                select(Conversation).where(
-                    Conversation.conversation_id == lookup_id,
-                    Conversation.profile_id == profile.profile_id
-                ).options(selectinload(Conversation.messages))
-            )
-            conv = conv_res.scalar_one_or_none()
-            if conv and conv.messages:
-                from app.ml.rule_based_predictor import extract_cumulative_symptoms
-                history = [{"sender": m.sender, "content": m.message} for m in conv.messages]
-                cum_data = extract_cumulative_symptoms(history)
-                if cum_data.get("all_symptoms"):
-                    return await RuleBasedPredictionService.run_prediction(
-                        db=db,
-                        user=user,
-                        conversation_id=conv.conversation_id,
-                        symptoms=cum_data["all_symptoms"],
-                        cumulative_metadata=cum_data,
-                    )
             return None
-
-        differential = []
-        if pred.differential_diagnoses:
-            try:
-                differential = json.loads(pred.differential_diagnoses)
-            except Exception:
-                differential = []
-
-        symptoms_used = []
-        triggered_rules = []
-        positive_findings = []
-        negative_findings = []
-        unknown_findings = []
-        limitations = []
-        original_complaint = ""
-        qa_history = []
-        disclaimer = ""
-        recommended_action = ""
-        primary_sym = "General Assessment"
-        associated_syms = []
-
-        if pred.symptom_vector:
-            try:
-                vector_data = json.loads(pred.symptom_vector)
-                if isinstance(vector_data, dict):
-                    primary_sym = vector_data.get("primary_symptom", "General Assessment")
-                    associated_syms = vector_data.get("associated_symptoms", [])
-                    symptoms_used = vector_data.get("formatted_symptoms") or vector_data.get("raw_symptoms", [])
-                    triggered_rules = vector_data.get("triggered_rules", [])
-                    positive_findings = vector_data.get("positive_findings", symptoms_used)
-                    negative_findings = vector_data.get("negative_findings", [])
-                    unknown_findings = vector_data.get("unknown_findings", [])
-                    limitations = vector_data.get("limitations", [])
-                    original_complaint = vector_data.get("original_complaint", "")
-                    qa_history = vector_data.get("qa_history", [])
-                    disclaimer = vector_data.get("disclaimer", "")
-                    recommended_action = vector_data.get("recommended_action", "")
-                elif isinstance(vector_data, list):
-                    symptoms_used = [format_symptom_title(s) for s in vector_data]
-                    primary_sym = symptoms_used[0] if symptoms_used else "General Assessment"
-                    associated_syms = symptoms_used[1:] if len(symptoms_used) > 1 else []
-                    positive_findings = symptoms_used
-            except Exception:
-                symptoms_used = []
 
         return {
             "prediction_id": str(pred.prediction_id),
-            "conversation_id": str(pred.conversation_id),
             "predicted_disease": pred.predicted_disease,
-            "confidence_score": float(pred.confidence_score),
-            "prediction_model": pred.prediction_model,
-            "differential": differential,
-            "triggered_rules": triggered_rules,
+            "confidence_score": pred.confidence_score,
+            "symptoms_used": json.loads(pred.symptom_vector).get("formatted_symptoms", []),
+            "triggered_rules": json.loads(pred.symptom_vector).get("triggered_rules", []),
             "severity": {
-                "assessment_id": str(pred.severity_assessment.assessment_id) if pred.severity_assessment else None,
                 "severity": pred.severity_assessment.severity if pred.severity_assessment else "routine",
-                "urgency_level": pred.severity_assessment.urgency_level if pred.severity_assessment else "ROUTINE",
+                "urgency_level": pred.severity_assessment.urgency_level if pred.severity_assessment else "Routine Assessment",
                 "emergency_flag": pred.severity_assessment.emergency_flag if pred.severity_assessment else False,
                 "explanation": pred.severity_assessment.explanation if pred.severity_assessment else "",
             },
             "specialist": {
-                "recommendation_id": str(pred.specialist_recommendation.recommendation_id) if pred.specialist_recommendation else None,
-                "specialist": pred.specialist_recommendation.specialist if pred.specialist_recommendation else "General Physician",
+                "specialist": pred.specialist_recommendation.specialist if pred.specialist_recommendation else "",
                 "reason": pred.specialist_recommendation.reason if pred.specialist_recommendation else "",
             },
-            "primary_symptom": primary_sym,
-            "associated_symptoms": associated_syms,
-            "symptoms_used": symptoms_used,
-            "positive_findings": positive_findings,
-            "negative_findings": negative_findings,
-            "unknown_findings": unknown_findings,
-            "limitations": limitations,
-            "original_complaint": original_complaint,
-            "qa_history": qa_history,
-            "disclaimer": disclaimer,
-            "recommended_action": recommended_action,
-            "predicted_at": pred.predicted_at.isoformat(),
         }

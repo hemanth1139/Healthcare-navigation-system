@@ -9,6 +9,7 @@ from datetime import date, datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, desc, cast, String
 from typing import List, Optional, Dict, Any
+from app.core.cache import rag_cache
 
 logger = logging.getLogger("app.services.scheme_service")
 
@@ -141,6 +142,13 @@ class SchemeService:
         search_query: Optional[str] = None
     ) -> List[GovernmentSchemeOut]:
         """List available government healthcare schemes with optional category & keyword filtering."""
+        # Generate cache key
+        cache_key = f"schemes_list:{category_filter or 'all'}:{search_query or 'none'}"
+        cached = rag_cache.get(cache_key)
+        if cached:
+            logger.info("[SchemeService] Cache hit for schemes list")
+            return cached
+        
         query = select(GovernmentScheme).order_by(GovernmentScheme.scheme_name.asc())
 
         if category_filter and category_filter != "All":
@@ -236,7 +244,12 @@ class SchemeService:
 
         result = await db.execute(query)
         schemes = result.scalars().all()
-        return [GovernmentSchemeOut.from_orm(s) for s in schemes]
+        result_list = [GovernmentSchemeOut.from_orm(s) for s in schemes]
+        
+        # Cache result for 5 minutes (300 seconds)
+        rag_cache.set(cache_key, result_list, ttl_seconds=300)
+        
+        return result_list
 
     @staticmethod
     async def get_scheme_by_id(db: AsyncSession, scheme_id: str) -> GovernmentScheme:

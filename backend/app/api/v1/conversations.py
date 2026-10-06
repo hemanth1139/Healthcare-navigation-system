@@ -12,7 +12,7 @@ from app.schemas.conversation import (
     ConversationCreateRequest, ConversationOut, MessageCreateRequest, MessageOut,
 )
 from app.services.conversation_service import ConversationService
-from app.services.prediction_service import RuleBasedPredictionService
+from app.services.prediction_service import PredictionService
 from app.services.profile_service import ProfileService
 from app.core.exceptions import NotFoundError
 
@@ -60,7 +60,7 @@ async def get_conversation_structured_symptoms(
     conversation_id: UUID, db: DBSession, current_user: CurrentUser
 ):
     """Get the structured normalized symptom vector extracted from this conversation."""
-    pred = await RuleBasedPredictionService.get_prediction_by_conversation(
+    pred = await PredictionService.get_prediction_by_conversation(
         db, current_user, conversation_id=conversation_id
     )
     if not pred:
@@ -77,8 +77,8 @@ async def get_conversation_structured_symptoms(
 async def get_conversation_severity(
     conversation_id: UUID, db: DBSession, current_user: CurrentUser
 ):
-    """Get the deterministic clinical severity and urgency assessment."""
-    pred = await RuleBasedPredictionService.get_prediction_by_conversation(
+    """Get the clinical severity and urgency assessment."""
+    pred = await PredictionService.get_prediction_by_conversation(
         db, current_user, conversation_id=conversation_id
     )
     if not pred or not pred.get("severity"):
@@ -91,7 +91,7 @@ async def get_conversation_specialist(
     conversation_id: UUID, db: DBSession, current_user: CurrentUser
 ):
     """Get the recommended medical specialist mapping for this conversation."""
-    pred = await RuleBasedPredictionService.get_prediction_by_conversation(
+    pred = await PredictionService.get_prediction_by_conversation(
         db, current_user, conversation_id=conversation_id
     )
     if not pred or not pred.get("specialist"):

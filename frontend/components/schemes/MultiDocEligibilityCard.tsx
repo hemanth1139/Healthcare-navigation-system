@@ -570,9 +570,9 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
 
   const matchPercentage =
     result.match_percentage !== undefined && result.match_percentage !== null
-      ? result.match_percentage
+      ? Math.min(result.match_percentage, 100)
       : passCount + failCount + unknownCount > 0
-      ? Math.round((passCount / (passCount + failCount + unknownCount)) * 100)
+      ? Math.min(Math.round((passCount / (passCount + failCount + unknownCount)) * 100), 100)
       : null;
 
   const explanationText = result.overall_explanation || flexResult.overallExplanation || "";
@@ -740,7 +740,7 @@ export const MultiDocEligibilityCard: React.FC<MultiDocEligibilityCardProps> = (
               const sId = String(source.scheme_id || fsource.schemeId || `s_${idx}`);
               const sName = source.scheme_name || fsource.schemeName || source.document_title || fsource.documentTitle || "Healthcare Scheme";
               const sGov = String(source.government_level || fsource.governmentLevel || (sId.includes("TN") ? "Tamil Nadu" : "Central Government"));
-              const sMatch = source.match_percentage ?? fsource.matchPercentage ?? (source.relevance_score ? Math.round(source.relevance_score * 100) : 100);
+              const sMatch = Math.min((source.match_percentage ?? fsource.matchPercentage ?? 100), 100);
               const sRelevance = source.relevance_score ?? fsource.relevanceScore ?? sMatch;
               const sCoverage = source.coverage_amount || fsource.coverageAmount || "Per official guidelines";
               const sUrl = source.official_url || fsource.officialUrl;
