@@ -82,6 +82,8 @@ next-env.d.ts
 
 # SQLite & Uploaded Media
 *.db
+*.db-shm
+*.db-wal
 *.sqlite3
 *.bak
 backend/app/uploads/*
