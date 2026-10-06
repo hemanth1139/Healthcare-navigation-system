@@ -17,38 +17,26 @@ export interface LocationSelectorModalProps {
 
 const TAMIL_NADU_DISTRICTS = [
   "Chennai, Tamil Nadu",
-  "Coimbatore, Tamil Nadu",
-  "Madurai, Tamil Nadu",
-  "Tiruchirappalli, Tamil Nadu",
-  "Salem, Tamil Nadu",
-  "Tirunelveli, Tamil Nadu",
-  "Vellore, Tamil Nadu",
-  "Erode, Tamil Nadu",
-  "Thanjavur, Tamil Nadu",
-  "Thoothukudi, Tamil Nadu",
-  "Kanchipuram, Tamil Nadu",
   "Tiruvallur, Tamil Nadu",
-  "Dindigul, Tamil Nadu",
-  "Tiruppur, Tamil Nadu",
-  "The Nilgiris (Ooty), Tamil Nadu",
-  "All Tamil Nadu",
+  "Kanchipuram, Tamil Nadu",
+  "Chengalpattu, Tamil Nadu",
 ];
 
 const CHENNAI_LOCALITIES = [
+  "Thandalam, Chennai",
+  "Poonamallee, Chennai",
+  "Porur, Chennai",
+  "Sriperumbudur, Chennai",
+  "Tambaram, Chennai",
+  "Velappanchavadi, Chennai",
+  "Kundrathur, Chennai",
+  "Mangadu, Chennai",
   "Anna Nagar, Chennai",
   "T. Nagar, Chennai",
   "Adyar, Chennai",
   "Vadapalani, Chennai",
-  "Thousand Lights, Chennai",
-  "Park Town, Chennai",
-  "Kilpauk, Chennai",
-  "Royapettah, Chennai",
   "Guindy, Chennai",
   "Velachery, Chennai",
-  "Perumbakkam / OMR, Chennai",
-  "Manapakkam, Chennai",
-  "Mogappair, Chennai",
-  "Tambaram, Chennai",
 ];
 
 export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
@@ -80,8 +68,8 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Select Location in Tamil Nadu"
-      subtitle="Discover hospitals across Chennai localities or major Tamil Nadu districts"
+      title="Select Location"
+      subtitle="Discover hospitals in Chennai and surrounding districts"
     >
       <div className="flex flex-col gap-5 pt-2">
         {/* GPS Quick Action */}
@@ -121,7 +109,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
         {/* Manual Location Search Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
           <label className="text-xs font-bold uppercase tracking-wider text-[#64748B]">
-            Search Tamil Nadu Area, City or Pincode
+            Search Chennai Area or Pincode
           </label>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -130,7 +118,7 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="e.g. Anna Nagar, Chennai or Madurai or 600003"
+                placeholder="e.g. Thandalam, Porur or 600105"
                 className="w-full text-xs sm:text-sm font-semibold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-[#0D9488]"
                 autoFocus
               />
@@ -142,11 +130,11 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
           </div>
         </form>
 
-        {/* Tamil Nadu Districts */}
+        {/* Chennai & Surrounding Districts */}
         <div className="flex flex-col gap-2 pt-1 border-t border-slate-100">
           <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F172A]">
             <Building2 className="w-3.5 h-3.5 text-[#0D9488]" />
-            <span>Tamil Nadu Districts</span>
+            <span>Chennai & Surrounding Districts</span>
           </div>
           <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
             {TAMIL_NADU_DISTRICTS.map((district) => {
@@ -171,11 +159,11 @@ export const LocationSelectorModal: React.FC<LocationSelectorModalProps> = ({
           </div>
         </div>
 
-        {/* Chennai Localities */}
+        {/* Chennai Localities near REC */}
         <div className="flex flex-col gap-2 pt-2 border-t border-slate-100">
           <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F172A]">
             <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" />
-            <span>Chennai Localities (Primary Focus)</span>
+            <span>Chennai Localities (Near Rajalakshmi Engineering College)</span>
           </div>
           <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
             {CHENNAI_LOCALITIES.map((area) => {

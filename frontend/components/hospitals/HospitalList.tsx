@@ -4,7 +4,7 @@ import React from "react";
 import { HospitalWithDistance } from "@/types/hospital";
 import { HospitalCard } from "./HospitalCard";
 import { Button } from "@/components/ui/Button";
-import { MapPinOff, Maximize2, MapPin, RotateCcw } from "lucide-react";
+import { MapPinOff, Maximize2, RotateCcw } from "lucide-react";
 
 export interface HospitalListProps {
   hospitals: HospitalWithDistance[];
@@ -13,7 +13,6 @@ export interface HospitalListProps {
   onSelectHospital: (hospital: HospitalWithDistance) => void;
   onOpenDetail: (hospital: HospitalWithDistance) => void;
   onExpandDistance?: () => void;
-  onChangeLocation?: () => void;
   onClearFilters?: () => void;
 }
 
@@ -24,7 +23,6 @@ export const HospitalList: React.FC<HospitalListProps> = ({
   onSelectHospital,
   onOpenDetail,
   onExpandDistance,
-  onChangeLocation,
   onClearFilters,
 }) => {
   if (hospitals.length === 0) {
@@ -38,7 +36,7 @@ export const HospitalList: React.FC<HospitalListProps> = ({
             No healthcare facilities found
           </h3>
           <p className="text-xs sm:text-sm text-[#64748B]">
-            No verified hospitals match your current location, department, or distance criteria. Try expanding the search radius or adjusting your filters.
+            No verified hospitals match your current location, department, or distance criteria in Chennai area. Try expanding the search radius or adjusting your filters.
           </p>
         </div>
 
@@ -47,13 +45,6 @@ export const HospitalList: React.FC<HospitalListProps> = ({
             <Button onClick={onExpandDistance} variant="primary" size="md" className="rounded-xl font-bold">
               <Maximize2 className="w-4 h-4 mr-1.5" />
               <span>Increase Radius to 50 km</span>
-            </Button>
-          )}
-
-          {onChangeLocation && (
-            <Button onClick={onChangeLocation} variant="secondary" size="md" className="rounded-xl font-bold">
-              <MapPin className="w-4 h-4 mr-1.5 text-[#0D9488]" />
-              <span>Change Location</span>
             </Button>
           )}
 

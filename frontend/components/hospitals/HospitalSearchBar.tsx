@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, X, Sparkles, Building2, Stethoscope, MapPin } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export interface HospitalSearchBarProps {
@@ -9,16 +9,6 @@ export interface HospitalSearchBarProps {
   onSearchChange: (query: string) => void;
   onSearchSubmit: (query: string) => void;
 }
-
-const QUICK_SUGGESTIONS = [
-  { label: "Government hospital", icon: Building2, type: "type" },
-  { label: "Cardiology", icon: Stethoscope, type: "specialty" },
-  { label: "Emergency Chennai", icon: Building2, type: "service" },
-  { label: "Coimbatore", icon: MapPin, type: "location" },
-  { label: "Madurai", icon: MapPin, type: "location" },
-  { label: "Trichy", icon: MapPin, type: "location" },
-  { label: "Salem", icon: MapPin, type: "location" },
-];
 
 export const HospitalSearchBar: React.FC<HospitalSearchBarProps> = ({
   searchQuery,
@@ -40,12 +30,6 @@ export const HospitalSearchBar: React.FC<HospitalSearchBarProps> = ({
     setLocalInput("");
     onSearchChange("");
     onSearchSubmit("");
-  };
-
-  const handleSuggestionClick = (label: string) => {
-    setLocalInput(label);
-    onSearchChange(label);
-    onSearchSubmit(label);
   };
 
   return (
@@ -85,27 +69,6 @@ export const HospitalSearchBar: React.FC<HospitalSearchBarProps> = ({
           <span>Search</span>
         </Button>
       </form>
-
-      {/* Quick Search Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[#64748B] shrink-0 flex items-center gap-1">
-          <Sparkles className="w-3.5 h-3.5 text-[#0D9488]" />
-          <span>Suggestions:</span>
-        </span>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {QUICK_SUGGESTIONS.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              onClick={() => handleSuggestionClick(item.label)}
-              className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-slate-50 hover:bg-[#F0FDFA] text-slate-700 hover:text-[#0D9488] border border-slate-200 hover:border-[#0D9488]/40 font-medium text-xs transition-all cursor-pointer shrink-0"
-            >
-              <item.icon className="w-3 h-3 text-[#0D9488]" />
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

@@ -64,6 +64,7 @@ class HospitalService:
         Query nearby hospitals using local database catalogue first.
         If local catalogue has insufficient matches, use OpenStreetMap Overpass API as fallback.
         Calculates real OSRM driving duration and distance.
+        Focuses on Chennai and surrounding districts (Thiruvallur, Kancheepuram, Chengalpattu).
         """
         # Resolve user coordinates
         latitude, longitude = payload.latitude, payload.longitude
@@ -73,23 +74,20 @@ class HospitalService:
             longitude = HospitalService.DEMO_LONGITUDE
             location_query = ""
         is_statewide = location_query.lower() in {"all tamil nadu", "tamil nadu"}
+        # Chennai and surrounding districts only
         TN_DISTRICT_COORDS = {
+            "thandalam": (13.009644, 80.004336),
+            "poonamallee": (13.0567, 80.0747),
+            "porur": (13.0381, 80.1428),
+            "sriperumbudur": (12.9572, 79.9434),
+            "tambaram": (12.9257, 80.1494),
+            "velappanchavadi": (13.0589, 80.1267),
+            "kundrathur": (13.0041, 80.1119),
+            "mangadu": (13.0167, 80.1250),
             "chennai": (13.0827, 80.2707),
-            "coimbatore": (11.0168, 76.9558),
-            "madurai": (9.9252, 78.1198),
-            "salem": (11.6643, 78.1460),
-            "tiruchirappalli": (10.7905, 78.7047),
-            "trichy": (10.7905, 78.7047),
-            "vellore": (12.9165, 79.1325),
-            "tirunelveli": (8.7139, 77.7567),
-            "thanjavur": (10.7870, 79.1378),
-            "thoothukudi": (8.7642, 78.1348),
-            "erode": (11.3410, 77.7172),
-            "tiruppur": (11.1085, 77.3411),
-            "dindigul": (10.3673, 77.9803),
+            "tiruvallur": (13.1438, 79.9083),
             "kanchipuram": (12.8342, 79.7036),
             "chengalpattu": (12.6922, 79.9770),
-            "tiruvallur": (13.1438, 79.9083),
         }
 
         if latitude is None or longitude is None:
@@ -114,7 +112,7 @@ class HospitalService:
 
         radius_km = payload.max_distance_km if payload.max_distance_km and payload.max_distance_km > 0 else 25
         if payload.demo_only:
-            radius_km = min(payload.max_distance_km or 20, 20)
+            radius_km = min(payload.max_distance_km or 25, 25) # Increased to 25km to show all demo hospitals
         if is_statewide and not payload.max_distance_km:
             radius_km = 400
 

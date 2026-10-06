@@ -1,11 +1,9 @@
 "use client";
 
 import React from "react";
-import { SlidersHorizontal, Building2, Stethoscope, Navigation2, ArrowUpDown, RotateCcw, MapPin } from "lucide-react";
+import { SlidersHorizontal, Building2, Stethoscope, Navigation2, ArrowUpDown, RotateCcw } from "lucide-react";
 
 export interface HospitalFilterBarProps {
-  selectedDistrict: string;
-  onDistrictChange: (val: string) => void;
   hospitalType: string;
   onHospitalTypeChange: (val: string) => void;
   specialty: string;
@@ -17,26 +15,6 @@ export interface HospitalFilterBarProps {
   resultCount: number;
   onResetFilters: () => void;
 }
-
-const TAMIL_NADU_DISTRICT_OPTIONS = [
-  { value: "Rajalakshmi Engineering College, Thandalam", label: "Rajalakshmi Engineering College, Thandalam" },
-  { value: "Chennai, Tamil Nadu", label: "Chennai (Primary Hub)" },
-  { value: "Coimbatore, Tamil Nadu", label: "Coimbatore" },
-  { value: "Madurai, Tamil Nadu", label: "Madurai" },
-  { value: "Tiruchirappalli, Tamil Nadu", label: "Tiruchirappalli (Trichy)" },
-  { value: "Salem, Tamil Nadu", label: "Salem" },
-  { value: "Tirunelveli, Tamil Nadu", label: "Tirunelveli" },
-  { value: "Vellore, Tamil Nadu", label: "Vellore" },
-  { value: "Erode, Tamil Nadu", label: "Erode" },
-  { value: "Thanjavur, Tamil Nadu", label: "Thanjavur" },
-  { value: "Thoothukudi, Tamil Nadu", label: "Thoothukudi" },
-  { value: "Kanchipuram, Tamil Nadu", label: "Kanchipuram" },
-  { value: "Tiruvallur, Tamil Nadu", label: "Tiruvallur" },
-  { value: "Dindigul, Tamil Nadu", label: "Dindigul" },
-  { value: "Tiruppur, Tamil Nadu", label: "Tiruppur" },
-  { value: "The Nilgiris (Ooty), Tamil Nadu", label: "The Nilgiris (Ooty)" },
-  { value: "All Tamil Nadu", label: "All Tamil Nadu Districts" },
-];
 
 const HOSPITAL_TYPES = [
   { value: "All", label: "All Types" },
@@ -76,8 +54,6 @@ const SORT_OPTIONS = [
 ];
 
 export const HospitalFilterBar: React.FC<HospitalFilterBarProps> = ({
-  selectedDistrict,
-  onDistrictChange,
   hospitalType,
   onHospitalTypeChange,
   specialty,
@@ -122,26 +98,7 @@ export const HospitalFilterBar: React.FC<HospitalFilterBarProps> = ({
       </div>
 
       {/* Filter Select Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        {/* Tamil Nadu District / City */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B] flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 text-[#0D9488]" />
-            <span>Location / District</span>
-          </label>
-          <select
-            value={selectedDistrict}
-            onChange={(e) => onDistrictChange(e.target.value)}
-            className="w-full text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-[#0D9488] transition-all"
-          >
-            {TAMIL_NADU_DISTRICT_OPTIONS.map((d) => (
-              <option key={d.value} value={d.value}>
-                {d.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Hospital Type */}
         <div className="flex flex-col gap-1.5">
           <label className="text-[11px] font-bold uppercase tracking-wider text-[#64748B] flex items-center gap-1">
