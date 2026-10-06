@@ -115,10 +115,9 @@ export default function HospitalsPage() {
 
   // Reset all filters
   const handleResetFilters = () => {
-    setSearchQuery("");
     setHospitalType("All");
     setSpecialtyFilter("");
-    setMaxDistance(20);
+    setMaxDistance(25);
     setSortBy("distance");
   };
 
