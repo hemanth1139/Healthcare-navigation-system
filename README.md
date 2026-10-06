@@ -196,7 +196,12 @@ pip install -r requirements.txt
 # 4. Run database migrations
 alembic upgrade head
 
-# 5. Start the development server
+# 5. Initialize database with seed data
+python scripts/seed_schemes.py
+python scripts/seed_chennai_hospitals.py
+python scripts/seed_demo_user.py
+
+# 6. Start the development server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -205,7 +210,7 @@ The backend API will be available at:
 - **Interactive Docs (Swagger):** `http://localhost:8000/docs`
 - **ReDoc:** `http://localhost:8000/redoc`
 
-> **Note:** On first startup, the app automatically seeds the database with government scheme data from `healthcare_schemes.json` and creates a demo user account.
+> **Note:** After running migrations, you must run the seed scripts to initialize the database with government schemes, hospitals, and a demo user account.
 
 ---
 
