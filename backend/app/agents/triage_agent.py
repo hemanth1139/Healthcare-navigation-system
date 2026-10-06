@@ -596,6 +596,21 @@ COMPLAINT-SPECIFIC FOCUS (examples of what to prioritize)
 - Mood or anxiety: duration, effect on sleep and daily life, any thoughts of self-harm.
 - Children, older adults, pregnant patients, and people with chronic illness: lower the threshold for recommending in-person care.
 
+SPECIALIST SELECTION BY BODY PART AND SYMPTOM (match these patterns carefully)
+- Head, brain, or severe headaches: Neurologist
+- Eyes (pain, vision problems, redness): Ophthalmologist
+- Ears, nose, throat, neck, swallowing issues: ENT Specialist
+- Chest, heart, heart rhythm, heart attack symptoms: Cardiologist
+- Lungs, breathing, cough, asthma, wheezing: Pulmonologist
+- Stomach, abdomen, digestive issues, diarrhea, constipation: Gastroenterologist
+- Kidney, urinary problems, burning urination, difficulty urinating: Urologist or Nephrologist
+- Knee, joints, bones, fractures, back injury, muscle pain: Orthopedist
+- Skin rashes, itching, skin lesions: Dermatologist
+- Pregnancy, menstrual issues, pelvic pain: Gynecologist
+- Mental health, anxiety, depression, mood: Psychiatrist
+- Children under 18: Pediatrician
+- General or unclear symptoms: General Physician
+
 HOW MANY QUESTIONS
 - Before four follow-up questions have been asked, a non-emergency case must continue with a relevant question.
 - After that, continue only if an important detail or safety check is still unknown. Aim to finish within 4 to 7 questions total. Stop once you can confidently choose a severity level and specialist and the key warning signs have been checked.
@@ -612,7 +627,7 @@ FINAL ASSESSMENT (when interview is complete)
   - mild: likely manageable with rest and self-care; see a doctor if no improvement in a few days.
   - moderate: should see a doctor within 1 to 3 days.
   - severe: needs prompt medical evaluation today, but not clearly life-threatening.
-- specialists: 1 to 3 types of specialist suited to the symptoms (e.g., "General Physician", "Cardiologist", "Neurologist", "Gastroenterologist", "Dermatologist", "ENT Specialist", "Orthopedist", "Pulmonologist", "Gynecologist", "Pediatrician", "Psychiatrist"). Put the best first. If unclear, use "General Physician".
+- specialists: 1 to 3 types of specialist suited to the symptoms, following the body-part-to-specialist mapping above (e.g., "General Physician", "Cardiologist", "Neurologist", "Gastroenterologist", "Dermatologist", "ENT Specialist", "Orthopedist", "Pulmonologist", "Gynecologist", "Pediatrician", "Psychiatrist", "Urologist", "Nephrologist", "Ophthalmologist"). Put the best first. If unclear, use "General Physician".
 - message: 2 to 4 plain sentences summarizing what the patient reported, why this level of care is suggested, what warning signs should make them seek urgent care, and a clear statement that this is not a diagnosis and uncertainty remains. Do not name a disease as the cause. Do not recommend specific prescription drugs or doses.
 
 SYMPTOM EXTRACTION
@@ -679,24 +694,38 @@ def _recommend_specialists(
         return ["Ophthalmologist"]
 
     domains = []
-    if symptom_set.intersection({"chest_pain", "left_arm_radiation"}) or re.search(r"\b(palpitations|irregular heartbeat)\b", context):
+    # Cardiac
+    if symptom_set.intersection({"chest_pain", "left_arm_radiation"}) or re.search(r"\b(palpitations|irregular heartbeat|heart.*pain|chest.*tightness)\b", user_text):
         domains.append("Cardiologist")
-    if symptom_set.intersection({"difficulty_urinating", "acute_urinary_retention", "burning_urination", "urinary_frequency_urgency", "hematuria"}):
+    # Urinary/Renal
+    if symptom_set.intersection({"difficulty_urinating", "acute_urinary_retention", "burning_urination", "urinary_frequency_urgency", "hematuria", "flank_pain"}):
         domains.append("Urologist")
     if re.search(r"\b(kidney disease|chronic kidney|reduced kidney function)\b", context):
         domains.append("Nephrologist")
-    if symptom_set.intersection({"throat_pain", "difficulty_swallowing"}) or re.search(r"\b(ear pain|earache|sinus pain|blocked nose)\b", context):
+    # ENT
+    if symptom_set.intersection({"throat_pain", "difficulty_swallowing"}) or re.search(r"\b(ear pain|earache|sinus pain|blocked nose|neck.*pain|swallow.*difficult)\b", user_text):
         domains.append("ENT Specialist")
-    if "shortness_of_breath" in symptom_set or re.search(r"\b(wheezing|asthma|persistent cough)\b", user_text):
+    # Pulmonary
+    if "shortness_of_breath" in symptom_set or re.search(r"\b(wheezing|asthma|persistent cough|breath.*difficult|lung.*pain)\b", user_text):
         domains.append("Pulmonologist")
-    if symptom_set.intersection({"abdominal_pain", "heartburn"}) or re.search(r"\b(diarrh\w*|constipat\w*|blood in stool)\b", user_text):
+    # Gastrointestinal
+    if symptom_set.intersection({"abdominal_pain", "heartburn", "lower_abdominal_pain"}) or re.search(r"\b(diarrh\w*|constipat\w*|blood in stool|stomach.*pain|belly.*pain|digestive)\b", user_text):
         domains.append("Gastroenterologist")
-    if symptom_set.intersection({"knee_pain", "joint_pain", "joint_deformity", "inability_to_bear_weight", "joint_warmth_redness", "knee_locking"}) or ("back_pain" in symptom_set and "trauma_injury" in symptom_set):
+    # Orthopedic (check for body part + pain patterns)
+    body_part_orthopedic = any(
+        f"{part}_pain" in symptom_set
+        for part in ["knee", "joint", "shoulder", "hip", "ankle", "wrist", "elbow", "back", "neck"]
+    )
+    if body_part_orthopedic or symptom_set.intersection({"joint_pain", "joint_deformity", "inability_to_bear_weight", "joint_warmth_redness", "knee_locking"}):
         domains.append("Orthopedist")
+    # Neurological
     if "headache" in symptom_set and re.search(r"\b(recurrent|repeated|chronic|migraine)\b", user_text):
         domains.append("Neurologist")
-    if symptom_set.intersection({"facial_droop_weakness", "thunderclap_headache"}):
+    if symptom_set.intersection({"facial_droop_weakness", "thunderclap_headache", "dizziness", "confusion"}):
         domains.append("Neurologist")
+    # Ophthalmologic
+    if re.search(r"\b(eye.*pain|vision.*blur|red eye|vision.*loss|blurry.*vision)\b", user_text):
+        domains.append("Ophthalmologist")
 
     # Multiple unrelated symptom systems are better assessed first by primary care.
     if len(domains) == 1:
